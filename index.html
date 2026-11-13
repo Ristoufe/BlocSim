@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BlocSim - Simulateur de bloc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%230b7a6e%22/%3E%3Cpath d=%22M7 3h2v4h4v2H9v4H7V9H3V7h4z%22 fill=%22%23fff%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><b>BlocSim</b><span>Blocapta, simulateur de journée de bloc</span></div>
+    <div class="days" id="days" role="group" aria-label="Choisir une journée"></div>
+    <div class="clockbox">
+      <div class="clock" id="clock">--:--<small id="clockday"></small></div>
+      <div class="ctrl">
+        <button class="btn play" id="play" type="button">Pause</button>
+        <button class="btn" id="back" type="button" aria-label="Reculer de 15 minutes">-15</button>
+        <button class="btn" id="fwd" type="button" aria-label="Avancer de 15 minutes">+15</button>
+      </div>
+      <div class="ctrl" id="speeds" role="group" aria-label="Vitesse"></div>
+    </div>
+  </header>
+
+  <div id="mapwrap">
+    <canvas id="map" aria-label="Plan du bloc opératoire animé. Cliquer sur une salle pour voir le détail."></canvas>
+    <div class="mapctl">
+      <button class="btn" id="zin" type="button" aria-label="Zoomer">+</button>
+      <button class="btn" id="zout" type="button" aria-label="Dézoomer">-</button>
+      <button class="btn" id="zfit" type="button" aria-label="Recadrer le plan">[ ]</button>
+    </div>
+    <div class="tip" id="tip"></div>
+  </div>
+
+  <div id="tl"><canvas id="tlc" aria-label="Frise de la journée par salle. Cliquer pour se déplacer dans le temps."></canvas></div>
+
+  <aside id="side"></aside>
+</div>
+<script src="js/config.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/render.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

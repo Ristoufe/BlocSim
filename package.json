@@ -1,0 +1,14 @@
+{
+  "name": "blocsim",
+  "version": "0.1.0",
+  "description": "Simulateur de journée de bloc opératoire (projet Blocapta)",
+  "private": true,
+  "scripts": {
+    "start": "node server.js 8080",
+    "data": "python3 tools/export_days.py"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}

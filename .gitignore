@@ -1,0 +1,9 @@
+# Données brutes : jamais dans le dépôt (noms de soignants en clair)
+data/raw/
+*.xls
+*.xlsx
+*.csv
+
+node_modules/
+.DS_Store
+__pycache__/
