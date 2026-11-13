@@ -10,3 +10,6 @@ __pycache__/
 
 # Journaux des simulations (npm start)
 logs/
+
+# Fichiers déposés par l app Claude (pièces jointes du chat), hors projet
+Claude outputs/
