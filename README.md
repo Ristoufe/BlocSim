@@ -2,6 +2,8 @@
 
 Simulateur de journée de bloc opératoire du projet **Blocapta**. Il rejoue des journées réelles d'un bloc de 10 salles, vues du dessus : patients, chirurgiens, anesthésistes, IADE, IBODE, brancardiers et agents de bionettoyage se déplacent entre l'accueil, les salles et la SSPI.
 
+Le guide pas à pas pour générer des journées, régler les paramètres et exploiter les CSV est dans [GUIDE.md](GUIDE.md).
+
 ## Lancer en local
 
 Prérequis : Node.js 18 ou plus récent. Aucune dépendance à installer.
