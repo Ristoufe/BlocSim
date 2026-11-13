@@ -110,6 +110,13 @@ function drawRoom(ctx,R,sim,t,rt,detail){
     if(st.c && !st.next && st.st!=="bio") lab += " " + fmt(t-st.c.s).replace(/^00:/,"0:");
     ctx.fillText(lab, R.x+R.w-10, ly+2); ctx.textAlign="left";
   }
+  if(st.st==="panne"){
+    ctx.save(); ctx.beginPath(); ctx.rect(R.x,R.y,R.w,R.h); ctx.clip(); ctx.strokeStyle="rgba(91,58,58,.28)"; ctx.lineWidth=6;
+    ctx.beginPath(); for(let i=-R.h;i<R.w;i+=22){ ctx.moveTo(R.x+i,R.y+R.h); ctx.lineTo(R.x+i+R.h,R.y); } ctx.stroke(); ctx.restore();
+    ctx.fillStyle="#5b3a3a"; rrect(ctx,R.cx-70*R.k,R.cy-16,140*R.k,32,4); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.font=`600 ${R.small?10:13}px ${getComputedStyle(document.documentElement).getPropertyValue("--font-ui")}`; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText(st.pan.label||"Panne", R.cx, R.cy-4); ctx.font=`500 ${R.small?9:11}px ${getComputedStyle(document.documentElement).getPropertyValue("--font-mono")}`; ctx.fillText("jusqu'à "+fmt(st.pan.to), R.cx, R.cy+9); ctx.textAlign="left";
+  }
   walls(ctx,R.x,R.y,R.w,R.h,R.door,R.top?"bottom":"top");
   if(sim && sim.selected===R.name){ ctx.strokeStyle="#0b7a6e"; ctx.lineWidth=3; ctx.setLineDash([8,5]); ctx.strokeRect(R.x-6,R.y-6,R.w+12,R.h+12); ctx.setLineDash([]); }
 }
@@ -122,7 +129,8 @@ function drawZone(ctx,Z,key,sim,t){
   const top = Z.y<CY; ctx.fillText(Z.label.toUpperCase(), Z.x+10, top? Z.y+12 : Z.y+Z.h-26);
   if(key==="ACC"){ ctx.strokeStyle="rgba(38,52,59,.18)"; ctx.lineWidth=1; ACC_SLOTS.forEach(p=>{ ctx.strokeRect(p.x-20,p.y-13,40,26); }); ctx.font=`500 11px ${ui}`; ctx.fillStyle="#7d8b91"; ctx.fillText("vers les services", 26, 266); }
   if(key==="REC"){
-    REC_BEDS.forEach((b,i)=>{ ctx.strokeStyle="rgba(38,52,59,.22)"; ctx.strokeRect(b.x-22,b.y-14,44,28); ctx.fillStyle="#9aa6ab"; ctx.font=`500 10px ${mono}`; ctx.fillText(String(i+1), b.x-21, b.y-13); ctx.fillStyle="#3a4950"; ctx.fillRect(b.x+24,b.y-6,6,12); });
+    REC_BEDS.forEach((b,i)=>{ if(sim && i>=sim.sspiBeds){ ctx.fillStyle="rgba(91,58,58,.12)"; ctx.fillRect(b.x-22,b.y-14,44,28); ctx.strokeStyle="rgba(91,58,58,.4)"; ctx.beginPath(); ctx.moveTo(b.x-22,b.y-14); ctx.lineTo(b.x+22,b.y+14); ctx.moveTo(b.x+22,b.y-14); ctx.lineTo(b.x-22,b.y+14); ctx.stroke(); return; }
+      ctx.strokeStyle="rgba(38,52,59,.22)"; ctx.strokeRect(b.x-22,b.y-14,44,28); ctx.fillStyle="#9aa6ab"; ctx.font=`500 10px ${mono}`; ctx.fillText(String(i+1), b.x-21, b.y-13); ctx.fillStyle="#3a4950"; ctx.fillRect(b.x+24,b.y-6,6,12); });
     ctx.strokeStyle="#26343b"; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(1690,300); ctx.lineTo(1690,440); ctx.moveTo(1550,292); ctx.lineTo(1820,292); ctx.stroke();
   }
   if(key==="OFF"){ ctx.fillStyle="#dde3e4"; rrect(ctx,40,575,190,22,4); ctx.fill(); ctx.fillStyle="#7d8b91"; ctx.font=`500 11px ${ui}`; ctx.fillText("vestiaires", 46, 580); }
@@ -191,15 +199,19 @@ function drawTimeline(sim,t){
     c.font=`${sim.selected===r?600:500} 11px ${css.getPropertyValue("--font-mono")}`; c.fillText(r==="SSPI"?"Box SSPI":r, 8, y+lh/2);
     for(const k of sim.byRoom[r]){
       const x0=X(k.s), x1=X(k.end); c.fillStyle= k.type==="P"? "#0b7a6e" : k.type==="U"? "#c2412d" : "#c77700";
-      c.globalAlpha = t>=k.end? .45 : 1; c.fillRect(x0,y+2,Math.max(1.5,x1-x0),lh-4); c.globalAlpha=1;
+      const xd=X(k.s+k.dur);
+      c.globalAlpha = t>=k.end? .45 : 1; c.fillRect(x0,y+2,Math.max(1.5,xd-x0),lh-4);
+      if(k.waitBed>0){ c.fillStyle="#c2412d"; c.fillRect(xd,y+lh/2-3,Math.max(1,x1-xd),6); }
+      c.globalAlpha=1;
       c.fillStyle="#3a9ad9"; c.globalAlpha=.55; c.fillRect(x1,y+lh/2-1,Math.max(1,X(k.cleanEnd)-x1),2); c.globalAlpha=1;
     }
+    for(const z of (sim.closures||[]).filter(z=>z.room===r)){ const a=X(z.from), b=X(z.to); c.fillStyle="rgba(91,58,58,.35)"; c.fillRect(a,y+1,b-a,lh-2); c.strokeStyle="#5b3a3a"; c.strokeRect(a,y+1,b-a,lh-2); }
   });
   // occupation SSPI
   const y0=top+lanes.length*lh+4, sh=h-y0-8;
   c.fillStyle=css.getPropertyValue("--ink-2"); c.font=`500 11px ${css.getPropertyValue("--font-mono")}`; c.fillText("SSPI", 8, y0+sh/2);
   c.beginPath(); c.moveTo(X(sim.t0),y0+sh);
-  for(let m=sim.t0;m<=sim.t1;m+=5){ const n=sim.cases.filter(k=>m>=k.inRec&&m<k.outRec).length; c.lineTo(X(m), y0+sh - Math.min(1,n/8)*sh); }
+  for(let m=sim.t0;m<=sim.t1;m+=5){ const n=sim.cases.filter(k=>m>=k.inRec&&m<k.outRec).length; c.lineTo(X(m), y0+sh - Math.min(1,n/sim.sspiBeds)*sh); }
   c.lineTo(X(sim.t1),y0+sh); c.closePath(); c.fillStyle="rgba(194,56,111,.22)"; c.fill();
   // tête de lecture
   const px=X(t); c.strokeStyle=css.getPropertyValue("--ink"); c.lineWidth=2; c.beginPath(); c.moveTo(px,top-6); c.lineTo(px,h-4); c.stroke();

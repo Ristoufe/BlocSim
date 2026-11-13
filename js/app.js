@@ -15,8 +15,9 @@ function getSim(i){ return SIMS[i] || (SIMS[i]=buildDay(DATA[i])); }
 function setDay(i){
   app.dayIdx=i; const sel = app.sim? app.sim.selected : null; app.sim=getSim(i); app.sim.selected = (sel && app.sim.byRoom[sel]) ? sel : null;
   const busy = app.sim.cases.filter(c=>!c.night).length;
-  app.t = busy>6 ? Math.max(app.sim.t0, 570) : app.sim.cases[0].s-5;
-  document.querySelectorAll(".daycard").forEach((b,j)=>b.setAttribute("aria-pressed", j===i));
+  app.t = app.sim.day.generated ? Math.max(app.sim.t0, 455) : busy>6 ? Math.max(app.sim.t0, 570) : app.sim.cases[0].s-5;
+  if(app.sim.day.generated){ app.playing=true; if(globalThis.syncPlay) globalThis.syncPlay(); }
+  document.querySelectorAll(".daycard").forEach(b=>b.setAttribute("aria-pressed", b.dataset.idx!==undefined && +b.dataset.idx===i));
   try{ localStorage.setItem("blocapta-day", String(i)); }catch(e){}
   renderSide(true);
 }
@@ -29,8 +30,14 @@ function renderSide(full){
   if(sim.selected) return renderRoomPanel(full);
   if(full){
     side.innerHTML = `
-    <div class="sec"><h2>${sim.day.label}</h2><div class="kpis" id="kpis"></div></div>
+    ${sim.day.report? reportHTML(sim.day) : ""}
+    <div class="sec"><h2>${sim.day.generated? "En ce moment" : sim.day.label}</h2><div class="kpis" id="kpis"></div></div>
     <div class="sec"><h2>Fil des événements</h2><ul class="feed" id="feed"></ul></div>
+    <div class="sec"><h2>Exporter la journée</h2>
+      <p class="note">Une ligne par intervention, avec les colonnes de l'export OPROOM (séparateur point-virgule, lisible dans Excel). La version détaillée ajoute l'heure prévue, l'attente des urgences, le retard et l'attente de lit en SSPI.</p>
+      <div class="rbtns"><button class="btn" type="button" id="csv1">CSV format OPROOM</button><button class="btn" type="button" id="csv2">CSV détaillé</button></div>
+      ${sim.day.logFiles? `<p class="note">Enregistré automatiquement : ${sim.day.logFiles.map(f=>`<span class="mono">${f}</span>`).join("<br>")}</p>` : ""}
+    </div>
     <div class="sec"><h2>Qui est qui</h2><div class="legend">${Object.entries(ROLE).map(([k,r])=>`<span><i style="background:${r.color}"></i>${r.label}</span>`).join("")}</div>
       <div class="states">${["accueil","induc","chir","ferm","reveil","bio","prepa","libre"].map(k=>`<span><i style="background:${STATE[k].color}"></i>${STATE[k].label}</span>`).join("")}</div></div>
     <div class="sec"><h2>Annulées ce jour (${sim.day.cancelled.length})</h2>${sim.day.cancelled.length? `<ul class="canc">${sim.day.cancelled.map(c=>`<li>${SPEC_SHORT(c.spec)} : ${c.reason}</li>`).join("")}</ul>`:`<p class="note">Aucune annulation enregistrée.</p>`}</div>
@@ -155,17 +162,16 @@ SIMS=DATA.map(()=>null);
 /* Interactions                                                        */
 /* ------------------------------------------------------------------ */
 const daysEl=document.getElementById("days");
-DATA.forEach((d,i)=>{
-  const b=document.createElement("button"); b.className="daycard"; b.type="button";
-  const n=d.cases.length, u=d.cases.filter(c=>c.type!=="P").length;
-  b.innerHTML=`<b>${d.label.replace(" 2026","")}</b><span>${n} interv. · ${u} urg. · ${d.cancelled.length} annul.</span>`;
-  b.onclick=()=>setDay(i); daysEl.appendChild(b);
-});
+const newBtn=document.createElement("button"); newBtn.className="daycard newday"; newBtn.type="button";
+newBtn.innerHTML=`<b>+ Créer une journée</b><span>scénario à simuler</span>`; newBtn.onclick=()=>openScenario();
+daysEl.appendChild(newBtn);
+DATA.forEach((d,i)=>addDayCard(d,i));
 const spEl=document.getElementById("speeds");
 SPEEDS.forEach(s=>{ const b=document.createElement("button"); b.className="btn"; b.type="button"; b.textContent=s.l; b.title=`1 seconde = ${s.v*60} secondes simulées`; b.onclick=()=>{app.speed=s.v; syncSpeed();}; spEl.appendChild(b); });
 function syncSpeed(){ [...spEl.children].forEach((b,i)=>b.setAttribute("aria-pressed", SPEEDS[i].v===app.speed)); }
 const playBtn=document.getElementById("play");
 function syncPlay(){ playBtn.textContent=app.playing?"Pause":"Lecture"; }
+globalThis.syncPlay=syncPlay;
 playBtn.onclick=()=>{ if(app.t>=app.sim.t1) app.t=app.sim.t0; app.playing=!app.playing; syncPlay(); };
 document.getElementById("back").onclick=()=>{ app.t=Math.max(app.sim.t0,app.t-15); renderSide(false); };
 document.getElementById("fwd").onclick=()=>{ app.t=Math.min(app.sim.t1,app.t+15); renderSide(false); };
@@ -208,11 +214,132 @@ syncSpeed(); syncPlay(); setDay(startDay); resize(); fitView();
 requestAnimationFrame(t=>{ app.last=t; frame(t); });
 }
 
-fetch("data/days.json")
-  .then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
-  .then(d=>{ DATA=d; startApp(); })
+const getJSON=u=>fetch(u).then(r=>{ if(!r.ok) throw new Error(u+" : HTTP "+r.status); return r.json(); });
+Promise.all([getJSON("data/days.json"), getJSON("data/stats.json")])
+  .then(([d,st])=>{ DATA=d; STATS=st; startApp(); })
   .catch(err=>{
     const box=document.createElement("div"); box.className="loaderr";
     box.innerHTML="Impossible de charger les journées (data/days.json).<br>Lancez l'application avec <code>npm start</code> puis ouvrez http://localhost:8080 : un fichier ouvert directement depuis le disque ne peut pas lire les données.";
     document.getElementById("mapwrap").appendChild(box); console.error(err);
   });
+
+/* ------------------------------------------------------------------ */
+/* Journées simulées : cartes, bilan, écran de configuration           */
+/* ------------------------------------------------------------------ */
+function addDayCard(d,i){
+  const daysEl=document.getElementById("days");
+  const b=document.createElement("button"); b.className="daycard"+(d.generated?" gen":""); b.type="button";
+  const n=d.cases.length, u=d.cases.filter(c=>c.type!=="P").length;
+  b.innerHTML=`<b>${d.generated?"Simulation : ":""}${d.label.replace(" 2026","")}</b><span>${n} interv. · ${u} urg. · ${d.cancelled.length} ${d.generated?"déprog.":"annul."}</span>`;
+  b.dataset.idx=i; b.onclick=()=>setDay(i);
+  const first=daysEl.querySelector(".daycard:not(.newday)");
+  if(d.generated && first) daysEl.insertBefore(b, daysEl.querySelector(".daycard.gen") || first); else daysEl.appendChild(b);
+  return b;
+}
+
+function reportHTML(d){
+  const R=d.report, B=d.baseline;
+  const delta=(v,b,unit="",good="low")=>{ const x=v-b; if(Math.abs(x)<0.5) return `<em class="dz">identique sans urgences ni pannes</em>`; const bad = good==="low" ? x>0 : x<0; return `<em class="${bad?"dbad":"dgood"}">${x>0?"+":""}${Math.round(x)}${unit} vs sans urgences ni pannes</em>`; };
+  const cfg=d.cfg;
+  return `<div class="sec report">
+    <h2>Bilan de la simulation</h2>
+    <p class="note">${d.label} · ${cfg.rooms.length} salles · ${cfg.sspiBeds} lits de SSPI · ${cfg.bran} brancardier${cfg.bran>1?"s":""} · ${cfg.ash} agent${cfg.ash>1?"s":""} de bionettoyage · graine ${cfg.seed}</p>
+    <div class="rgrid">
+      <div class="kpi"><b>${R.done}</b><span>interventions réalisées (${R.urg} urgences)</span></div>
+      <div class="kpi ${R.deprog?"bad":""}"><b>${R.deprog}</b><span>déprogrammées</span>${delta(R.deprog,B.deprog)}</div>
+      <div class="kpi"><b>${R.urgWait} min</b><span>attente moyenne des urgences (max ${R.urgWaitMax})${R.difN?`, différées : ${R.difWait} min`:""}</span></div>
+      <div class="kpi ${R.vitWait>15?"bad":""}"><b>${R.vitWait} min</b><span>attente moyenne des urgences vitales</span></div>
+      <div class="kpi"><b>${R.late} min</b><span>retard moyen du programmé (${R.lateN} cas à plus de 20 min)</span>${delta(R.late,B.late," min")}</div>
+      <div class="kpi"><b>${dur(R.overMin)}</b><span>de débordement après 18 h 30 (${R.overRooms} salle${R.overRooms>1?"s":""})</span>${delta(R.overMin,B.overMin," min")}</div>
+      <div class="kpi ${R.bedBlock>30?"bad":""}"><b>${R.bedBlock} min</b><span>de patients bloqués en salle faute de lit SSPI (${R.bedBlockN} cas)</span></div>
+      <div class="kpi"><b>${R.sspiPeak}/${cfg.sspiBeds}</b><span>pic d'occupation de la SSPI</span></div>
+    </div>
+    <div class="rbtns"><button class="btn" type="button" id="editScn">Modifier ce scénario</button><button class="btn" type="button" id="rerun">Relancer avec un autre tirage</button></div>
+  </div>`;
+}
+
+const modal=document.createElement("div"); modal.className="modal"; modal.hidden=true; document.body.appendChild(modal);
+let scn=null;
+function openScenario(base){
+  scn = base ? JSON.parse(JSON.stringify(base)) : defaultConfig();
+  renderScenario(); modal.hidden=false; const f=modal.querySelector("input,button"); if(f) f.focus();
+}
+function closeScenario(){ modal.hidden=true; }
+const SPEC_LIST = ()=>Object.keys(STATS.urg);
+function renderScenario(){
+  const c=scn;
+  const evRows = c.events.map((e,i)=>`<li>${e.kind==="panne"
+      ? `<span class="chip">PANNE</span> ${e.room} de ${fmt(e.at)} à ${fmt(e.until)}${e.label?` · ${e.label}`:""}`
+      : `<span class="chip u">${e.prio==="vitale"?"VITALE":e.prio==="urgente"?"URG":"DIFF"}</span> ${fmt(e.at)} · ${SPEC_SHORT(e.spec)}${e.dur?` · ${e.dur} min`:""}`}
+      <button class="close" type="button" data-del="${i}">Retirer</button></li>`).join("");
+  modal.innerHTML=`<div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+    <div class="mhead"><h2 id="mtitle">Créer une journée à simuler</h2><button class="close" type="button" id="mclose">Fermer</button></div>
+    <p class="note">Choisis un scénario de départ, ajuste les réglages et ajoute tes propres événements. Le programme opératoire et les urgences sont tirés des distributions réelles de l'export OPROOM, puis le bloc est simulé minute par minute : files d'attente, priorités, lits de SSPI, brancardiers et bionettoyage.</p>
+    <h3>Scénarios</h3>
+    <div class="presets">${PRESETS.map(p=>`<button class="preset" type="button" data-preset="${p.id}"><b>${p.name}</b><span>${p.text}</span></button>`).join("")}</div>
+    <h3>Réglages</h3>
+    <div class="form">
+      <label for="f-name">Nom</label><input id="f-name" type="text" value="${c.name.replace(/"/g,"&quot;")}">
+      <label for="f-date">Date simulée (pour le CSV)</label><input id="f-date" type="date" value="${c.date||"2026-11-16"}">
+      <span class="flabel">Salles ouvertes</span><div class="roomchips">${ALL_ROOMS.map(r=>`<button type="button" class="rchip" data-room="${r}" aria-pressed="${c.rooms.includes(r)}">${r}${r===c.urgRoom?" · urg.":""}</button>`).join("")}</div>
+      <label for="f-urgroom">Salle d'urgence</label><select id="f-urgroom">${ALL_ROOMS.map(r=>`<option ${r===c.urgRoom?"selected":""}>${r}</option>`).join("")}</select>
+      <label for="f-load">Programme : <output id="o-load">${Math.round(c.load*100)} %</output></label><input id="f-load" type="range" min="40" max="140" step="5" value="${Math.round(c.load*100)}">
+      <label for="f-urg">Urgences dans la journée : <output id="o-urg">${c.urgCount}</output></label><input id="f-urg" type="range" min="0" max="30" value="${c.urgCount}">
+      <label for="f-burst">Afflux de victimes : <output id="o-burst">${c.burst.n}</output></label><div class="row"><input id="f-burst" type="range" min="0" max="12" value="${c.burst.n}"><span>à</span><input id="f-burstat" type="time" value="${fmt(c.burst.at)}"></div>
+      <label for="f-beds">Lits de SSPI : <output id="o-beds">${c.sspiBeds}</output></label><input id="f-beds" type="range" min="2" max="8" value="${c.sspiBeds}">
+      <label for="f-bran">Brancardiers : <output id="o-bran">${c.bran}</output></label><input id="f-bran" type="range" min="1" max="5" value="${c.bran}">
+      <label for="f-ash">Agents de bionettoyage : <output id="o-ash">${c.ash}</output></label><input id="f-ash" type="range" min="1" max="5" value="${c.ash}">
+      <label for="f-seed">Tirage aléatoire</label><div class="row"><input id="f-seed" type="number" min="1" max="99999" value="${c.seed}"><button class="btn" type="button" id="f-dice">Nouveau tirage</button></div>
+    </div>
+    <h3>Événements de la journée</h3>
+    <ul class="evlist">${evRows || `<li class="note">Aucun événement ajouté. Les urgences tirées au hasard s'ajoutent à cette liste.</li>`}</ul>
+    <div class="addev">
+      <select id="e-kind" aria-label="Type d'événement"><option value="vitale">Urgence vitale</option><option value="urgente">Urgence</option><option value="differee">Urgence différée</option><option value="panne">Panne de salle</option></select>
+      <input id="e-at" type="time" value="11:00" aria-label="Heure">
+      <select id="e-spec" aria-label="Spécialité">${SPEC_LIST().map(s=>`<option value="${s}">${SPEC_SHORT(s)}</option>`).join("")}</select>
+      <select id="e-room" aria-label="Salle" hidden>${ALL_ROOMS.map(r=>`<option>${r}</option>`).join("")}</select>
+      <input id="e-dur" type="number" min="10" max="480" placeholder="durée (min)" aria-label="Durée en minutes">
+      <button class="btn" type="button" id="e-add">Ajouter</button>
+    </div>
+    <div class="mfoot"><button class="btn play" type="button" id="m-run">Lancer la simulation</button></div>
+  </div>`;
+  const $=id=>modal.querySelector("#"+id);
+  const toMin=v=>{ const [h,m]=v.split(":").map(Number); return h*60+(m||0); };
+  const bind=(id,key,f=x=>+x,o)=>{ const el=$(id); el.oninput=()=>{ c[key]=f(el.value); if(o) $(o).textContent = id==="f-load"? Math.round(c.load*100)+" %" : el.value; }; };
+  bind("f-load","load",x=>x/100,"o-load"); bind("f-urg","urgCount",undefined,"o-urg"); bind("f-beds","sspiBeds",undefined,"o-beds");
+  bind("f-bran","bran",undefined,"o-bran"); bind("f-ash","ash",undefined,"o-ash"); bind("f-seed","seed");
+  $("f-name").oninput=e=>c.name=e.target.value;
+  $("f-date").onchange=e=>{ if(e.target.value) c.date=e.target.value; };
+  $("f-burst").oninput=e=>{ c.burst.n=+e.target.value; $("o-burst").textContent=e.target.value; };
+  $("f-burstat").onchange=e=>{ if(e.target.value) c.burst.at=toMin(e.target.value); };
+  $("f-urgroom").onchange=e=>{ c.urgRoom=e.target.value; if(!c.rooms.includes(c.urgRoom)) c.rooms.push(c.urgRoom); renderScenario(); };
+  $("f-dice").onclick=()=>{ c.seed=1+Math.floor(Math.random()*99998); $("f-seed").value=c.seed; };
+  $("mclose").onclick=closeScenario;
+  modal.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{ const p=PRESETS.find(x=>x.id===b.dataset.preset); scn=p.apply({...defaultConfig(), seed:c.seed, date:c.date}); renderScenario(); });
+  modal.querySelectorAll("[data-room]").forEach(b=>b.onclick=()=>{ const r=b.dataset.room; c.rooms = c.rooms.includes(r) ? c.rooms.filter(x=>x!==r) : [...c.rooms, r]; if(!c.rooms.length) c.rooms=[r]; renderScenario(); });
+  modal.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ c.events.splice(+b.dataset.del,1); renderScenario(); });
+  const kind=$("e-kind");
+  kind.onchange=()=>{ const p=kind.value==="panne"; $("e-spec").hidden=p; $("e-room").hidden=!p; $("e-dur").placeholder = p? "durée de la panne (min)" : "durée (min)"; };
+  $("e-add").onclick=()=>{
+    const at=toMin($("e-at").value||"11:00"), d=+$("e-dur").value||0;
+    if(kind.value==="panne") c.events.push({kind:"panne", room:$("e-room").value, at, until:at+(d||120), label:"Panne"});
+    else c.events.push({kind:"urgence", prio:kind.value, at, spec:$("e-spec").value, dur:d||null});
+    c.events.sort((a,b)=>a.at-b.at); renderScenario();
+  };
+  $("m-run").onclick=()=>runScenario(c);
+}
+function runScenario(cfg){
+  const d=generateDay(cfg);
+  DATA.push(d); SIMS.push(null); const i=DATA.length-1;
+  addDayCard(d,i);
+  closeScenario(); setDay(i);
+  saveLog(getSim(i)).then(r=>{ if(r && r.saved){ d.logFiles=r.saved; if(app.dayIdx===i && !app.sim.selected) renderSide(true); } });
+}
+modal.addEventListener("click",e=>{ if(e.target===modal) closeScenario(); });
+document.addEventListener("keydown",e=>{ if(e.code==="Escape" && !modal.hidden){ e.stopImmediatePropagation(); closeScenario(); } }, true);
+document.addEventListener("click",e=>{
+  if(e.target.id==="editScn") openScenario(app.sim.day.cfg);
+  if(e.target.id==="csv1") downloadCSV(app.sim,false);
+  if(e.target.id==="csv2") downloadCSV(app.sim,true);
+  if(e.target.id==="rerun"){ const c={...app.sim.day.cfg, seed:1+Math.floor(Math.random()*99998)}; runScenario(c); }
+});

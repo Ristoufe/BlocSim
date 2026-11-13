@@ -7,3 +7,6 @@ data/raw/
 node_modules/
 .DS_Store
 __pycache__/
+
+# Journaux des simulations (npm start)
+logs/

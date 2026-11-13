@@ -24,7 +24,9 @@ const STATE = {
   chir:{label:"Opératoire", color:"#0b7a6e"},
   ferm:{label:"Fermeture", color:"#1f6a8a"},
   reveil:{label:"Réveil", color:"#6d5bb5"},
-  bio:{label:"Bionettoyage", color:"#3a9ad9"}
+  bio:{label:"Bionettoyage", color:"#3a9ad9"},
+  attente:{label:"Attente lit SSPI", color:"#c2412d"},
+  panne:{label:"Panne", color:"#5b3a3a"}
 };
 const PHASES = [
   {k:"accueil", n:"Accueil et check-list"},

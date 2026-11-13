@@ -47,9 +47,9 @@ function buildDay(day){
   const cases = day.cases.map(c=>{ const a=inferAn(c); return {...c, an2:a.an, anInf:a.inferred, proc: c.proc==="nan"?"Acte non renseigné":c.proc}; });
   const rooms = [...new Set(cases.map(c=>c.room))].filter(r=>ROOMS[r]);
   const byRoom = {}; rooms.forEach(r=>byRoom[r]=cases.filter(c=>c.room===r).sort((a,b)=>a.s-b.s));
-  cases.forEach(c=>{ c.ph=phasesOf(c); c.end=c.s+c.dur; c.robot=/ROBOT/.test(c.spec); c.night = c.s<450 || c.s>=1110; c.pid="P-"+String(1000+c.id*7+day.date.slice(-2)*13).slice(-4); });
+  cases.forEach(c=>{ c.ph=phasesOf(c); c.waitBed=c.waitBed||0; c.end=c.s+c.dur+c.waitBed; c.robot=/ROBOT/.test(c.spec); c.night = c.s<450 || c.s>=1110; c.pid="P-"+String(1000+c.id*7+day.date.slice(-2)*13).slice(-4); });
   // bionettoyage
-  rooms.forEach(r=>{ const L=byRoom[r]; L.forEach((c,i)=>{ const nx=L[i+1]; const gap = nx? nx.s-c.end : 99; c.clean = clamp(gap-1, 4, 12); c.cleanEnd=c.end+c.clean; c.next=nx||null; c.prev=L[i-1]||null; }); });
+  rooms.forEach(r=>{ const L=byRoom[r]; L.forEach((c,i)=>{ const nx=L[i+1]; const gap = nx? nx.s-c.end : 99; if(c.cleanStart!=null){ c.clean=c.cleanEnd-c.cleanStart; } else { c.clean = clamp(gap-1, 4, 12); c.cleanStart=c.end+0.8; c.cleanEnd=c.end+c.clean; } c.next=nx||null; c.prev=L[i-1]||null; }); });
 
   const agents=[]; const events=[];
   const ev=(t,room,txt,kind)=>events.push({t,room,txt,kind});
@@ -61,8 +61,10 @@ function buildDay(day){
 
   // pools
   const pool=(n,role,prefix,homeFn)=>Array.from({length:n},(_,i)=>mkAgent(role,prefix+" "+(i+1),homeFn(),900,{busy:[]}));
-  const brans = pool(3,"BRAN","BRA",arsSlot);
-  const ashs = pool(3,"ASH","ASH",arsSlot);
+  const STAFF = day.staff || {bran:3, ash:3};
+  const brans = pool(STAFF.bran,"BRAN","BRA",arsSlot);
+  const ashs = pool(STAFF.ash,"ASH","ASH",arsSlot);
+  const NBEDS = day.sspiBeds || REC_BEDS.length;
   const take=(P,a,b)=>{ // agent libre sur [a,b], sinon le moins chargé
     let best=null, bestOver=1e9;
     for(const x of P){ const over=x.busy.reduce((o,[u,v])=> o + Math.max(0, Math.min(b,v)-Math.max(a,u)),0); if(over<bestOver){bestOver=over;best=x;} if(over===0) break; }
@@ -97,7 +99,7 @@ function buildDay(day){
     const R = ROOMS[c.room]; if(!R) return;
     const P=c.ph.t, T=getTeam(c.room,c.night);
     // patient
-    const arr = c.arr!=null && c.arr<c.s && c.s-c.arr<150 ? c.arr : c.s - (c.type==="U"?14:32);
+    const arr = c.arr!=null && c.arr<c.s && (day.generated || c.s-c.arr<150) ? c.arr : c.s - (c.type==="U"?14:32);
     c.arr2=arr;
     let ai=accFree.findIndex(v=>v<=arr); if(ai<0) ai=accFree.indexOf(Math.min(...accFree));
     const accSpot = ACC_SLOTS[ai];
@@ -105,10 +107,10 @@ function buildDay(day){
     const tdIn = plen(mkPath(accSpot, spot(c.room,"TABLE"), 0))/BED_SPEED;
     accFree[ai]=c.s-tdIn+0.5;
     const sd=sspiDur(c);
-    let bi=bedFree.findIndex(v=>v<=c.end+1); if(bi<0) bi=bedFree.indexOf(Math.min(...bedFree));
+    let bi; if(c.bed!=null) bi=c.bed; else { const fr=bedFree.slice(0,NBEDS); bi=fr.findIndex(v=>v<=c.end+1); if(bi<0) bi=fr.indexOf(Math.min(...fr)); }
     const bed=REC_BEDS[bi];
     const tdOut = plen(mkPath(spot(c.room,"TABLE"), bed, 0))/BED_SPEED;
-    const inRec = c.end+tdOut, outRec=inRec+sd;
+    const inRec = c.end+tdOut, outRec= c.recOut!=null ? Math.max(inRec+5, c.recOut) : inRec+sd;
     bedFree[bi]=outRec+3;
     const tdExit = plen(mkPath(bed, EXIT, 0))/BED_SPEED;
     c.bed=bi; c.inRec=inRec; c.outRec=outRec;
@@ -130,7 +132,7 @@ function buildDay(day){
     // anesthésie
     const mar = getMar(c.mar), iade=T.IADE;
     if(c.an2!=="AL"){
-      iade.visits.push({a:P[0]-4, b:P[6], p:spot(c.room,"IADE"), act:"anesth"});
+      iade.visits.push({a:P[0]-4, b:c.end, p:spot(c.room,"IADE"), act:"anesth"});
       iade.visits.push({a:inRec, b:inRec+5, p:{x:bed.x-30,y:bed.y,z:"REC"}, act:"transmission"});
       mar.visits.push({a:P[1], b:P[2]+2, p:spot(c.room,"MAR"), act:"induction"});
       if(c.an2==="AG") mar.visits.push({a:P[5]-1, b:P[6], p:spot(c.room,"MAR"), act:"reveil"});
@@ -148,20 +150,23 @@ function buildDay(day){
     }
     T.IBODE.visits.push({a:P[2]-12, b:P[2], p:spot(c.room,"PREP"), act:"prep"});
     T.IBODE.visits.push({a:P[2], b:P[5], p:spot(c.room,"IBODE"), act:"instrument"});
-    T.CIRC.visits.push({a:P[0]-6, b:P[6]+2, p:spot(c.room,"CIRC"), act:"circulate"});
+    T.CIRC.visits.push({a:P[0]-6, b:c.end+2, p:spot(c.room,"CIRC"), act:"circulate"});
     // bionettoyage
-    const ash = take(ashs, c.end-2, c.cleanEnd+1);
-    ash.visits.push({a:c.end+0.8, b:c.cleanEnd, p:spot(c.room,"ASH"), act:"clean", room:c.room});
+    const ash = take(ashs, c.cleanStart-2, c.cleanEnd+1);
+    ash.visits.push({a:c.cleanStart, b:c.cleanEnd, p:spot(c.room,"ASH"), act:"clean", room:c.room});
 
     // événements
     const tag = c.type==="U"?"Urgence":c.type==="UD"?"Urgence différée":"";
-    if(c.type!=="P") ev(arr-12, c.room, `${tag} annoncée : ${c.proc}`, "u");
+    if(c.type!=="P" && !day.generated) ev(arr-12, c.room, `${tag} annoncée : ${c.proc}`, "u");
+    if(c.type!=="P" && day.generated) ev(arr, c.room, `${c.prio==="vitale"?"Urgence vitale":tag} arrive : ${c.proc}${c.s-arr>=10?` (prise en charge à ${fmt(c.s)}, ${Math.round(c.s-arr)} min d'attente)`:""}`, "u");
+    if(day.generated && c.type==="P" && c.planned!=null && c.s-c.planned>=20) ev(c.planned, c.room, `Retard : ${c.proc} prévu à ${fmt(c.planned)}, démarre à ${fmt(c.s)}`, "late");
+    if(c.waitBed>=3) ev(P[6], c.room, `Pas de lit libre en SSPI : patient ${c.pid} reste en salle ${Math.round(c.waitBed)} min`, "late");
     ev(arr, c.room, `Patient ${c.pid} à l'accueil (${SPEC_SHORT(c.spec)})`, "acc");
     ev(P[0], c.room, `Entrée en salle : ${c.proc}`, "in");
     if(c.an2!=="AL") ev(P[1], c.room, `Induction (${c.an2==="AG"?"anesthésie générale":c.an2==="ALR"?"anesthésie locorégionale":"sédation"}) par ${c.mar}`, "an");
     ev(P[3], c.room, c.robot?`Incision et amarrage du robot, ${c.ch} en console`:`Incision par ${c.ch}`, "op");
     ev(P[4], c.room, "Fermeture et pansement", "op");
-    ev(P[6], c.room, `Sortie de salle, patient ${c.pid} vers la SSPI`, "out");
+    ev(c.end, c.room, `Sortie de salle, patient ${c.pid} vers la SSPI`, "out");
     ev(inRec, "SSPI", `Patient ${c.pid} en SSPI, lit ${bi+1}`, "rec");
     ev(outRec, "SSPI", `Patient ${c.pid} sort de SSPI vers ${c.adm==="AMB"?"l'ambulatoire":"son service"}`, "rec");
     ev(c.cleanEnd, c.room, `Bionettoyage terminé, salle prête`, "bio");
@@ -169,11 +174,12 @@ function buildDay(day){
   // actes en box SSPI : pas d'équipe IBODE
   agents.forEach(a=>{ if(a.role==="IBODE"||a.role==="CIRC") a.visits=a.visits.filter(v=>v.p.z!=="SSPI"); });
 
+  (day.extraEvents||[]).forEach(e=>ev(e.t,e.room,e.txt,e.kind||"late"));
   agents.forEach(buildTrack);
   events.sort((a,b)=>a.t-b.t);
   const t0 = Math.floor((Math.min(...cases.map(c=>c.arr2))-40)/60)*60;
   const t1 = Math.ceil((Math.max(...cases.map(c=>c.outRec))+30)/60)*60;
-  return {day, cases, rooms, byRoom, agents, events, t0, t1, chirs, mars};
+  return {day, cases, rooms, byRoom, agents, events, t0, t1, chirs, mars, sspiBeds:NBEDS, closures:day.closures||[]};
 }
 
 /* trajectoire d'un agent : suite de séjours et de déplacements */
@@ -244,9 +250,12 @@ function posAt(ag,t){
 function roomState(sim, room, t){
   const L=sim.byRoom[room]; if(!L) return {st:"ferme"};
   for(const c of L){
+    if(t>=c.ph.t[6] && t<c.end) return {st:"attente", c, i:5};
     if(t>=c.s && t<c.end){ const P=c.ph.t; let i=0; while(i<5 && t>=P[i+1]) i++; return {st:PHASES[i].k, c, i, frac:(t-c.s)/c.dur}; }
     if(t>=c.end && t<c.cleanEnd) return {st:"bio", c, i:6};
   }
+  const pan=(sim.closures||[]).find(z=>z.room===room && t>=z.from && t<z.to);
+  if(pan) return {st:"panne", pan, next:L.find(c=>c.s>t)};
   const nx=L.find(c=>c.s>t);
   if(nx && nx.s-t<25) return {st:"prepa", c:nx, next:true};
   return {st:"libre", next:nx};
