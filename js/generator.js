@@ -122,7 +122,7 @@ function schedule(cfg, planned, urg, r){
   const done=[], deprog=[], waiting=[]; let ui=0;
   const extra=[];
   const LAST_PROG_START = 1080;      // pas de programmé démarré après 18 h
-  const NIGHT = 1170;                // après 19 h 30, garde réduite
+  const NIGHT = 1170;                // après 19 h 30 et avant 7 h, garde réduite
 
   const firstFree=(arr,t)=>{ let k=-1; for(let i=0;i<arr.length;i++) if(arr[i]<=t && (k<0 || arr[i]<arr[k])) k=i; return k; };
   const start=(R,c,t)=>{
@@ -152,7 +152,7 @@ function schedule(cfg, planned, urg, r){
     if(R.phase==="clean" && t>=R.freeAt){ R.phase="idle"; R.cur=null; }
   };
 
-  for(let t=420; t<1440+720; t++){
+  for(let t=0; t<1440+720; t++){
     while(ui<urg.length && urg[ui].arr<=t) waiting.push(urg[ui++]);
     if(t===LAST_PROG_START){
       rooms.forEach(R=>{ R.q.forEach(c=>{ deprog.push(c); extra.push({t, room:R.n, txt:`Déprogrammé faute de temps : ${c.proc} (prévu à ${fmt(c.planned)})`, kind:"late"}); }); R.q=[]; });
@@ -161,7 +161,7 @@ function schedule(cfg, planned, urg, r){
     rooms.forEach(R=>advance(R,t));
     for(const R of order){
       if(R.phase!=="idle" || closed(R.n,t)) continue;
-      const night = t>=NIGHT, isU = R.n===urgRoom;
+      const night = t>=NIGHT || t<420, isU = R.n===urgRoom;
       const vit = waiting.find(c=>c.prio==="vitale");
       const urgFree = rooms.some(x=>x.n===urgRoom && x.phase==="idle" && !closed(x.n,t));
       const urgt = waiting.find(c=>c.prio==="urgente");
@@ -191,7 +191,7 @@ function report(res, cfg){
   const wait=c=>c.s-c.arr, avg=a=>a.length? a.reduce((x,y)=>x+y,0)/a.length : 0;
   const vit=U.filter(c=>c.prio==="vitale"), urgt=U.filter(c=>c.prio!=="differee"), dif=U.filter(c=>c.prio==="differee");
   const over = cfg.rooms.map(r=>{ const L=D.filter(c=>c.room===r && c.type==="P"); const e=L.length? Math.max(...L.map(c=>c.s+c.dur+c.waitBed)) : 0; return Math.max(0,e-1110); });
-  const sspiPeak = (()=>{ let m=0; for(let t=420;t<1440+300;t+=5){ const n=D.filter(c=>t>=c.s+c.dur+c.waitBed && t<c.recOut).length; m=Math.max(m,n); } return m; })();
+  const sspiPeak = (()=>{ let m=0; for(let t=0;t<1440+300;t+=5){ const n=D.filter(c=>t>=c.s+c.dur+c.waitBed && t<c.recOut).length; m=Math.max(m,n); } return m; })();
   return {
     done:D.length, prog:P.length, urg:U.length,
     deprog:res.deprog.length,

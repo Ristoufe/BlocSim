@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js 8080",
     "sim": "node tools/simulate.js",
+    "check": "node tools/check.js",
     "data": "python3 tools/export_days.py"
   },
   "engines": {
