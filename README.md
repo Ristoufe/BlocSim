@@ -55,6 +55,14 @@ Séparateur point-virgule, encodage UTF-8 avec BOM : le fichier s'ouvre directem
 
 Avec `npm start`, chaque simulation lancée est aussi enregistrée automatiquement dans `logs/` (les deux fichiers, horodatés). Ce dossier n'est pas versionné.
 
+### Vérifier le réalisme
+
+`tools/compare_logs.py` compare les CSV de `logs/` aux données réelles (volume, salles, durées, horaires, délais, annulations, urgences, spécialités) :
+
+```bash
+python3 tools/compare_logs.py data/raw/OPROOM.xls
+```
+
 ### Rejouer une vraie journée
 
 - Choisir une des 6 journées de démonstration (jeudi chargé, journée robot, lundi, journée d'urgences, août, dimanche de garde).
@@ -63,6 +71,20 @@ Avec `npm start`, chaque simulation lancée est aussi enregistrée automatiqueme
 - Cliquer sur une salle : vue rapprochée, moniteur (ECG, SpO2, PNI, EtCO2, BIS), phases de l'intervention, fiche du cas, équipe présente, programme et journal de la salle.
 
 Raccourcis : espace pour lecture ou pause, flèches gauche et droite pour -15 / +15 minutes, Échap pour revenir à la vue d'ensemble.
+
+## Option : lancer des simulations dans le terminal
+
+L'usage principal reste l'interface. Pour enchaîner des simulations sans navigateur, par exemple pour comparer 50 tirages d'un même scénario, la même simulation tourne aussi en ligne de commande, avec le même moteur et les mêmes réglages que l'écran « Créer une journée » :
+
+```bash
+npm run sim -- --aide                                  # toutes les options
+npm run sim -- --scenario afflux                       # une journée, CSV dans logs/
+npm run sim -- --scenario sspi --tirages 50 --sans-csv # 50 tirages, bilan seulement
+npm run sim -- --lits 5 --brancardiers 2 \
+  --urgence vitale@10:30@"Chirurgie Orthopédique" --panne "OP 3@10:00-14:30"
+```
+
+Pour chaque tirage, la commande écrit les deux CSV (format OPROOM et détaillé) dans `logs/`, plus un fichier `bilan` avec une ligne d'indicateurs par tirage. Elle affiche ensuite le bilan : comparaison à la journée sans aléas pour un tirage, moyenne, minimum, médiane et maximum pour plusieurs tirages. `--json` sort le résultat complet en JSON, et `--config fichier.json` reprend des réglages enregistrés.
 
 ## Structure
 
@@ -79,6 +101,8 @@ data/days.json        journées exportées et pseudonymisées
 data/stats.json       distributions réelles (durées par acte, spécialités par salle, urgences par heure)
 tools/export_days.py  export des journées depuis le fichier OPROOM
 tools/export_stats.py calcul des distributions depuis le fichier OPROOM
+tools/compare_logs.py comparaison des simulations aux données réelles
+tools/simulate.js     option en ligne de commande (npm run sim)
 server.js             serveur local sans dépendance (fichiers + enregistrement des logs)
 ```
 

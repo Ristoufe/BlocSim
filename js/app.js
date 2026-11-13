@@ -230,7 +230,7 @@ function addDayCard(d,i){
   const daysEl=document.getElementById("days");
   const b=document.createElement("button"); b.className="daycard"+(d.generated?" gen":""); b.type="button";
   const n=d.cases.length, u=d.cases.filter(c=>c.type!=="P").length;
-  b.innerHTML=`<b>${d.generated?"Simulation : ":""}${d.label.replace(" 2026","")}</b><span>${n} interv. · ${u} urg. · ${d.cancelled.length} ${d.generated?"déprog.":"annul."}</span>`;
+  b.innerHTML=`<b>${d.generated?"Simulation : ":""}${d.label.replace(" 2026","")}</b><span>${n} interv. · ${u} urg. · ${d.cancelled.length} annul.</span>`;
   b.dataset.idx=i; b.onclick=()=>setDay(i);
   const first=daysEl.querySelector(".daycard:not(.newday)");
   if(d.generated && first) daysEl.insertBefore(b, daysEl.querySelector(".daycard.gen") || first); else daysEl.appendChild(b);
@@ -246,7 +246,7 @@ function reportHTML(d){
     <p class="note">${d.label} · ${cfg.rooms.length} salles · ${cfg.sspiBeds} lits de SSPI · ${cfg.bran} brancardier${cfg.bran>1?"s":""} · ${cfg.ash} agent${cfg.ash>1?"s":""} de bionettoyage · graine ${cfg.seed}</p>
     <div class="rgrid">
       <div class="kpi"><b>${R.done}</b><span>interventions réalisées (${R.urg} urgences)</span></div>
-      <div class="kpi ${R.deprog?"bad":""}"><b>${R.deprog}</b><span>déprogrammées</span>${delta(R.deprog,B.deprog)}</div>
+      <div class="kpi ${R.deprog?"bad":""}"><b>${R.deprog}</b><span>déprogrammées faute de temps${R.annul!=null?` (+ ${R.annul} annulées avant le jour J)`:""}</span>${delta(R.deprog,B.deprog)}</div>
       <div class="kpi"><b>${R.urgWait} min</b><span>attente moyenne des urgences (max ${R.urgWaitMax})${R.difN?`, différées : ${R.difWait} min`:""}</span></div>
       <div class="kpi ${R.vitWait>15?"bad":""}"><b>${R.vitWait} min</b><span>attente moyenne des urgences vitales</span></div>
       <div class="kpi"><b>${R.late} min</b><span>retard moyen du programmé (${R.lateN} cas à plus de 20 min)</span>${delta(R.late,B.late," min")}</div>

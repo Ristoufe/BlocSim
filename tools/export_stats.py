@@ -52,8 +52,22 @@ for sp,g in U.groupby('Spécialité'):
     urg[sp.strip()]=dict(n=int(len(g)), **ln(g.ld), an=anmix(g), procs=[p for p,_ in g.proc.value_counts().head(8).items() if p!='nan'])
 hours=U.s.floordiv(60).value_counts().reindex(range(24),fill_value=0)
 uroom=U[U.Salle.str.startswith('OP')].Salle.str.strip().value_counts()
-canc=d[d.Statut!='fermé']['Raison Annulation'].dropna().str.strip().value_counts(normalize=True).head(8)
-out=dict(source="Export OPROOM, janvier à octobre 2026", specs=specs, rooms=rooms, urg=urg,
+canc=d[(d.Statut!='fermé')]['Raison Annulation'].dropna().str.strip()
+canc=canc[~canc.str.contains('aisie')].value_counts(normalize=True).head(8)
+# forme des journées : demi-journées, premier cas, arrivée au bloc, annulations
+d['e']=d['Sortie salle'].map(mins); d['a']=d['Arrivée bloc'].map(mins)
+wd=d[d.dt.dt.dayofweek<5]
+cp=wd[(wd.Statut=='fermé')&(wd.Type=='programmé')&wd.Salle.astype(str).str.startswith('OP')]
+g=cp.groupby(['dt','Salle']).agg(f=('s','min'),l=('e','max'))
+full=g[(g.l>840)&(g.f<750)]
+ad=(cp.s-cp.a); ad=ad[(ad>0)&(ad<300)]
+canc_mask=(wd.Statut!='fermé')&~wd['Raison Annulation'].fillna('').str.contains('aisie')
+session=dict(am=round(float((g.l<=840).mean()),3), pm=round(float((g.f>=750).mean()),3),
+    amEnd=round(float(g[g.l<=840].l.median())), pmStart=round(float(g[g.f>=750].f.median())),
+    firstMu=round(float(full.f.mean()),1), firstSd=round(float(full.f.std()),1))
+arrival=dict(mu=round(float(np.log(ad).mean()),3), sigma=round(float(np.log(ad).std()),3))
+cancelRate=round(float(canc_mask.mean()),3)
+out=dict(session=session, arrival=arrival, cancelRate=cancelRate, source="Export OPROOM, janvier à octobre 2026", specs=specs, rooms=rooms, urg=urg,
     urgHours=[int(x) for x in hours.values], urgRoom=uroom.index[0],
     urgPerWeekday=round(float(U[U.dt.dt.dayofweek<5].groupby('dt').size().mean()),2),
     progPerRoomDay=round(float(P.groupby(['dt','Salle']).size().mean()),2),

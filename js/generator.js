@@ -17,7 +17,7 @@ const SHORT_SPEC = {
 function defaultConfig(){
   return {
     name:"Journée type", seed:42, date:"2026-11-16",
-    rooms: ALL_ROOMS.filter(r=>(STATS.rooms[r]?.open||0)>0.35),
+    rooms: ALL_ROOMS.filter(r=>(STATS.rooms[r]?.open||0)>0.47),   // environ 7 salles, comme un jour plein réel
     urgRoom: STATS.urgRoom,
     load:1.0,
     urgCount: Math.round(STATS.urgPerWeekday),
@@ -55,23 +55,27 @@ const AN_LABEL={AG:"Anesthésie générale",ALR:"Anesthésie locorégionale","AL
 /* ------------------------------------------------------------------ */
 function planProgram(cfg, r){
   const planned=[]; let surg=1;
-  const progEnd = 480 + (1110-480)*0.8*cfg.load;   // un bloc réel planifie environ 80 % de la plage
+  const SS = STATS.session;
+  const progEnd = 523 + (1110-523)*0.88*cfg.load;   // un bloc réel planifie environ 80 % de la plage
   cfg.rooms.forEach((room,ri)=>{
     const mix = STATS.rooms[room]?.mix || {"Chirurgie Générale et Digestive":1};
     const spec = pickW(r, Object.keys(mix).length? mix : {"Chirurgie Générale et Digestive":1});
     const S = STATS.specs[spec]; if(!S) return;
     const chir = "CHIR-"+String(10+((surg++)*7)%60).padStart(2,"0");
     const mar = "MAR-"+String(1+Math.floor(ri/2)).padStart(2,"0");
-    let t = 480 + Math.round(r()*10), n=0;
-    const roomEnd = room===cfg.urgRoom ? 480+(progEnd-480)*0.55 : progEnd;
+    // vacation : journée entière, matin seul ou après-midi seul, dans les proportions réelles
+    const x=r(), mode = room===cfg.urgRoom ? "full" : x<SS.am ? "am" : x<SS.am+SS.pm ? "pm" : "full";
+    let t = mode==="pm" ? Math.round(SS.pmStart+gauss(r)*25) : Math.round(clamp(SS.firstMu+gauss(r)*SS.firstSd, 495, 575)), n=0;
+    const roomEnd = room===cfg.urgRoom ? t+(progEnd-t)*0.55 : mode==="am" ? clamp(SS.amEnd+gauss(r)*45, 600, 780)*Math.min(1.15,cfg.load) : progEnd;
     while(t < roomEnd-10){
       const procs = S.procs.length? S.procs : [{name:spec, n:1, mu:S.mu, sigma:S.sigma}];
       const pw={}; procs.forEach((p,i)=>pw[i]=p.n);
       const p = procs[+pickW(r,pw)];
-      const d = logn(r, p.mu, Math.min(p.sigma,0.6), 8, 420);
-      if(n>0 && t+d > roomEnd+15) break;
-      planned.push({room, spec, proc:p.name, dur:d, planned:t, type:"P", prio:"prog", an:pickAn(r,S.an), adm: r()<S.amb?"AMB":"HOSP", ch:chir, mar});
-      n++; t += d + (d<40? 8 : 15);
+      const est = Math.round(Math.exp(p.mu));               // durée prévue : la durée habituelle de l'acte
+      const d = logn(r, p.mu, Math.min(p.sigma,0.6), 8, 420); // durée réelle, tirée au hasard
+      if(n>0 && t+est > roomEnd+15) break;
+      planned.push({room, spec, proc:p.name, dur:d, est, planned:t, type:"P", prio:"prog", an:pickAn(r,S.an), adm: r()<S.amb?"AMB":"HOSP", ch:chir, mar});
+      n++; t += est + Math.round(est<40? 4+r()*12 : 6+r()*22);
     }
   });
   return planned;
@@ -83,7 +87,7 @@ function planProgram(cfg, r){
 function makeUrgences(cfg, r){
   const list=[];
   const specs = Object.fromEntries(Object.entries(STATS.urg).map(([k,v])=>[k,v.n]));
-  const hours = {}; STATS.urgHours.forEach((n,h)=>{ if(h>=7 && h<=22) hours[h]=n+1; });
+  const hours = {}; STATS.urgHours.forEach((n,h)=>{ hours[h]=n+1; });
   const mk=(at,spec,prio,durFix,procName)=>{
     const U = STATS.urg[spec] || STATS.urg["Chirurgie Générale et Digestive"];
     const d = durFix || logn(r, U.mu, Math.min(U.sigma,0.55), 15, 300);
@@ -141,7 +145,7 @@ function schedule(cfg, planned, urg, r){
     }
     if(R.phase==="ash"){                      // bionettoyage dès qu'un agent est libre
       const k=firstFree(ash,t+1); if(k<0) return;
-      const c=R.cur, cs=t+1, ce=cs+(c.dur<40? 6 : 11);
+      const c=R.cur, cs=t+1, ce=cs+Math.round(c.dur<40? 4+r()*6 : 7+r()*10);
       c.cleanStart=cs; c.cleanEnd=ce; ash[k]=ce+1;
       R.phase="clean"; R.freeAt=ce;
     }
@@ -208,7 +212,10 @@ function report(res, cfg){
 let GEN_COUNT=0;
 function generateDay(cfg){
   const r=rng(cfg.seed*7919+13);
-  const planned=planProgram(cfg,r);
+  const all=planProgram(cfg,r);
+  // annulations de la veille ou du jour, au taux et pour les motifs réels
+  const canc=[], planned=[];
+  all.forEach(c=>{ if(r()<STATS.cancelRate){ canc.push({...c, reason:pickW(r,STATS.cancelReasons)}); } else planned.push(c); });
   const plannedCopy=planned.map(c=>({...c}));
   const urg=makeUrgences(cfg,r);
   const res=schedule(cfg,planned,urg,r);
@@ -216,13 +223,15 @@ function generateDay(cfg){
   const base=schedule({...cfg, events:[]}, plannedCopy, [], rng(1));
   const rep=report(res,cfg), repBase=report(base,cfg);
   GEN_COUNT++;
+  const ra=rng(cfg.seed*31+7);
   const cases=res.done.sort((a,b)=>a.s-b.s).map((c,i)=>({
     id:i, room:c.room, s:c.s, dur:c.dur, spec:c.spec, proc:c.proc, type:c.type, prio:c.prio, adm:c.adm,
     an:c.an, anl:AN_LABEL[c.an]||"Non renseignée", ch:c.ch, mar:c.mar,
-    arr: c.type==="P" ? null : c.arr, planned: c.type==="P" ? c.planned : null,
+    arr: c.type==="P" ? c.s - clamp(Math.round(Math.exp(STATS.arrival.mu+STATS.arrival.sigma*gauss(ra))), 8, 150) : c.arr, planned: c.type==="P" ? c.planned : null,
     waitBed:c.waitBed, bed:c.bed, recOut:c.recOut, cleanStart:c.cleanStart, cleanEnd:c.cleanEnd
   }));
-  const cancelled=res.deprog.map(c=>({spec:c.spec, proc:c.proc, reason: c.type==="P"? "Déprogrammé faute de temps" : "Urgence non prise en charge dans la journée"}));
+  const cancelled=[...canc.map(c=>({spec:c.spec, proc:c.proc, reason:c.reason})), ...res.deprog.map(c=>({spec:c.spec, proc:c.proc, reason: c.type==="P"? "Déprogrammé faute de temps" : "Urgence non prise en charge dans la journée"}))];
+  rep.annul=canc.length;
   const extra=[...res.extra];
   res.closures.forEach(z=>{ extra.push({t:z.from, room:z.room, txt:`${z.label} : salle indisponible jusqu'à ${fmt(z.to)}`, kind:"u"}); extra.push({t:z.to, room:z.room, txt:"Salle de nouveau disponible", kind:"bio"}); });
   return {
