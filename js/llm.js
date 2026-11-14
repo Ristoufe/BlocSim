@@ -180,3 +180,98 @@ async function agent2(text, opts={}){
   return {fiche, garde, ms:r.ms, model:r.model};
 }
 
+/* ------------------------------------------------------------------ */
+/* Agent 5 : rapport rédigé, à partir des seuls chiffres de la campagne */
+/* ------------------------------------------------------------------ */
+// Les faits sont calculés ici (pas par le LLM) ; le LLM ne fait que les mettre en mots.
+// Garde-fou : tout chiffre du texte doit figurer dans les faits, sinon il est signalé.
+const frn = (x,d=1) => x==null||!Number.isFinite(x) ? null : ((Math.round(x*10**d)/10**d)||0).toLocaleString("fr-FR");
+function reportFacts(o, sens){
+  const T=o.totals, A=T[o.mainArm], base=T[0], days=o.C.days, W=o.weekly[o.mainArm];
+  const last=o.daily[o.mainArm][days-1];
+  const F=[];
+  const add=(id, texte)=>F.push({id, texte});
+  add("contexte", `Outil : ${o.norm.name}. Scénario ${o.scenario.id} : ${o.scenario.name}. ${days} jours ouvrés simulés (${Math.round(days/5)} semaines), ${o.C.reps} répétitions. Bras comparés : ${o.arms.map(a=>a.label).join(" ; ")}.`);
+  add("confiance_analyse", `Niveau de confiance de l'analyse : ${o.report.confidence} (selon la complétude de la fiche et la qualité des sources).`);
+  add("conclusion_calculee", `Conclusion calculée : ${o.report.conclusion} Niveau : ${o.report.level}.`);
+  add("retard", `Retard moyen du programmé : ${frn(A.late.dMed)} min par intervention de plus qu'en l'absence de l'outil (fourchette ${frn(A.late.dP10)} à ${frn(A.late.dP90)} min).`);
+  if(W.length>1) add("apprentissage", `Retard ajouté la semaine 1 : ${frn(W[0].late.med)} min par intervention ; la semaine ${W.length} : ${frn(W[W.length-1].late.med)} min.`);
+  add("debordement", `Débordement après 18 h 30 : ${frn(A.overMin.dMed)} min par jour de plus.`);
+  add("deprogrammations", `Déprogrammations sur la campagne : ${frn(A.deprog.dMed)} de plus (total ${frn(A.deprog.med)} avec l'outil, ${frn(base.deprog.med)} sans).`);
+  add("surcharge", `Journées-soignant au-dessus du seuil de charge : ${frn(A.overload.dMed)} de plus sur la campagne.`);
+  add("erreurs", `Erreurs de saisie attendues : ${frn(A.err.med)} avec l'outil contre ${frn(base.err.med)} avec l'ancienne méthode, soit ${frn(A.err.dMed)}.`);
+  add("usage", `Usage de l'outil la dernière semaine : ${frn(A.adoption.med)} % des cas ; usages contournés sur la campagne : ${frn(A.gaps.med)}.`);
+  add("confiance_metiers", `Confiance dans l'outil en fin de campagne (0 à 1) : ${Object.entries(ROLE_LABEL).map(([r,l])=>`${l} ${frn(last.TR[r].med,2)}`).join(", ")} ; moyenne ${frn(A.T.med,2)}.`);
+  if(o.scenario.id==="B" && o.cohort && o.cohort.n>0){
+    const K=o.cohort, L=days-1;
+    add("panne", `${frn(K.n,0)} soignants touchés par la panne du jour 2. Le soir de la panne, leur confiance est de ${frn(K.arms[2][1].med,2)} sans support, ${frn(K.arms[1][1].med,2)} avec support sur place, ${frn(K.arms[3][1].med,2)} pour les mêmes soignants sans panne. En fin de campagne : ${frn(K.arms[2][L].med,2)} sans support, ${frn(K.arms[1][L].med,2)} avec support, ${frn(K.arms[3][L].med,2)} sans panne.`);
+  }
+  if(o.scenario.id==="C" && o.rooms){
+    const rc=o.rooms.find(r=>r.arm==="reticent"), ctl=o.rooms.find(r=>r.arm==="avec");
+    add("reticent", `Confiance de l'équipe paramédicale en fin de campagne : ${frn(rc.skeptic,2)} dans la salle du chirurgien réticent (${rc.skepticRoom}), ${frn(ctl.skeptic,2)} dans la même salle sans lui, ${frn(rc.champion,2)} dans la salle de l'IBODE championne (${rc.championRoom}).`);
+  }
+  o.report.risks.forEach((r,i)=>add("risque_"+(i+1), `Signal de risque ${r.level} : ${r.txt}`));
+  o.report.hypotheses.forEach((h,i)=>add("hypothese_"+(i+1), `Hypothèse : ${h}`));
+  if(sens) add("sensibilite", `Sensibilité aux paramètres à calibrer : ${sens.summary}`);
+  return F;
+}
+
+const AGENT5_SYSTEM = `Tu rédiges le rapport Blocapta destiné à un cadre de santé et à la direction d'un bloc opératoire, qui doivent décider de déployer ou non un logiciel.
+Règles strictes :
+1. Tu n'utilises QUE les faits fournis. Tu n'ajoutes aucun chiffre, aucune étude, aucun nom de logiciel ou d'établissement.
+2. Chaque chiffre que tu écris est recopié d'un fait, avec la même valeur et la même unité. Pas d'arrondi nouveau, pas de calcul.
+3. Tu cites entre crochets l'identifiant du fait utilisé à la fin de chaque point, par exemple [retard].
+4. Langage simple, lisible sans formation technique. Phrases courtes. Pas de tiret long. Pas de jargon statistique (dis « dans 8 simulations sur 10 » plutôt que « P10-P90 » si besoin).
+5. Tu restes prudent : ce sont des résultats de simulation, avec des paramètres humains encore à calibrer. Tu ne présentes rien comme une certitude.
+6. Les recommandations découlent des faits (par exemple : support sur place si le scénario de panne le montre, référents si la réticence freine l'équipe, formation si l'apprentissage coûte du temps).`;
+
+const AGENT5_SCHEMA = {
+  type:"object",
+  properties:{
+    titre:{type:"string"},
+    en_bref:{type:"string"},
+    sections:{type:"array", items:{type:"object", properties:{
+      titre:{type:"string"}, points:{type:"array", items:{type:"string"}}
+    }, required:["titre","points"]}},
+    recommandations:{type:"array", items:{type:"string"}},
+    limites:{type:"array", items:{type:"string"}}
+  },
+  required:["titre","en_bref","sections","recommandations","limites"]
+};
+
+// garde-fou : chiffres du texte absents des faits
+function guardReport(rep, facts){
+  const pool = facts.flatMap(f=>numsIn(f.texte));
+  const ok = v => pool.some(x=>Math.abs(x-v) < 1e-9 || Math.abs(Math.abs(x)-Math.abs(v)) < 1e-9);
+  const texts = [rep.en_bref, ...rep.sections.flatMap(s=>[s.titre, ...s.points]), ...rep.recommandations, ...rep.limites];
+  const bad = [];
+  for(const t of texts){
+    const clean = String(t).replace(/\[[^\]]*\]/g,"").replace(/\b(OP|op)\s*\d+/g,"");   // identifiants de faits et noms de salles
+    for(const v of numsIn(clean)) if(!ok(v)) bad.push({valeur:v, texte:t});
+  }
+  return bad;
+}
+
+async function agent5(o, opts={}){
+  const facts = reportFacts(o, opts.sens);
+  const r = await llmJSON([
+    {role:"system", content:AGENT5_SYSTEM},
+    {role:"user", content:`Faits (identifiant : texte) :\n${facts.map(f=>`- ${f.id} : ${f.texte}`).join("\n")}\n\nRédige le rapport : un titre, « en bref » en 2 ou 3 phrases, 3 ou 4 sections (ce qui change pour le bloc ; ce qui change pour les équipes ; risques pour les patients ; ${o.scenario.id==="B"?"pannes et support ; ":o.scenario.id==="C"?"adoption par l'équipe ; ":""}), 2 à 4 recommandations, et les limites. Les recommandations et les limites vont uniquement dans leurs champs dédiés, pas dans les sections.`}
+  ], AGENT5_SCHEMA, opts);
+  if(!r.data) return {erreur:r.error, ms:r.ms};
+  // le modèle répète parfois recommandations et limites dans les sections : on les retire
+  r.data.sections = (r.data.sections||[]).filter(s=>!/recommand|limite/i.test(s.titre||""));
+  const bad = guardReport(r.data, facts);
+  return {rapport:r.data, facts, chiffresNonTrouves:bad, ms:r.ms, model:r.model};
+}
+
+// version texte (Markdown) du rapport, pour copier ou télécharger
+function reportMarkdown(res, o){
+  const R=res.rapport;
+  const lines=[`# ${R.titre}`, "", `*${o.norm.name} · scénario ${o.scenario.id} · confiance de l'analyse : ${o.report.confidence} · rédigé par ${res.model} à partir des chiffres de la simulation*`, "", R.en_bref, ""];
+  R.sections.forEach(s=>{ lines.push(`## ${s.titre}`, ""); s.points.forEach(p=>lines.push(`- ${p}`)); lines.push(""); });
+  lines.push("## Recommandations", ""); R.recommandations.forEach(p=>lines.push(`- ${p}`)); lines.push("");
+  lines.push("## Limites", ""); R.limites.forEach(p=>lines.push(`- ${p}`));
+  if(res.chiffresNonTrouves.length){ lines.push("", `> Attention : ${res.chiffresNonTrouves.length} chiffre(s) du texte ne figurent pas dans les résultats de la simulation : ${res.chiffresNonTrouves.map(b=>b.valeur).join(", ")}.`); }
+  return lines.join("\n");
+}

@@ -14,7 +14,7 @@ const CONF_TXT = {aucune:"aucune", faible:"faible", moyenne:"moyenne", elevee:"�
 
 const lab = {file:LAB_FICHES[0].file, fiche:null, check:null, scenario:"A", days:20, reps:20, human:{...HUMAN_DEFAULTS}, out:null, busy:false,
   llm:{status:null, model:null, busy:null, error:null, text:"", garde:null, generated:false},
-  sens:null};
+  sens:null, rapport:null};
 const labEl = document.createElement("div"); labEl.className="modal labwrap"; labEl.hidden=true; document.body.appendChild(labEl);
 const esc = s => String(s??"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fr1 = x => x==null||!Number.isFinite(x) ? "-" : ((Math.round(x*10)/10)||0).toLocaleString("fr-FR");
@@ -171,7 +171,7 @@ function runLab(){
   setTimeout(()=>{
     const t0=performance.now();
     lab.out = runCampaign({fiche:lab.fiche, scenario:lab.scenario, days:lab.days, reps:lab.reps, human:{...lab.human}});
-    lab.sens = null;
+    lab.sens = null; lab.rapport = null;
     lab.out.wall = performance.now()-t0;
     lab.busy=false; renderLab();
     labEl.querySelector("#l-res")?.scrollIntoView({block:"start", behavior:"smooth"});
@@ -215,6 +215,7 @@ function resultsHTML(o){
     <span class="cconf">Confiance de l'analyse : <b>${esc(R.confidence)}</b> · ${o.C.days} jours ouvrés · ${o.C.reps} répétitions · ${fr1((o.wall||o.ms)/1000)} s de calcul</span>
     <ul>${R.lines.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>
   </div>
+  ${rapportHTML(o)}
   <h3>Signaux de risque pour les patients et les équipes</h3>
   <ul class="risks">${R.risks.map(r=>`<li class="${{rouge:"crit",orange:"warn",vert:"ok"}[r.level]}"><span class="ricon" aria-hidden="true">${icon[r.level]}</span><span class="rlvl">${r.level}</span>${esc(r.txt)}</li>`).join("")}</ul>
   <h3>Confiance dans l'outil, jour après jour</h3>
@@ -292,6 +293,9 @@ function bindCharts(){
   });
   const csv=labEl.querySelector("#l-csv"); if(csv) csv.onclick=()=>labCSV(lab.out);
   const sn=labEl.querySelector("#l-sens"); if(sn) sn.onclick=runSens;
+  const rp=labEl.querySelector("#l-rapport"); if(rp) rp.onclick=runRapport;
+  const md=labEl.querySelector("#l-rapport-md"); if(md) md.onclick=()=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([reportMarkdown(lab.rapport, lab.out)],{type:"text/markdown"})); a.download=`rapport-blocapta-scenario-${lab.out.scenario.id}.md`; a.click(); };
+  const cp=labEl.querySelector("#l-rapport-copy"); if(cp) cp.onclick=async()=>{ try{ await navigator.clipboard.writeText(reportMarkdown(lab.rapport, lab.out)); cp.textContent="Copié"; }catch(e){ cp.textContent="Copie impossible"; } };
 }
 const xsOf = o => o.daily[0].map(x=>x.date.slice(8,10)+"/"+x.date.slice(5,7));
 
@@ -342,6 +346,34 @@ function weekChart(o){
   return `<div class="chart">${arms.length>1?`<div class="legend">${arms.map(i=>`<span><i style="background:${ARM_COLOR[i]}"></i>${esc(o.arms[i].label)}</span>`).join("")}</div>`:""}
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Retard ajouté par l'outil, en minutes par intervention programmée, semaine par semaine">${ticks}<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" class="zero"/>${bars}${xl}</svg><div class="ctip" hidden></div></div>
     <p class="note">Minutes de retard en plus (ou en moins) par intervention programmée, comparé à la même semaine sans outil. Trait : 80 % des répétitions.</p>`;
+}
+
+/* agent 5 : rapport rédigé par le LLM local, à partir des seuls chiffres de la campagne */
+function rapportHTML(o){
+  const S = lab.llm.status, P = lab.rapport;
+  if(!S || !S.ok) return "";
+  if(!P) return `<div class="rbtns"><button class="btn" type="button" id="l-rapport">Rédiger le rapport avec l'IA</button><span class="note">Le LLM local met en mots les chiffres ci-dessous, sans en ajouter${lab.sens&&lab.sens.result?", sensibilité comprise":""}.</span></div>`;
+  if(P.busy) return `<div class="rapport"><p class="note">Rédaction du rapport par ${esc(lab.llm.model)}… (environ 1 min)</p></div>`;
+  if(P.erreur) return `<div class="rapport"><p class="note crit">Rédaction impossible : ${esc(P.erreur)}</p><div class="rbtns"><button class="btn" type="button" id="l-rapport">Réessayer</button></div></div>`;
+  const R = P.rapport, bad = P.chiffresNonTrouves;
+  const cite = t => esc(t).replace(/\[([a-z0-9_ ,]+)\]/gi, (m,ids)=>`<span class="cite">${ids}</span>`);
+  return `<article class="rapport">
+    <h3 class="rtitle">${esc(R.titre)}</h3>
+    <p class="note">Rédigé par ${esc(P.model)} en ${fr1(P.ms/1000)} s à partir de ${P.facts.length} faits calculés par la simulation · ${bad.length?`<b class="crit">${bad.length} chiffre(s) absent(s) des résultats : ${bad.map(b=>esc(String(b.valeur).replace(".",","))).join(", ")}</b>`:"tous les chiffres sont vérifiés"}</p>
+    <p class="enbref">${cite(R.en_bref)}</p>
+    ${R.sections.map(sct=>`<h4>${esc(sct.titre)}</h4><ul>${sct.points.map(p=>`<li>${cite(p)}</li>`).join("")}</ul>`).join("")}
+    <h4>Recommandations</h4><ul>${R.recommandations.map(p=>`<li>${cite(p)}</li>`).join("")}</ul>
+    <h4>Limites</h4><ul>${R.limites.map(p=>`<li>${cite(p)}</li>`).join("")}</ul>
+    <div class="rbtns"><button class="btn" type="button" id="l-rapport-md">Télécharger (Markdown)</button><button class="btn" type="button" id="l-rapport-copy">Copier</button><button class="btn" type="button" id="l-rapport">Rédiger à nouveau</button></div>
+  </article>`;
+}
+async function runRapport(){
+  lab.rapport = {busy:true}; renderLab();
+  try{
+    const r = await agent5(lab.out, {model:lab.llm.model, sens:lab.sens&&lab.sens.result});
+    lab.rapport = r.erreur ? {erreur:r.erreur} : r;
+  } catch(e){ lab.rapport = {erreur:e.message}; }
+  renderLab();
 }
 
 /* analyse de sensibilité : un paramètre « à calibrer » à la fois, à ses deux bornes */

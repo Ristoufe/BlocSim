@@ -237,3 +237,10 @@ summary{cursor:pointer;font-size:13px;font-weight:600}
 .refline{display:inline-block;width:0 !important;height:12px !important;border-left:1.5px dashed var(--ink-2);background:none !important;margin-right:6px !important}
 .taxis{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);padding-left:calc(min(220px,40%) + 10px)}
 @media (max-width:640px){ .tb{grid-template-columns:1fr} .taxis{padding-left:0} }
+.rapport{border:1px solid var(--line);border-radius:8px;background:#fff;padding:12px 16px;margin-top:12px}
+.rapport .rtitle{font-size:17px;text-transform:none;letter-spacing:0;color:var(--ink);margin:0 0 4px;text-wrap:balance}
+.rapport h4{font-size:13px;margin:12px 0 4px;color:var(--ink)}
+.rapport ul{margin:0;padding-left:18px;font-size:13.5px;display:flex;flex-direction:column;gap:3px}
+.rapport .enbref{font-size:14px;line-height:1.5;margin:8px 0}
+.rapport b.crit{color:var(--crit)}
+.cite{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);background:#f1f4f4;border-radius:3px;padding:0 4px;margin-left:3px;vertical-align:1px}
