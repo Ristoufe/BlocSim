@@ -87,7 +87,7 @@ const check = (ok, label, detail = "") => { console.log(`${ok ? "OK  " : "ÉCHEC
   const A = { rooms: [], perRoom: [], gaps: [], first: [], last: [], occ: [] };
   dates.forEach((date, i) => {
     const d = run("generateDay({...defaultConfig(), date:__d, seed:__s, rooms:roomsFor(__d,__s)})", { __d: date, __s: 1000 + i });
-    A.rooms.push(d.cfg.rooms.length);
+    A.rooms.push(new Set(d.cases.filter((c) => c.type === "P").map((c) => c.room)).size);   // salles avec du programmé, comme la mesure réelle
     const by = {}; d.cases.filter((c) => c.type === "P").forEach((c) => (by[c.room] = by[c.room] || []).push(c));
     Object.values(by).forEach((L) => { L.sort((a, b) => a.s - b.s); A.perRoom.push(L.length); A.first.push(L[0].s); const end = (c) => c.s + c.dur + (c.waitBed || 0); A.last.push(Math.max(...L.map(end))); for (let k = 1; k < L.length; k++) { const g = L[k].s - end(L[k - 1]); if (g >= 0 && g < 180) A.gaps.push(g); } });
     // occupation : toutes les interventions de la salle (programmées et urgences), comme dans compare_logs.py
