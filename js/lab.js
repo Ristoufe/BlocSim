@@ -4,6 +4,7 @@ const LAB_FICHES = [
   {file:"scantrace-v2.json", label:"ScanTrace v2 - traçabilité des implants (durées de l'éditeur)"},
   {file:"checklist-tablette.json", label:"CheckBloc - check-list sur tablette (mesuré sur site)"},
   {file:"scantrace-incomplete.json", label:"ScanTrace v2 - fiche commerciale incomplète"},
+  {file:"reel-scribe-ia-blocapelo.json", label:"Scribe IA (fiche technique réelle anonymisée, BLOCAPELO)"},
   {file:"reel-scandm-sources-publiques.json", label:"scanDM (logiciel réel) - sources publiques seules"},
   {file:"piege-vague.json", label:"PlanOp - fiche piège remplie mais creuse"}
 ];

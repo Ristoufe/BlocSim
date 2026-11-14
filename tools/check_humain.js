@@ -31,6 +31,8 @@ E.__d = fiche("piege-vague"); const cd = run("checkFiche(__d)");
 check("Fiche piège : les règles seules ne la bloquent pas (c'est le rôle du LLM)", cd.verdict!=="NON_ANALYSABLE", cd.verdict);
 E.__r = fiche("reel-scandm-sources-publiques"); const cr = run("checkFiche(__r)");
 check("Logiciel réel, sources publiques seules : refusé, champs à demander à l'éditeur listés", cr.verdict==="NON_ANALYSABLE" && cr.questions_a_l_auteur.length>=5, `${cr.verdict}, obligatoires ${cr.score_completude.obligatoires}`);
+E.__s = fiche("reel-scribe-ia-blocapelo"); const cs = run("checkFiche(__s)");
+check("Fiche technique réelle (scribe IA) : analysable avec réserves, confiance faible (gains déclarés par l'éditeur)", cs.verdict==="ANALYSABLE_AVEC_RESERVES" && cs.confiance==="faible", `${cs.verdict} / ${cs.confiance}`);
 check("Fiche mesurée sur site : analysable, confiance élevée", cc.verdict==="ANALYSABLE" && cc.confiance==="elevee", `${cc.verdict} / ${cc.confiance}`);
 check("Campagne refusée sur fiche incomplète", run("runCampaign({fiche:__a, reps:1, days:5})").blocked===true);
 
