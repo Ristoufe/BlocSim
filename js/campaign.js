@@ -271,6 +271,7 @@ function buildCampaignReport(out){
   flag(late.dMed>=2 && late.dMed<5, "orange", `Retard modéré : +${f1(late.dMed)} min par intervention programmée.`);
   flag(A.deprog.dMed>=1, A.deprog.dMed>=5?"rouge":"orange", `${f1(A.deprog.dMed)} déprogrammation(s) de plus sur la campagne.`);
   flag(A.overload.dMed>=3, A.overload.dMed>=10?"rouge":"orange", `Surcharge : ${f1(A.overload.dMed)} journées-soignant de plus au-dessus du seuil de charge.`);
+  if(A.overload.dMed<=-3) lines.push(`Charge allégée : ${f1(-A.overload.dMed)} journées-soignant de moins au-dessus du seuil de charge sur la campagne.`);
   flag(A.adoption.med!=null && A.adoption.med<70, A.adoption.med<50?"rouge":"orange", `Adoption faible : l'outil n'est utilisé que dans ${f1(A.adoption.med)} % des cas, le reste est contourné (traçabilité incomplète).`);
   flag(last.T.med!=null && last.T.med<0.4, "rouge", `Perte de confiance : confiance finale de ${f2(last.T.med)} sur 1.`);
   flag(A.err.dMed>=0.5, "orange", `Risque d'erreur de saisie : ${f1(A.err.dMed)} erreur(s) attendue(s) de plus sur la campagne.`);

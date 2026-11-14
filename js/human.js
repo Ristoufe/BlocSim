@@ -82,7 +82,7 @@ function agentOf(H, role, code, room){
     T:g.t0, T0:g.t0, kappa:g.kappa, influence:1,
     F:0.15, uses:0, fails:0, gaps:0, scar:0,
     // compteurs de la journée
-    dWork:0, dTool:0, dExtra:0, dOut:0, dErr:0, dEnd:0, dUses:0, dGaps:0,
+    dWork:0, dTool:0, dExtra:0, dSaved:0, dOut:0, dErr:0, dEnd:0, dUses:0, dGaps:0,
     hist:[]
   };
   // profils imposés par le scénario (chirurgien senior réticent, champion...)
@@ -184,7 +184,7 @@ function humanCase(H, c, s, tool, day){
         a.gaps++; a.dGaps++;
         a.dErr += H.P.errBase*H.P.paperErr*(1+2*a.F);
       }
-      a.dTool += t; a.dExtra += Math.max(0, t-st.without);
+      a.dTool += t; a.dExtra += Math.max(0, t-st.without); a.dSaved += Math.max(0, st.without-t);
       if(st.inRoom) roomDelta += t - st.without;
       rec.push({role:st.role, kind, min:Math.round(t*10)/10});
     }
@@ -204,7 +204,7 @@ function humanEndDay(H, gapDays){
     const worked = a.dWork>0;
     const over = Math.max(0, a.dEnd-1110);            // minutes après 18 h 30
     // charge ressentie (0 - 100), inspirée du NASA-TLX : temps de travail, surcoût de l'outil, pannes, fatigue
-    const tlx = worked ? clamp(TLX_BASE[a.role] + 22*(a.dWork/420-1) + 120*a.dExtra/Math.max(60,a.dWork) + 6*a.dOut + 0.1*over + 12*a.F, 0, 100) : null;
+    const tlx = worked ? clamp(TLX_BASE[a.role] + 22*(a.dWork/420-1) + 120*(a.dExtra-a.dSaved)/Math.max(60,a.dWork) + 6*a.dOut + 0.1*over + 12*a.F, 0, 100) : null;
     // fatigue : monte avec le temps de travail et les heures supplémentaires, récupère pendant le repos
     if(worked) a.F = clamp(a.F + (1-a.F)*0.35*(a.dWork/480) + over/600, 0, 1);
     a.F = a.F*Math.pow(0.55, gapDays);                 // récupération : une nuit, ou plus après un week-end
@@ -224,7 +224,7 @@ function humanEndDay(H, gapDays){
     }
     dT[a.code] = sw>0 ? a.kappa*P.kappaScale*s/sw : 0;
   }
-  for(const a of list){ a.T = clamp(a.T + dT[a.code], 0, 1); a.dWork=a.dTool=a.dExtra=a.dOut=a.dErr=a.dEnd=a.dUses=a.dGaps=0; }
+  for(const a of list){ a.T = clamp(a.T + dT[a.code], 0, 1); a.dWork=a.dTool=a.dExtra=a.dSaved=a.dOut=a.dErr=a.dEnd=a.dUses=a.dGaps=0; }
   H.day++;
 }
 

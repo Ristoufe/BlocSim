@@ -52,7 +52,9 @@ const FICHE_GRID = [
 const CRITICAL = ["B2.acteurs","B4.etapes","B6.mode_degrade","B8.risques_patient"];
 const VAGUE = /\b(quelques|plusieurs|variable|rapide(ment)?|divers|etc\.?|à définir|a definir|tbd|nc)\b/i;
 const HYPE = /(révolutionnaire|revolutionnaire|zéro erreur|zero erreur|100 ?% (fiable|sûr|sur)|sans aucun risque|gain de \d+ ?%)/i;
-const STRONG_PROOF = /(site|mesur|étude|etude|publi|chronométr|chronometr)/i;
+// une étude de l'éditeur (ou du fournisseur) reste une déclaration de l'éditeur, sauf mesure sur site
+const VENDOR = /(éditeur|editeur|fournisseur|fabricant|vendeur)/i;
+const STRONG_PROOF = { test: s => /(site|chronométr|chronometr)/i.test(s) || (/(mesur|étude|etude|publi)/i.test(s) && !VENDOR.test(s)) };
 const PROOF_LEVELS = {site:"Mesure sur site", etude:"Étude publiée", oral:"Retour oral", editeur:"Déclaration de l'éditeur"};
 
 const ficheVal = (f,id)=>{ const v=f.champs ? f.champs[id] : undefined; return v && typeof v==="object" && !Array.isArray(v) && "valeur" in v ? v.valeur : v; };
@@ -61,7 +63,7 @@ const isEmpty = v => v==null || (typeof v==="string" && !v.trim()) || (Array.isA
 const isUnknown = v => typeof v==="string" && /^\s*inconnu\b/i.test(v);
 const asText = v => Array.isArray(v) ? v.map(x=>typeof x==="object"? Object.values(x).join(" ") : x).join(" ") : typeof v==="object" && v ? Object.values(v).join(" ") : String(v??"");
 const num = v => { if(typeof v==="number") return v; const m=/(-?\d+(?:[.,]\d+)?)/.exec(String(v??"")); return m? +m[1].replace(",",".") : NaN; };
-const proofLevel = s => { s=String(s||"").toLowerCase(); return /site|chronom|mesur/.test(s)? "site" : /étude|etude|publi/.test(s)? "etude" : /oral|utilisateur|retour/.test(s)? "oral" : "editeur"; };
+const proofLevel = s => { s=String(s||"").toLowerCase(); return /site|chronom/.test(s) || (/mesur/.test(s) && !VENDOR.test(s))? "site" : /étude|etude|publi/.test(s) && !VENDOR.test(s)? "etude" : /oral|utilisateur|retour/.test(s) && !VENDOR.test(s)? "oral" : "editeur"; };
 
 /* ------------------------------------------------------------------ */
 /* Agent 1 : contrôle de complétude                                    */
