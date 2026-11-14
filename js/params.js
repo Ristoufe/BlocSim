@@ -104,7 +104,7 @@ const PARAMS = [
 
   // Urgences et garde
   {key:"urgCount", group:"urgences", label:"Urgences dans la journée", type:"int", def:-1, min:-1, max:25, source:"données",
-    help:"-1 : nombre tiré dans la distribution réelle de ce jour de la semaine."},
+    help:"-1 : nombre tiré dans la distribution réelle de ce jour de la semaine. Sinon, nombre moyen (loi de Poisson)."},
   {key:"nightTeams", group:"urgences", label:"Équipes de garde la nuit", type:"int", def:1, min:1, max:2, source:"hypothèse"},
   {key:"astreinteDelay", group:"urgences", label:"Délai de venue de l'astreinte", type:"int", def:25, min:10, max:45, unit:"min", source:"hypothèse"},
 

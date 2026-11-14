@@ -51,6 +51,7 @@ function gauss(r){ const u=Math.max(1e-9,r()), v=r(); return Math.sqrt(-2*Math.l
 function logn(r,mu,sigma,lo,hi){ return clamp(Math.round(Math.exp(mu+sigma*gauss(r))), lo, hi); }
 function pickW(r,obj){ const e=Object.entries(obj); const tot=e.reduce((a,[,w])=>a+w,0); let x=r()*tot; for(const [k,w] of e){ x-=w; if(x<=0) return k; } return e[e.length-1][0]; }
 const uni=(r,a,b)=>a+(b-a)*r();
+function poisson(r,lambda){ let k=0, p=r(); const L=Math.exp(-lambda); while(p>L && k<200){ k++; p*=r(); } return k; }
 const chance=(r,p)=>r()<p;
 
 /* Hypothèses internes du modèle, non mesurables dans l'export OPROOM : affichées « à calibrer » dans le bilan et les rapports */
@@ -215,7 +216,8 @@ function makeUrgences(cfg, r){
       an:pickW(r,U.an||{AG:1}), adm:"HOSP", mode:"couche", child:false, latex:false, septic:chance(r,0.1), need, alrPre:false, rr:rng(seedOf(cfg.seed,"urgence",k++))});
   };
   const di=cfg.__di;
-  let n = cfg.urgCount>=0 ? cfg.urgCount : di.urgDist[Math.floor(r()*di.urgDist.length)];
+  // réglé à la main : nombre moyen, tiré selon une loi de Poisson ; automatique : distribution réelle de ce jour de la semaine
+  let n = cfg.urgCount>=0 ? poisson(r,cfg.urgCount) : di.urgDist[Math.floor(r()*di.urgDist.length)];
   if(cfg.periode==="epidemie") n=Math.round(n*1.1);
   for(let i=0;i<n;i++){ const h=+pickW(r,hours), at=h*60+Math.floor(r()*60); mk(at, pickW(r,specs), pickW(r,classes)); }
   if(cfg.burst && cfg.burst.n>0){
@@ -766,7 +768,8 @@ function simulate(cfg, planned, urg, r){
     }
     /* salles libres : choisir le cas suivant */
     rooms.forEach(R=>{
-      if(R.phase!=="idle" || closed(R.n,t)) return;
+      // une salle qui tombe en panne pendant l'arrivée du patient (12 min au plus) ne démarre pas de cas
+      if(R.phase!=="idle" || closures.some(z=>z.room===R.n && z.from<t+13 && z.to>t)) return;
       if(cfg.finProgramme && R.started && !R.endClean && R.open && !R.nightOnly && R.n!==cfg.urgRoom && !R.q.length && !R.called.length && !isNight(t)){
         const a=free1(ashs,t)||ashs.find(x=>isFreeOT(x,t) && t<x.shift[1]+30);
         if(a){ const d=Math.round(30+15*rSteri()); occupy(a,t,t+d,"bionettoyage de fin de programme",R.n); R.endClean=[t,t+d,a.label]; R.phase="endClean"; R.until=t+d;

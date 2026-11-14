@@ -6,9 +6,10 @@
   "scripts": {
     "start": "node server.js 8080",
     "sim": "node tools/simulate.js",
-    "data": "python3 tools/export_days.py",
     "campagne": "node tools/campagne.js",
-    "test": "node tools/test.js"
+    "test": "node tools/test.js",
+    "check": "node tools/check.js",
+    "data": "python3 tools/export_days.py"
   },
   "engines": {
     "node": ">=18"

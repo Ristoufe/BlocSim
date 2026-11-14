@@ -26,7 +26,7 @@ Réglages (remplacent ceux du scénario)
   --salles "OP 2,OP 3,..."   salles ouvertes
   --salle-urgence "OP 5"     salle d'urgence
   --programme <0.7-1.25>     remplissage du programme (1 = habituel)
-  --urgences <n>             nombre d'urgences tirées au hasard (défaut : selon le jour)
+  --urgences <n>             nombre moyen d'urgences, loi de Poisson (défaut : distribution réelle du jour)
   --afflux <n>@<HH:MM>       afflux de victimes, ex. 6@14:00
   --lits <4-12>              lits de SSPI ouverts
   --brancardiers <n>         --bionettoyage <n>

@@ -16,3 +16,6 @@ Claude outputs/
 
 # sorties du mode campagne (régénérables)
 campagnes/
+
+# Montage rclone du Drive Blocapta (données sensibles)
+BLOCAPTA/

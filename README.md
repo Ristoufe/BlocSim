@@ -68,7 +68,8 @@ python3 tools/compare_logs.py data/raw/OPROOM.xls
 ### Tests
 
 ```bash
-npm test
+npm test        # tests d'acceptation
+npm run check   # contrôles des règles physiques sur 440 journées
 ```
 
 Vérifie qu'aucune personne n'est à deux endroits (journées générées et journées réelles rejouées), que la même graine redonne la même journée, que changer une capacité garde les mêmes patients et les mêmes urgences, et que la journée de référence reste dans les mesures réelles. Détails dans [GUIDE.md](GUIDE.md#71-tests-automatiques).
@@ -125,6 +126,7 @@ tools/export_stats.py calcul des distributions depuis le fichier OPROOM
 tools/compare_logs.py comparaison des simulations aux données réelles
 tools/simulate.js     option en ligne de commande (npm run sim)
 tools/test.js         tests d'acceptation (npm test)
+tools/check.js        contrôles des règles physiques sur les journées exportées (npm run check)
 tools/campagne.js     mode campagne : milliers de journées variées et rapport (npm run campagne)
 server.js             serveur local sans dépendance (fichiers + enregistrement des logs)
 ```

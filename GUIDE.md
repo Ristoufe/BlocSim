@@ -117,7 +117,7 @@ Les 65 paramètres sont décrits au même endroit, `js/params.js` : libellé, va
 | Stérilisation, matériel et implants | Parc de boîtes d'instruments (1 = parc habituel par spécialité), délai de stérilisation (4 h), boîtes non conformes (2 %), panne d'autoclave (1 % par jour), implant ou ancillaire manquant (1,5 %), dispositif stérile manquant (3 %) |
 | Pendant l'intervention | Manipulateurs radio (1), intubations difficiles (2 %), extemporanés et transfusions (fréquence habituelle), délai de l'EFS (40 min), interventions avec un interne (15 %), check-list HAS, brancardier pour le transfert en SSPI, bionettoyage de fin de programme |
 | SSPI et aval | Lits de SSPI (10), patients bloqués faute de lit en service (4 %), places de réanimation (2), fermeture de l'ambulatoire (19 h) |
-| Urgences et garde | Nombre d'urgences (auto : tiré selon le jour), équipes de garde la nuit (1), délai de venue de l'astreinte (25 min) |
+| Urgences et garde | Nombre d'urgences (auto : distribution réelle du jour ; réglé à la main : moyenne, loi de Poisson), équipes de garde la nuit (1), délai de venue de l'astreinte (25 min) |
 | Aléas | Pannes de salle et d'équipement (1 % par jour), complications peropératoires (4 %) et en SSPI, panne informatique (2 % par jour, mode dégradé de 1 à 4 h) |
 
 Dans le terminal, les options courantes :
@@ -311,7 +311,9 @@ npm test                      # 50 tirages par scénario
 node tools/test.js --tirages=200
 ```
 
-Quatre familles de tests, à lancer après toute modification du moteur :
+`npm run check` complète ces tests avec des contrôles indépendants du moteur, faits sur les journées exportées (440 journées : reproductibilité, durées, ordre des étapes, urgences jamais avant leur arrivée, aucune salle en panne utilisée, ni deux patients dans une salle, ni un chirurgien dans deux salles).
+
+Quatre familles de tests dans `npm test`, à lancer après toute modification du moteur :
 
 | Test | Ce qui est vérifié |
 | --- | --- |

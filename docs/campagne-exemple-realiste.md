@@ -5,7 +5,7 @@ Produit par `npm run campagne -- --n 3000 --graine 2026`. Les fichiers contextes
 - Journées simulées : 3000
 - Profil : réaliste (situations à leur fréquence estimée)
 - Année : 2026 - graine de campagne 2026
-- Contrôles de cohérence : 5 785 011 vérifications, 0 incohérence (personne à deux endroits, MAR à plus de deux patients, SSPI sans IDE, brancards, lits)
+- Contrôles de cohérence : 5 785 182 vérifications, 0 incohérence (personne à deux endroits, MAR à plus de deux patients, SSPI sans IDE, brancards, lits)
 
 Chaque journée est rejouable : sa configuration complète est dans configs.jsonl (champ cfg), à charger avec `npm run sim -- --config`.
 
@@ -72,17 +72,17 @@ Salles ouvertes : de 1 à 8 (médiane 5). Afflux de victimes : 14 journées. Pan
 | Urgences reportées au lendemain | 0,0 | 0,0 | 0,0 | 0,0 | 4 |  |
 | Retard moyen du programmé | 27,9 | 0,0 | 23,0 | 78,0 | 248 | min |
 | Attente moyenne des urgences | 83,0 | 23,0 | 72,0 | 173,0 | 452 | min |
-| Attente maximale d'une urgence | 264,3 | 80,0 | 229,0 | 580,0 | 1298 | min |
+| Attente maximale d'une urgence | 264,4 | 80,0 | 229,0 | 580,0 | 1298 | min |
 | Urgences dans leur délai | 93,6 | 67,0 | 100,0 | 100,0 | 100 | % |
 | Débordement après 18 h 30 | 7,5 | 0,0 | 0,0 | 46,0 | 446 | min |
-| Salle prête, patient absent | 49,7 | 0,0 | 13,0 | 205,0 | 1481 | min |
+| Salle prête, patient absent | 49,9 | 0,0 | 14,0 | 205,0 | 1481 | min |
 | Attente MAR | 15,3 | 0,0 | 12,0 | 47,0 | 94 | min |
 | Attente chirurgien | 34,7 | 0,0 | 11,0 | 163,0 | 692 | min |
 | Blocage en salle faute de place en SSPI | 1,2 | 0,0 | 0,0 | 9,0 | 142 | min |
-| Attente brancard ou brancardier | 55,7 | 0,0 | 9,0 | 247,0 | 2746 | min |
+| Attente brancard ou brancardier | 55,7 | 0,0 | 9,0 | 243,2 | 2746 | min |
 | Attente en pré-anesthésie | 73,5 | 0,0 | 43,0 | 255,0 | 1120 | min |
 | Attente équipement | 5,6 | 0,0 | 0,0 | 19,0 | 740 | min |
-| Sortie de SSPI retardée | 66,1 | 0,0 | 1,0 | 287,0 | 983 | min |
+| Sortie de SSPI retardée | 66,0 | 0,0 | 1,0 | 287,0 | 983 | min |
 | Pic de la SSPI | 3,6 | 1,0 | 4,0 | 6,0 | 10 | lits |
 | Pic de la SSPI / lits ouverts | 38,4 | 10,0 | 40,0 | 75,0 | 100 | % |
 | Ambulatoires convertis en hospitalisation | 0,2 | 0,0 | 0,0 | 1,0 | 4 |  |
@@ -94,24 +94,24 @@ Salles ouvertes : de 1 à 8 (médiane 5). Afflux de victimes : 14 journées. Pan
 | Attente de boîtes d'instruments | 20,3 | 0,0 | 0,0 | 87,0 | 2282 | min |
 | Attente de matériel (implant, dispositif, chariot) | 8,7 | 0,0 | 0,0 | 35,0 | 113 | min |
 | Attente du manipulateur radio | 20,5 | 0,0 | 22,0 | 58,0 | 150 | min |
-| Attente d'examens extemporanés | 15,9 | 0,0 | 0,0 | 69,0 | 443 | min |
+| Attente d'examens extemporanés | 16,0 | 0,0 | 0,0 | 69,0 | 443 | min |
 | Attente de produits sanguins | 12,1 | 0,0 | 0,0 | 57,0 | 144 | min |
 | Attente d'un brancardier pour la SSPI | 7,3 | 0,0 | 1,0 | 34,0 | 123 | min |
 | Interventions avec un interne | 2,6 | 0,0 | 2,0 | 8,0 | 21 |  |
 | Intubations difficiles | 0,2 | 0,0 | 0,0 | 1,0 | 3 |  |
 | Mode dégradé informatique | 3,6 | 0,0 | 0,0 | 0,0 | 239 | min |
 
-Jours ouvrés seulement : 2153 journées, 25,3 interventions en moyenne dont 6,2 urgences, 3,0 déprogrammations.
+Jours ouvrés seulement : 2153 journées, 25,2 interventions en moyenne dont 6,2 urgences, 3,0 déprogrammations.
 
 ## 3. Comparaison par famille de situation (moyennes)
 
 | Famille | n | Réalisées | Déprog. | Annul. vérif. | Retard (min) | Urg. dans délai (%) | Attente urg. (min) | Débord. (min) | Blocage SSPI (min) | Att. brancard (min) | Att. MAR (min) | Att. boîtes (min) | Vérif. (min) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Journée ordinaire | 1583 | 19,7 | 1,7 | 0,2 | 25,1 | 93,7 | 82,4 | 6,7 | 1,0 | 29,6 | 15,3 | 14,2 | 27,3 |
-| Sous-effectif paramédical | 290 | 17,7 | 3,0 | 0,2 | 40,4 | 92,0 | 86,9 | 6,1 | 1,7 | 229,7 | 13,8 | 7,1 | 25,0 |
-| SSPI ou aval sous tension | 244 | 19,5 | 1,7 | 0,2 | 26,9 | 94,4 | 83,8 | 5,1 | 2,6 | 29,1 | 15,9 | 10,5 | 26,4 |
-| Programme surchargé | 198 | 20,2 | 4,2 | 0,3 | 25,4 | 93,3 | 89,9 | 8,0 | 0,8 | 30,0 | 16,0 | 16,6 | 28,4 |
-| Panne de salle ou d'équipement | 138 | 18,5 | 1,8 | 0,2 | 29,1 | 94,5 | 77,8 | 7,9 | 0,7 | 20,9 | 15,5 | 19,5 | 23,7 |
+| Sous-effectif paramédical | 290 | 17,7 | 3,0 | 0,2 | 40,4 | 92,0 | 86,9 | 6,1 | 1,7 | 229,6 | 13,8 | 7,1 | 25,0 |
+| SSPI ou aval sous tension | 244 | 19,5 | 1,7 | 0,2 | 27,1 | 94,4 | 83,8 | 5,1 | 2,6 | 29,1 | 15,9 | 10,5 | 26,4 |
+| Programme surchargé | 198 | 20,2 | 4,2 | 0,3 | 25,6 | 93,3 | 90,0 | 8,0 | 0,9 | 30,0 | 16,0 | 16,6 | 28,4 |
+| Panne de salle ou d'équipement | 138 | 18,5 | 1,8 | 0,2 | 29,4 | 94,5 | 78,0 | 7,9 | 0,7 | 20,8 | 15,6 | 19,5 | 23,4 |
 | Brancardage limité | 163 | 18,9 | 2,6 | 0,2 | 30,8 | 93,2 | 79,7 | 5,1 | 1,4 | 173,0 | 14,9 | 5,8 | 21,8 |
 | Patients en retard ou non prêts | 77 | 18,8 | 1,6 | 0,2 | 27,0 | 94,4 | 86,6 | 6,6 | 1,4 | 21,8 | 13,9 | 23,7 | 25,7 |
 | Vérifications avant l'anesthésie défaillantes | 103 | 20,1 | 2,0 | 0,7 | 33,1 | 95,2 | 75,9 | 7,6 | 1,4 | 20,2 | 17,0 | 6,9 | 62,6 |
@@ -125,17 +125,17 @@ Jours ouvrés seulement : 2153 journées, 25,3 interventions en moyenne dont 6,2
 | Période | n | Réalisées | Déprog. | Annul. vérif. | Retard (min) | Urg. dans délai (%) | Attente urg. (min) | Débord. (min) | Blocage SSPI (min) | Att. brancard (min) | Att. MAR (min) | Att. boîtes (min) | Vérif. (min) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | normale | 1546 | 20,3 | 2,4 | 0,3 | 28,5 | 94,0 | 80,2 | 8,7 | 1,1 | 65,7 | 16,4 | 24,0 | 29,6 |
-| vacances | 1131 | 18,3 | 1,8 | 0,2 | 26,4 | 93,3 | 83,8 | 6,0 | 1,2 | 46,0 | 14,4 | 16,5 | 26,2 |
-| epidemie | 323 | 18,7 | 2,2 | 0,3 | 30,3 | 92,4 | 93,9 | 7,0 | 2,0 | 41,7 | 13,5 | 16,1 | 24,2 |
+| vacances | 1131 | 18,3 | 1,8 | 0,2 | 26,5 | 93,3 | 83,8 | 6,0 | 1,2 | 45,9 | 14,4 | 16,5 | 26,1 |
+| epidemie | 323 | 18,7 | 2,2 | 0,3 | 30,4 | 92,4 | 93,9 | 7,0 | 2,0 | 41,7 | 13,5 | 16,1 | 24,2 |
 
 ### Par jour
 
 | Jour | n | Réalisées | Déprog. | Annul. vérif. | Retard (min) | Urg. dans délai (%) | Attente urg. (min) | Débord. (min) | Blocage SSPI (min) | Att. brancard (min) | Att. MAR (min) | Att. boîtes (min) | Vérif. (min) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| lundi | 396 | 23,8 | 2,3 | 0,4 | 37,3 | 95,6 | 72,8 | 9,6 | 1,0 | 69,3 | 19,6 | 22,4 | 36,8 |
-| mardi | 452 | 24,9 | 2,1 | 0,3 | 38,7 | 95,6 | 69,6 | 9,2 | 1,3 | 73,1 | 20,6 | 36,6 | 40,9 |
-| mercredi | 445 | 26,0 | 3,2 | 0,4 | 39,6 | 96,4 | 75,3 | 10,6 | 1,4 | 88,0 | 22,7 | 25,6 | 37,1 |
-| jeudi | 451 | 28,7 | 5,4 | 0,4 | 37,9 | 96,2 | 75,5 | 16,5 | 1,7 | 110,5 | 24,8 | 32,2 | 46,4 |
+| lundi | 396 | 23,8 | 2,3 | 0,4 | 37,4 | 95,6 | 72,8 | 9,6 | 1,0 | 69,3 | 19,6 | 22,4 | 36,8 |
+| mardi | 452 | 24,9 | 2,1 | 0,3 | 38,8 | 95,6 | 69,7 | 9,2 | 1,3 | 73,1 | 20,6 | 36,6 | 40,8 |
+| mercredi | 445 | 26,0 | 3,2 | 0,4 | 39,7 | 96,4 | 75,3 | 10,6 | 1,4 | 88,1 | 22,8 | 25,6 | 37,1 |
+| jeudi | 451 | 28,7 | 5,4 | 0,4 | 37,9 | 96,2 | 75,5 | 16,5 | 1,7 | 110,4 | 24,8 | 32,2 | 46,4 |
 | vendredi | 409 | 22,5 | 1,6 | 0,3 | 40,8 | 93,5 | 84,7 | 5,8 | 1,6 | 41,2 | 18,5 | 21,4 | 30,8 |
 | samedi | 439 | 4,4 | 0,0 | 0,0 | 0,0 | 89,5 | 103,4 | 0,0 | 0,7 | 0,8 | 0,0 | 0,9 | 0,0 |
 | dimanche | 408 | 4,6 | 0,0 | 0,0 | 0,0 | 87,8 | 100,7 | 0,0 | 0,7 | 0,8 | 0,0 | 1,2 | 0,0 |
@@ -147,10 +147,10 @@ Corrélation de rang de Spearman entre chaque réglage tiré et chaque indicateu
 | Réglage | Déprog. | Retard | Débord. | Blocage SSPI | Att. brancard | Att. urg. | Salle sans patient | Att. MAR | Att. boîtes | Vérif. | Annul. vérif. |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Remplissage du programme | +0,35 |  |  |  |  |  |  |  |  |  |  |
-| Salles ouvertes | +0,35 |  | +0,21 |  | +0,44 |  | +0,35 | +0,34 | +0,20 | +0,21 |  |
+| Salles ouvertes | +0,36 |  | +0,21 |  | +0,44 |  | +0,35 | +0,35 | +0,20 | +0,21 |  |
 | Brancardiers |  |  |  |  | -0,60 |  |  |  |  |  |  |
 | Agents de bionettoyage |  |  |  |  | -0,15 |  |  |  |  |  |  |
-| MAR supplémentaires |  |  |  |  | -0,17 |  |  |  |  |  |  |
+| MAR supplémentaires |  |  |  |  | -0,18 |  |  |  |  |  |  |
 | Hospitalisés amenés dans leur lit |  |  |  |  | -0,20 |  |  |  |  |  |  |
 | Examen manquant |  |  |  |  |  |  |  |  |  | +0,20 |  |
 | Parc de boîtes d'instruments |  |  |  |  |  |  |  |  | -0,17 |  |  |
@@ -179,7 +179,7 @@ Classement par un score de tension (déprogrammations, débordement, blocage SSP
 | 2283 | Stérilisation ou matériel en tension | jeudi 2026-10-01 | normale | 5 | 23 | 6 | 186 | 9 | 43 % | 4 |
 | 945 | Sous-effectif paramédical | jeudi 2026-12-03 | normale | 8 | 32 | 24 | 54 | 0 | 100 % | 0 |
 | 2455 | Journée ordinaire | mardi 2026-01-27 | epidemie | 4 | 13 | 5 | 0 | 0 | 22 % | 3 |
-| 1970 | Programme surchargé | jeudi 2026-11-12 | normale | 7 | 49 | 25 | 0 | 0 | 100 % | 0 |
+| 2977 | Programme surchargé | mardi 2026-02-24 | epidemie | 5 | 23 | 4 | 0 | 11 | 92 % | 0 |
 
 ## 6. Contrôles de cohérence
 
