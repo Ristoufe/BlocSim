@@ -68,6 +68,17 @@ function drawRoom(ctx,R,sim,t,rt,detail){
   const used = sim && sim.byRoom[R.name];
   ctx.fillStyle= used? "#f6f8f7":"#eaeeee"; ctx.fillRect(R.x,R.y,R.w,R.h);
   floorTiles(ctx,R.x,R.y,R.w,R.h,R.small?16:20,"rgba(38,52,59,.06)");
+  // salle de pré-anesthésie de la salle, côté couloir, séparée par une cloison avec une porte
+  if(R.sas){
+    const S=R.sas, wy = R.top? S.y : S.y+S.h, mono=getComputedStyle(document.documentElement).getPropertyValue("--font-mono");
+    ctx.fillStyle= used? "#eef2f5":"#e4e9eb"; ctx.fillRect(S.x+2, R.top? S.y+2 : S.y, S.w-4, S.h-2);
+    ctx.strokeStyle="#26343b"; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(R.x,wy); ctx.lineTo(R.cx-24,wy); ctx.moveTo(R.cx+24,wy); ctx.lineTo(R.x+R.w,wy); ctx.stroke();
+    ctx.fillStyle="rgba(22,34,42,.55)"; ctx.font=`600 10px ${mono}`; ctx.textBaseline="top";
+    ctx.fillText("PRÉ-ANESTHÉSIE", S.x+8, R.top? S.y+6 : S.y+S.h-16);
+    const np = sim && sim.v===2 ? (sim.day.preSas===false ? 0 : (sim.day.sasPlaces||1)) : 1;
+    ctx.lineWidth=1;
+    for(let i=0;i<2;i++){ const b=sasSpot(R.name,i), on=i<np; ctx.strokeStyle= on? "rgba(38,52,59,.32)":"rgba(38,52,59,.07)"; ctx.strokeRect(b.x-22,b.y-12,44,24); if(on){ ctx.fillStyle="#3a4950"; ctx.fillRect(b.x-26,b.y-4,3,8); } }
+  }
   // bandeau d'état côté mur du fond
   const S=STATE[st.st]; const bandY = R.top? R.y : R.y+R.h-8;
   ctx.fillStyle=S.color; ctx.fillRect(R.x,bandY,R.w,8);
@@ -107,6 +118,7 @@ function drawRoom(ctx,R,sim,t,rt,detail){
   if(used && !R.small){
     ctx.textAlign="right"; ctx.font=`600 12px ${getComputedStyle(document.documentElement).getPropertyValue("--font-mono")}`;
     ctx.fillStyle=S.color; let lab=S.label;
+    if(st.st==="attente" && st.why) lab = st.why==="lit de SSPI"?"Attente lit SSPI":st.why==="personnel de SSPI"?"Attente IDE SSPI":st.why==="brancard"?"Attente brancard":"Attente sortie";
     if(st.c && !st.next && st.st!=="bio") lab += " " + fmt(t-st.c.s).replace(/^00:/,"0:");
     ctx.fillText(lab, R.x+R.w-10, ly+2); ctx.textAlign="left";
   }
@@ -127,7 +139,21 @@ function drawZone(ctx,Z,key,sim,t){
   const mono=getComputedStyle(document.documentElement).getPropertyValue("--font-mono"), ui=getComputedStyle(document.documentElement).getPropertyValue("--font-ui");
   ctx.fillStyle="rgba(22,34,42,.75)"; ctx.font=`600 15px ${mono}`; ctx.textBaseline="top";
   const top = Z.y<CY; ctx.fillText(Z.label.toUpperCase(), Z.x+10, top? Z.y+12 : Z.y+Z.h-26);
-  if(key==="ACC"){ ctx.strokeStyle="rgba(38,52,59,.18)"; ctx.lineWidth=1; ACC_SLOTS.forEach(p=>{ ctx.strokeRect(p.x-20,p.y-13,40,26); }); ctx.font=`500 11px ${ui}`; ctx.fillStyle="#7d8b91"; ctx.fillText("vers les services", 26, 266); }
+  if(key==="ACC"){
+    // accueil (haut) et salle de pré-anesthésie (bas), séparés par une cloison avec une porte
+    const v2 = sim && sim.v===2;
+    ctx.fillStyle="#eef1f4"; ctx.fillRect(Z.x+3,186,Z.w-6,Z.y+Z.h-189);
+    ctx.strokeStyle="#26343b"; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(Z.x,184); ctx.lineTo(115,184); ctx.moveTo(155,184); ctx.lineTo(Z.x+Z.w,184); ctx.stroke();
+    ctx.fillStyle="rgba(22,34,42,.75)"; ctx.font=`600 12px ${mono}`; ctx.fillText("PRÉ-ANESTHÉSIE", Z.x+10, 192);
+    ctx.font=`500 11px ${ui}`; ctx.fillStyle="#7d8b91"; ctx.fillText("entrée des services", 40, 100);
+    ctx.fillStyle="#9fb4c4"; ctx.beginPath(); ctx.moveTo(22,112); ctx.lineTo(34,106); ctx.lineTo(34,118); ctx.fill();
+    const nb = v2 ? (sim.day.preBeds||4) : 4, ns = v2 ? (sim.day.preSeats||4) : 4;
+    ctx.lineWidth=1;
+    PRE_BEDS.forEach((b,i)=>{ const on=i<nb; ctx.strokeStyle= on? "rgba(38,52,59,.3)":"rgba(38,52,59,.08)"; ctx.strokeRect(b.x-22,b.y-12,44,24); if(on){ ctx.fillStyle="#3a4950"; ctx.fillRect(b.x-26,b.y-4,3,8); } });
+    PRE_SEATS.forEach((b,i)=>{ const on=i<ns; ctx.strokeStyle= on? "rgba(38,52,59,.3)":"rgba(38,52,59,.08)"; rrect(ctx,b.x-11,b.y-11,22,22,5); ctx.stroke(); });
+    ctx.fillStyle="#cfd8db"; rrect(ctx,PRE_DESK.x-24,PRE_DESK.y-6,44,10,2); ctx.fill();
+    ctx.font=`500 10px ${ui}`; ctx.fillStyle="#7d8b91"; ctx.fillText("couchés", 40, 432-8); ctx.fillText("assis", 172, 432-8);
+  }
   if(key==="REC"){
     REC_BEDS.forEach((b,i)=>{ if(sim && i>=sim.sspiBeds){ ctx.fillStyle="rgba(91,58,58,.12)"; ctx.fillRect(b.x-22,b.y-14,44,28); ctx.strokeStyle="rgba(91,58,58,.4)"; ctx.beginPath(); ctx.moveTo(b.x-22,b.y-14); ctx.lineTo(b.x+22,b.y+14); ctx.moveTo(b.x+22,b.y-14); ctx.lineTo(b.x-22,b.y+14); ctx.stroke(); return; }
       ctx.strokeStyle="rgba(38,52,59,.22)"; ctx.strokeRect(b.x-22,b.y-14,44,28); ctx.fillStyle="#9aa6ab"; ctx.font=`500 10px ${mono}`; ctx.fillText(String(i+1), b.x-21, b.y-13); ctx.fillStyle="#3a4950"; ctx.fillRect(b.x+24,b.y-6,6,12); });
@@ -154,7 +180,19 @@ function drawScene(ctx,sim,t,rt,opts={}){
   for(const a of sim.agents){ const p=posAt(a,t); if(!p) continue; list.push([a,p]); }
   // IDE de SSPI, placées au lit des patients présents
   const inRec = sim.cases.filter(c=>t>=c.inRec && t<c.outRec);
-  const nIde = (t%1440>=420 && t%1440<1170) ? 3 : 1;
+  const dayTime = t%1440>=420 && t%1440<1290;
+  const nIde = sim.v===2 ? (dayTime ? Math.max(1,sim.day.staff?.sspi||3) : 1) : ((t%1440>=420 && t%1440<1170) ? 3 : 1);
+  if(sim.v===2){
+    // IDE d'accueil de la pré-anesthésie : au poste du patient en cours d'accueil, sinon au bureau
+    const nPre = sim.day.cfg?.preNurses||1;
+    const acc = sim.cases.filter(c=>c.accueil && t>=c.accueil[0] && t<c.accueil[1] && c.preSlot);
+    for(let i=0;i<nPre;i++){
+      const c=acc[i]; let p;
+      if(c){ const sl = c.preC && t<c.sasIn ? c.preC : c.preSlot; const s = sl.kind==="sas" ? sasSpot(sl.room||c.room, sl.i) : sl.kind==="couche" ? PRE_BEDS[sl.i] : PRE_SEATS[sl.i]; p={x:s.x+(sl.kind==="assis"?-2:0), y:s.y-18}; }
+      else p={x:PRE_DESK.x-10+i*18, y:PRE_DESK.y+12};
+      if(t%1440>=390 && t%1440<1110) list.push([{role:"IDEPRE",code:"IDE accueil "+(i+1),lane:i},{...p,moving:false,act:"accueil"}]);
+    }
+  }
   for(let i=0;i<nIde;i++){
     const mine = inRec.filter((c,j)=>j%nIde===i); let p;
     if(mine.length){ const c=mine[Math.floor(t/6+i)%mine.length]; const b=REC_BEDS[c.bed]; p={x:b.x-28,y:b.y+ (i%2?8:-8)}; }
@@ -164,7 +202,13 @@ function drawScene(ctx,sim,t,rt,opts={}){
   sim.drawn=list;
   // patients d'abord (lits), puis soignants
   for(const [a,p] of list){ if(a.role!=="PAT") continue;
-    const c=sim.cases.find(x=>x.id===a.caseId);
+    const c=a.kase || sim.cases.find(x=>x.id===a.caseId);
+    // patient debout ou en fauteuil avant la salle ; sortie à pied après une anesthésie locale en ambulatoire
+    if(c && c.mode && c.mode!=="couche" && (t<c.s || (t>=c.outRec && c.an2==="AL" && c.adm==="AMB"))){
+      if(c.mode==="fauteuil"){ ctx.fillStyle="#5d6b72"; rrect(ctx,p.x-8,p.y-6,16,14,3); ctx.fill(); }
+      drawPerson(ctx,p.x,p.y,"PAT",p.dir??-Math.PI/2,p.moving && c.mode==="debout",rt,c.id, opts.detail?1.05:1.2);
+      continue;
+    }
     let ang = p.dir!=null ? p.dir : (p.act==="table" ? Math.PI/2*(ROOMS[c.room].sign) * -1 : 0);
     if(p.act==="table"){ ang = ROOMS[c.room].sign>0 ? -Math.PI/2 : Math.PI/2; }
     drawBed(ctx,p.x,p.y,ang,p.act);

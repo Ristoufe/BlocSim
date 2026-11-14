@@ -15,7 +15,7 @@ function getSim(i){ return SIMS[i] || (SIMS[i]=buildDay(DATA[i])); }
 function setDay(i){
   app.dayIdx=i; const sel = app.sim? app.sim.selected : null; app.sim=getSim(i); app.sim.selected = (sel && app.sim.byRoom[sel]) ? sel : null;
   const busy = app.sim.cases.filter(c=>!c.night).length;
-  app.t = app.sim.day.generated ? Math.max(app.sim.t0, 455) : busy>6 ? Math.max(app.sim.t0, 570) : app.sim.cases[0].s-5;
+  app.t = app.sim.day.generated ? Math.max(app.sim.t0, 455) : busy>6 ? Math.max(app.sim.t0, 570) : app.sim.cases.length ? app.sim.cases[0].s-5 : app.sim.t0;
   if(app.sim.day.generated){ app.playing=true; if(globalThis.syncPlay) globalThis.syncPlay(); }
   document.querySelectorAll(".daycard").forEach(b=>b.setAttribute("aria-pressed", b.dataset.idx!==undefined && +b.dataset.idx===i));
   try{ localStorage.setItem("blocapta-day", String(i)); }catch(e){}
@@ -34,22 +34,22 @@ function renderSide(full){
     <div class="sec"><h2>${sim.day.generated? "En ce moment" : sim.day.label}</h2><div class="kpis" id="kpis"></div></div>
     <div class="sec"><h2>Fil des événements</h2><ul class="feed" id="feed"></ul></div>
     <div class="sec"><h2>Exporter la journée</h2>
-      <p class="note">Une ligne par intervention, avec les colonnes de l'export OPROOM (séparateur point-virgule, lisible dans Excel). La version détaillée ajoute l'heure prévue, l'attente des urgences, le retard et l'attente de lit en SSPI.</p>
+      <p class="note">Une ligne par intervention, avec les colonnes de l'export OPROOM (séparateur point-virgule, lisible dans Excel). La version détaillée ajoute 37 colonnes : heure prévue, mode d'arrivée, pré-anesthésie, classe et délai des urgences, chaque attente (MAR, chirurgien, brancard, SSPI, aval), équipe, brancardiers, équipements, complications.</p>
       <div class="rbtns"><button class="btn" type="button" id="csv1">CSV format OPROOM</button><button class="btn" type="button" id="csv2">CSV détaillé</button></div>
       ${sim.day.logFiles? `<p class="note">Enregistré automatiquement : ${sim.day.logFiles.map(f=>`<span class="mono">${f}</span>`).join("<br>")}</p>` : ""}
     </div>
     <div class="sec"><h2>Qui est qui</h2><div class="legend">${Object.entries(ROLE).map(([k,r])=>`<span><i style="background:${r.color}"></i>${r.label}</span>`).join("")}</div>
-      <div class="states">${["accueil","induc","chir","ferm","reveil","bio","prepa","libre"].map(k=>`<span><i style="background:${STATE[k].color}"></i>${STATE[k].label}</span>`).join("")}</div></div>
+      <div class="states">${["accueil","induc","chir","ferm","reveil","bio","prepa","libre","attMar","attChir","attPat","attente","panne"].map(k=>`<span><i style="background:${STATE[k].color}"></i>${STATE[k].label}</span>`).join("")}</div></div>
     <div class="sec"><h2>Annulées ce jour (${sim.day.cancelled.length})</h2>${sim.day.cancelled.length? `<ul class="canc">${sim.day.cancelled.map(c=>`<li>${SPEC_SHORT(c.spec)} : ${c.reason}</li>`).join("")}</ul>`:`<p class="note">Aucune annulation enregistrée.</p>`}</div>
     <div class="sec note">Données réelles de l'export OPROOM : heures d'entrée en salle, durées, spécialités, actes, type, anesthésie et annulations. Modélisé : découpage des phases, équipes paramédicales, brancardage, bionettoyage, séjour en SSPI, trajets et constantes vitales. Les soignants sont désignés par des codes. Cliquer sur une salle pour l'ouvrir.</div>`;
   }
   const done=sim.cases.filter(c=>c.end<=t).length, inOp=sim.rooms.filter(r=>{const s=roomState(sim,r,t).st; return !["libre","ferme","prepa","bio"].includes(s);}).length;
-  const acc=sim.cases.filter(c=>t>=c.arr2 && t<c.s).length, rec=sim.cases.filter(c=>t>=c.inRec&&t<c.outRec).length;
+  const acc=sim.cases.filter(c=> sim.v===2 ? (c.preIn!=null && t>=c.preIn && t<c.s) : (t>=c.arr2 && t<c.s)).length, rec=sim.cases.filter(c=>t>=c.inRec&&t<c.outRec).length;
   const urg=sim.cases.filter(c=>c.type!=="P").length, staff=sim.agents.filter(a=>a.role!=="PAT" && posAt(a,t) && segAt(a,t).act!=="idle").length;
   const k=document.getElementById("kpis"); if(k) k.innerHTML=`
     <div class="kpi"><b>${inOp}/${sim.rooms.length}</b><span>salles en activité</span></div>
     <div class="kpi"><b>${done}/${sim.cases.length}</b><span>interventions finies</span></div>
-    <div class="kpi"><b>${acc}</b><span>patients à l'accueil</span></div>
+    <div class="kpi"><b>${acc}</b><span>${sim.v===2?"patients en pré-anesthésie":"patients à l'accueil"}</span></div>
     <div class="kpi"><b>${rec}</b><span>patients en SSPI</span></div>
     <div class="kpi"><b>${urg}</b><span>urgences du jour</span></div>
     <div class="kpi"><b>${staff}</b><span>soignants en poste actif</span></div>`;
@@ -96,7 +96,16 @@ function renderRoomPanel(full){
       <dt>Chirurgien</dt><dd class="mono">${shown.ch}</dd>
       <dt>Anesthésiste</dt><dd class="mono">${shown.mar}</dd>
       <dt>Horaires</dt><dd class="mono">${fmt(P[0])} entrée · ${fmt(P[3])} incision · ${fmt(P[6])} sortie</dd>
-      <dt>Durée en salle</dt><dd>${dur(shown.dur)}${!c && st.next? " (à venir)":""}</dd>`;
+      <dt>Durée en salle</dt><dd>${dur(shown.dur)}${!c && st.next? " (à venir)":""}</dd>
+      ${shown.phT? `<dt>Arrivée</dt><dd>${({debout:"à pied",fauteuil:"en fauteuil",couche:"couché"})[shown.mode]||""}${shown.preIn!=null?`, ${shown.preC? `attente en zone d'accueil à ${fmt(shown.preIn)}, salle de pré-anesthésie de ${shown.room} à ${fmt(shown.sasIn)}` : shown.preSlot.kind==="sas" ? `salle de pré-anesthésie de ${shown.room} à ${fmt(shown.preIn)}` : `pré-anesthésie à ${fmt(shown.preIn)} (poste ${shown.preSlot.kind==="couche"?"couché":"assis"} ${shown.preSlot.i+1})`}`:""}${shown.marAlr?`, ALR par ${shown.alrBy}`:""}</dd>` : ""}
+      ${shown.clsLabel? `<dt>Délai maximal</dt><dd>${shown.clsLabel} : ${fmt(shown.deadline)}, ${shown.s<=shown.deadline?"respecté":"<b style='color:var(--crit)'>dépassé</b>"}</dd>` : ""}
+      ${shown.planned!=null && shown.phT? `<dt>Prévu à</dt><dd class="mono">${fmt(shown.planned)}${shown.s-shown.planned>=5?` (retard ${Math.round(shown.s-shown.planned)} min)`:""}</dd>` : ""}
+      ${(shown.waits||[]).length? `<dt>Attentes</dt><dd>${shown.waits.map(w=>`${w.kind} ${Math.round(w.b-w.a)} min`).join(" · ")}</dd>` : ""}
+      ${shown.team? `<dt>Équipe</dt><dd class="mono">${shown.team.iade}, ${shown.team.ibode}, ${shown.team.circ}</dd>` : ""}
+      ${shown.vpaMar||shown.chirVisit||shown.labo||shown.ident||shown.prep? `<dt>Avant l'anesthésie</dt><dd>${[shown.vpaMar&&`visite de ${shown.vpaMar[2]} à ${fmt(shown.vpaMar[0])}`, shown.chirVisit&&`${shown.chirVisit[2]} : ${[shown.consent&&"consentement",shown.marq&&"marquage du côté"].filter(Boolean).join(" et ")}`, shown.labo&&`examen manquant, résultat à ${fmt(shown.labo[1])}`, shown.ident&&"discordance d'identité vérifiée", shown.prep&&"patient non préparé", shown.jeuneReport&&"reporté en fin de programme (jeûne)"].filter(Boolean).join(" · ")}</dd>` : ""}
+      ${shown.boxGroup? `<dt>Boîte d'instruments</dt><dd>${shown.boxGroup}${shown.boxRefused?", première boîte non conforme":""}</dd>` : ""}
+      ${shown.radio||shown.extempoAt||shown.transfuAt||shown.dmMiss||shown.intub||shown.comptage? `<dt>Pendant l'intervention</dt><dd>${[shown.intub&&"intubation difficile", shown.radio&&`scopie par ${shown.radio[2]} à ${fmt(shown.radio[0])}`, shown.extempoAt&&`examen extemporané (${Math.round(shown.extempoAt[1]-shown.extempoAt[0])} min)`, shown.transfuAt&&`transfusion, produits livrés à ${fmt(shown.transfuAt[1])}`, shown.dmMiss&&"dispositif stérile manquant", shown.comptage&&"comptage discordant"].filter(Boolean).join(" · ")}</dd>` : ""}
+      ${shown.latex||shown.child||shown.septic||shown.complic||shown.bmr||shown.interne? `<dt>Particularités</dt><dd>${[shown.latex&&"allergie au latex",shown.child&&"enfant",shown.septic&&"patient septique (bionettoyage renforcé)",shown.bmr&&"porteur de BMR (fin de programme, bionettoyage renforcé)",shown.interne&&"interne qui opère",shown.complic&&"complication peropératoire"].filter(Boolean).join(", ")}</dd>` : ""}`;
   } else ce.innerHTML=`<dt>Salle</dt><dd>${st.st==="libre"? "Libre, aucune intervention prévue dans les 25 prochaines minutes":"Fermée ce jour"}</dd>`;
   // équipe
   const inRoom = (sim.drawn||[]).filter(([a,p])=>p.x>=R.x&&p.x<=R.x+R.w&&p.y>=R.y&&p.y<=R.y+R.h);
@@ -238,22 +247,59 @@ function addDayCard(d,i){
 }
 
 function reportHTML(d){
-  const R=d.report, B=d.baseline;
-  const delta=(v,b,unit="",good="low")=>{ const x=v-b; if(Math.abs(x)<0.5) return `<em class="dz">identique sans urgences ni pannes</em>`; const bad = good==="low" ? x>0 : x<0; return `<em class="${bad?"dbad":"dgood"}">${x>0?"+":""}${Math.round(x)}${unit} vs sans urgences ni pannes</em>`; };
-  const cfg=d.cfg;
+  const R=d.report, B=d.baseline, cfg=d.cfg, V=d.validation;
+  const delta=(v,b,unit="")=>{ if(b==null) return ""; const x=v-b; if(Math.abs(x)<0.5) return `<em class="dz">identique sans aléas</em>`; return `<em class="${x>0?"dbad":"dgood"}">${x>0?"+":""}${Math.round(x)}${unit} vs sans aléas</em>`; };
+  const k=(v,label,cls="",extra="")=>`<div class="kpi ${cls}"><b>${v}</b><span>${label}</span>${extra}</div>`;
+  const jour = d.jour ? d.jour.charAt(0).toUpperCase()+d.jour.slice(1) : "";
+  const changes=(d.staffChanges||[]);
   return `<div class="sec report">
     <h2>Bilan de la simulation</h2>
-    <p class="note">${d.label} · ${cfg.rooms.length} salles · ${cfg.sspiBeds} lits de SSPI · ${cfg.bran} brancardier${cfg.bran>1?"s":""} · ${cfg.ash} agent${cfg.ash>1?"s":""} de bionettoyage · graine ${cfg.seed}</p>
+    <p class="note">${d.label} · ${jour} ${d.date.split("-").reverse().join("/")} · ${formatParam("periode",cfg.periode)} · ${cfg.rooms.length} salles · ${cfg.sspiBeds} lits de SSPI · graine ${cfg.seed}</p>
+    ${V? `<p class="valid ${V.violations?"ko":"ok"}">${V.violations? `${V.violations} incohérence${V.violations>1?"s":""} détectée${V.violations>1?"s":""} sur ${V.checks} contrôles` : `Contrôles de réalisme : ${V.checks} vérifications, aucune incohérence (personne à deux endroits, MAR à plus de deux patients, SSPI sans personnel, brancards)`}</p>` : ""}
+    <p class="note">Les écarts « vs sans aléas » comparent à la même journée (mêmes patients, mêmes urgences habituelles, même graine) sans absences, pannes, retards de patients, complications ni afflux.</p>
+    <h3 class="rh">Activité</h3>
     <div class="rgrid">
-      <div class="kpi"><b>${R.done}</b><span>interventions réalisées (${R.urg} urgences)</span></div>
-      <div class="kpi ${R.deprog?"bad":""}"><b>${R.deprog}</b><span>déprogrammées faute de temps${R.annul!=null?` (+ ${R.annul} annulées avant le jour J)`:""}</span>${delta(R.deprog,B.deprog)}</div>
-      <div class="kpi"><b>${R.urgWait} min</b><span>attente moyenne des urgences (max ${R.urgWaitMax})${R.difN?`, différées : ${R.difWait} min`:""}</span></div>
-      <div class="kpi ${R.vitWait>15?"bad":""}"><b>${R.vitWait} min</b><span>attente moyenne des urgences vitales</span></div>
-      <div class="kpi"><b>${R.late} min</b><span>retard moyen du programmé (${R.lateN} cas à plus de 20 min)</span>${delta(R.late,B.late," min")}</div>
-      <div class="kpi"><b>${dur(R.overMin)}</b><span>de débordement après 18 h 30 (${R.overRooms} salle${R.overRooms>1?"s":""})</span>${delta(R.overMin,B.overMin," min")}</div>
-      <div class="kpi ${R.bedBlock>30?"bad":""}"><b>${R.bedBlock} min</b><span>de patients bloqués en salle faute de lit SSPI (${R.bedBlockN} cas)</span></div>
-      <div class="kpi"><b>${R.sspiPeak}/${cfg.sspiBeds}</b><span>pic d'occupation de la SSPI</span></div>
+      ${k(R.done, `interventions réalisées, dont ${R.urg} urgences`)}
+      ${k(R.deprog, "déprogrammées faute de temps", R.deprog?"bad":"", delta(R.deprog,B.deprog))}
+      ${R.annulJ!=null? k(R.annulJ+R.absents, `annulées le jour même (${R.absents} absents, ${R.annulJ} à l'accueil)`) : ""}
+      ${R.annul!=null? k(R.annul, "annulées avant le jour J (taux réel)") : ""}
+      ${R.sallesFermees? k(R.sallesFermees, "cas perdus : salle fermée faute de personnel", "bad") : ""}
+      ${R.urgReport? k(R.urgReport, "urgences reportées au lendemain", "bad") : ""}
     </div>
+    <h3 class="rh">Délais</h3>
+    <div class="rgrid">
+      ${k(R.late+" min", `retard moyen du programmé (${R.lateN} cas à plus de 20 min)`, "", delta(R.late,B.late," min"))}
+      ${R.urgInTime!=null? k(R.urgInTime+" %", "urgences prises en charge dans leur délai", R.urgInTime<90?"bad":"") : ""}
+      ${k(R.urgWait+" min", `attente moyenne des urgences (max ${R.urgWaitMax} min)`)}
+      ${k(dur(R.overMin), `de débordement après 18 h 30 (${R.overRooms} salle${R.overRooms>1?"s":""})`, "", delta(R.overMin,B.overMin," min"))}
+    </div>
+    ${R.waitMar!=null? `<h3 class="rh">Où le temps se perd (minutes cumulées)</h3>
+    <div class="rgrid">
+      ${k(R.roomWaitPatient, "salle prête, patient pas encore là")}
+      ${k(R.waitMar, "attente d'un MAR (induction, réveil, ALR)")}
+      ${k(R.waitChir, "attente du chirurgien")}
+      ${k(R.bedBlock, `patient bloqué en salle faute de lit ou d'IDE en SSPI (${R.bedBlockN} cas)`, R.bedBlock>30?"bad":"")}
+      ${k(R.waitBrancard+R.waitBran, "attente d'un brancard ou d'un brancardier")}
+      ${k(R.waitPre, "attente d'un poste ou de l'IDE en pré-anesthésie")}
+      ${k(R.waitEquip, "attente d'un équipement partagé")}
+      ${k(R.waitSortie+R.waitAval, "sortie de SSPI retardée (MAR, lit d'aval)")}
+    </div>
+    ${R.waitVerif!=null? `<h3 class="rh">Vérifications, matériel et imprévus de l'intervention</h3>
+    <div class="rgrid">
+      ${k(R.waitVerif, `minutes de vérifications avant l'anesthésie (${R.vpa} visites du MAR, ${R.chirVisit} passages du chirurgien, ${R.labo} examens en urgence)`)}
+      ${k(R.annulJeune+R.annulAnticoag+R.annulExamen+R.annulImplant, `annulations pour jeûne, anticoagulant, examen ou implant${R.jeuneReport? `, ${R.jeuneReport} report en fin de programme`:""}`, (R.annulJeune+R.annulAnticoag+R.annulExamen+R.annulImplant)?"bad":"")}
+      ${k(R.waitSteri, `minutes d'attente de boîtes d'instruments${R.boxNC? ` (${R.boxNC} non conforme${R.boxNC>1?"s":""})`:""}`, R.waitSteri>30?"bad":"")}
+      ${k(R.waitMateriel, "minutes d'attente de matériel (implant, dispositif, chariot, IBODE habilitée)")}
+      ${k(R.waitRadio, "minutes d'attente du manipulateur radio")}
+      ${k(R.waitExtempo+R.waitTransfu, `minutes d'attente d'extemporanés (${R.extempo}) et de produits sanguins (${R.transfu})`)}
+    </div>
+    <p class="note">${R.interne} intervention${R.interne>1?"s":""} avec un interne, ${R.intubDiff} intubation${R.intubDiff>1?"s":""} difficile${R.intubDiff>1?"s":""}, ${R.bmr} patient${R.bmr>1?"s":""} BMR, ${R.finProgramme} bionettoyage${R.finProgramme>1?"s":""} de fin de programme.${R.siPanne? ` Panne informatique : ${R.siPanne} min en mode dégradé.`:""}${R.autoclave? ` Panne d'autoclave : ${R.autoclave} min.`:""}</p>` : ""}
+    <p class="note">Pic de la SSPI : ${R.sspiPeak}/${cfg.sspiBeds} lits. ${R.convHosp? R.convHosp+" ambulatoire(s) converti(s) en hospitalisation. ":""}${R.complic? R.complic+" complication(s) peropératoire(s). ":""}${changes.length? "Personnel : "+changes.map(x=>x.label+(x.absent?" absent":"")).join(", ")+"." : "Aucune absence de personnel."}</p>` : ""}
+    <details class="hyp"><summary>Hypothèses à calibrer (${MODEL_HYPOTHESES.length} règles du modèle, ${PARAMS_A_CALIBRER.length} réglages)</summary>
+      <p class="note">Ces valeurs ne sont pas mesurables dans l'export OPROOM. Les résultats qui en dépendent sont des ordres de grandeur, à confirmer avec les équipes du bloc.</p>
+      <ul>${MODEL_HYPOTHESES.map(h=>`<li><b>${h.label}</b> : ${h.value}</li>`).join("")}</ul>
+      <p class="note">Réglages à calibrer : ${PARAMS_A_CALIBRER.map(p=>`${p.label} (${formatParam(p.key,cfg[p.key])})`).join(", ")}.</p>
+    </details>
     <div class="rbtns"><button class="btn" type="button" id="editScn">Modifier ce scénario</button><button class="btn" type="button" id="rerun">Relancer avec un autre tirage</button></div>
   </div>`;
 }
@@ -262,39 +308,51 @@ const modal=document.createElement("div"); modal.className="modal"; modal.hidden
 let scn=null;
 function openScenario(base){
   scn = base ? JSON.parse(JSON.stringify(base)) : defaultConfig();
+  scn = {...paramDefaults(), ...scn};
   renderScenario(); modal.hidden=false; const f=modal.querySelector("input,button"); if(f) f.focus();
 }
 function closeScenario(){ modal.hidden=true; }
 const SPEC_LIST = ()=>Object.keys(STATS.urg);
+function paramControl(p, v){
+  const tg=SOURCE_TAG[p.source], tag=tg?` <span class="ptag ${tg[0]}">${tg[1]}</span>`:"";
+  const id="p-"+p.key, help=(p.help?`<small>${p.help}</small>`:"")+(tag?`<small class="psrc">${tag}</small>`:"");
+  if(p.type==="bool") return `<label for="${id}">${p.label}</label><div><input id="${id}" data-param="${p.key}" type="checkbox" ${v?"checked":""}>${help}</div>`;
+  if(p.type==="enum") return `<label for="${id}">${p.label}</label><div><select id="${id}" data-param="${p.key}">${p.options.map(o=>`<option value="${o[0]}" ${o[0]===v?"selected":""}>${o[1]}</option>`).join("")}</select>${help}</div>`;
+  if(p.type==="time") return `<label for="${id}">${p.label}</label><div><input id="${id}" data-param="${p.key}" type="time" value="${fmt(v)}">${help}</div>`;
+  const pct=p.unit==="%", step=p.step||1;
+  return `<label for="${id}">${p.label} : <output id="o-${p.key}">${formatParam(p.key,v)}</output></label><div><input id="${id}" data-param="${p.key}" type="range" min="${p.min}" max="${p.max}" step="${step}" value="${v}">${help}</div>`;
+}
 function renderScenario(){
-  const c=scn;
+  const c=scn; const di=dayInfo(c.date);
   const evRows = c.events.map((e,i)=>`<li>${e.kind==="panne"
       ? `<span class="chip">PANNE</span> ${e.room} de ${fmt(e.at)} à ${fmt(e.until)}${e.label?` · ${e.label}`:""}`
-      : `<span class="chip u">${e.prio==="vitale"?"VITALE":e.prio==="urgente"?"URG":"DIFF"}</span> ${fmt(e.at)} · ${SPEC_SHORT(e.spec)}${e.dur?` · ${e.dur} min`:""}`}
+      : `<span class="chip u">${({vitale:"IMMÉDIATE",urgente:"< 1 H",differee:"< 24 H"})[e.prio]||e.prio}</span> ${fmt(e.at)} · ${SPEC_SHORT(e.spec)}${e.dur?` · ${e.dur} min`:""}`}
       <button class="close" type="button" data-del="${i}">Retirer</button></li>`).join("");
+  const adv = PARAM_GROUPS.filter(g=>g.id!=="calendrier").map(g=>{
+    const ps=PARAMS.filter(p=>p.group===g.id);
+    return `<details class="pgroup"><summary>${g.label} <span class="note">(${ps.length})</span></summary><div class="form">${ps.map(p=>paramControl(p,c[p.key])).join("")}</div></details>`;
+  }).join("");
   modal.innerHTML=`<div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mtitle">
     <div class="mhead"><h2 id="mtitle">Créer une journée à simuler</h2><button class="close" type="button" id="mclose">Fermer</button></div>
-    <p class="note">Choisis un scénario de départ, ajuste les réglages et ajoute tes propres événements. Le programme opératoire et les urgences sont tirés des distributions réelles de l'export OPROOM, puis le bloc est simulé minute par minute : files d'attente, priorités, lits de SSPI, brancardiers et bionettoyage.</p>
+    <p class="note">Toutes les valeurs restent dans des bornes réalistes. Chaque réglage indique sa source : <span class="ptag data">données réelles</span>, <span class="ptag reg">réglementation</span> ou <span class="ptag cal">à calibrer</span> (hypothèse à faire valider par les équipes du bloc). Le programme et les urgences sont tirés des données réelles pour le jour et le mois choisis ; chaque personne, brancard, lit et équipement est une ressource unique, et la journée est vérifiée automatiquement à la fin.</p>
     <h3>Scénarios</h3>
     <div class="presets">${PRESETS.map(p=>`<button class="preset" type="button" data-preset="${p.id}"><b>${p.name}</b><span>${p.text}</span></button>`).join("")}</div>
-    <h3>Réglages</h3>
+    <h3>Journée</h3>
     <div class="form">
-      <label for="f-name">Nom</label><input id="f-name" type="text" value="${c.name.replace(/"/g,"&quot;")}">
-      <label for="f-date">Date simulée (pour le CSV)</label><input id="f-date" type="date" value="${c.date||"2026-11-16"}">
-      <span class="flabel">Salles ouvertes</span><div class="roomchips">${ALL_ROOMS.map(r=>`<button type="button" class="rchip" data-room="${r}" aria-pressed="${c.rooms.includes(r)}">${r}${r===c.urgRoom?" · urg.":""}</button>`).join("")}</div>
+      <label for="f-name">Nom</label><input id="f-name" type="text" value="${(c.name||"").replace(/"/g,"&quot;")}">
+      <label for="f-date">Date</label><div class="row"><input id="f-date" type="date" value="${c.date}"><span class="note">${di.jour}${di.weekend?" : pas de programme, garde seulement":` : activité habituelle ${Math.round(di.wf*100)} % (jour) × ${Math.round(di.mf*100)} % (mois)`}</span></div>
+      ${paramControl(PARAM_BY_KEY.periode, c.periode)}
+      <span class="flabel">Salles ouvertes</span><div><div class="roomchips">${ALL_ROOMS.map(r=>`<button type="button" class="rchip" data-room="${r}" aria-pressed="${c.rooms.includes(r)}">${r}${r===c.urgRoom?" · urg.":""}</button>`).join("")}</div><button class="btn small" type="button" id="f-autorooms">Tirer les salles selon le jour</button></div>
       <label for="f-urgroom">Salle d'urgence</label><select id="f-urgroom">${ALL_ROOMS.map(r=>`<option ${r===c.urgRoom?"selected":""}>${r}</option>`).join("")}</select>
-      <label for="f-load">Programme : <output id="o-load">${Math.round(c.load*100)} %</output></label><input id="f-load" type="range" min="40" max="140" step="5" value="${Math.round(c.load*100)}">
-      <label for="f-urg">Urgences dans la journée : <output id="o-urg">${c.urgCount}</output></label><input id="f-urg" type="range" min="0" max="30" value="${c.urgCount}">
       <label for="f-burst">Afflux de victimes : <output id="o-burst">${c.burst.n}</output></label><div class="row"><input id="f-burst" type="range" min="0" max="12" value="${c.burst.n}"><span>à</span><input id="f-burstat" type="time" value="${fmt(c.burst.at)}"></div>
-      <label for="f-beds">Lits de SSPI : <output id="o-beds">${c.sspiBeds}</output></label><input id="f-beds" type="range" min="2" max="8" value="${c.sspiBeds}">
-      <label for="f-bran">Brancardiers : <output id="o-bran">${c.bran}</output></label><input id="f-bran" type="range" min="1" max="5" value="${c.bran}">
-      <label for="f-ash">Agents de bionettoyage : <output id="o-ash">${c.ash}</output></label><input id="f-ash" type="range" min="1" max="5" value="${c.ash}">
       <label for="f-seed">Tirage aléatoire</label><div class="row"><input id="f-seed" type="number" min="1" max="99999" value="${c.seed}"><button class="btn" type="button" id="f-dice">Nouveau tirage</button></div>
     </div>
+    <h3>Réglages détaillés</h3>
+    ${adv}
     <h3>Événements de la journée</h3>
     <ul class="evlist">${evRows || `<li class="note">Aucun événement ajouté. Les urgences tirées au hasard s'ajoutent à cette liste.</li>`}</ul>
     <div class="addev">
-      <select id="e-kind" aria-label="Type d'événement"><option value="vitale">Urgence vitale</option><option value="urgente">Urgence</option><option value="differee">Urgence différée</option><option value="panne">Panne de salle</option></select>
+      <select id="e-kind" aria-label="Type d'événement"><option value="vitale">Urgence immédiate</option><option value="urgente">Urgence à moins de 1 h</option><option value="differee">Urgence à moins de 24 h</option><option value="panne">Panne de salle</option></select>
       <input id="e-at" type="time" value="11:00" aria-label="Heure">
       <select id="e-spec" aria-label="Spécialité">${SPEC_LIST().map(s=>`<option value="${s}">${SPEC_SHORT(s)}</option>`).join("")}</select>
       <select id="e-room" aria-label="Salle" hidden>${ALL_ROOMS.map(r=>`<option>${r}</option>`).join("")}</select>
@@ -305,17 +363,21 @@ function renderScenario(){
   </div>`;
   const $=id=>modal.querySelector("#"+id);
   const toMin=v=>{ const [h,m]=v.split(":").map(Number); return h*60+(m||0); };
-  const bind=(id,key,f=x=>+x,o)=>{ const el=$(id); el.oninput=()=>{ c[key]=f(el.value); if(o) $(o).textContent = id==="f-load"? Math.round(c.load*100)+" %" : el.value; }; };
-  bind("f-load","load",x=>x/100,"o-load"); bind("f-urg","urgCount",undefined,"o-urg"); bind("f-beds","sspiBeds",undefined,"o-beds");
-  bind("f-bran","bran",undefined,"o-bran"); bind("f-ash","ash",undefined,"o-ash"); bind("f-seed","seed");
+  modal.querySelectorAll("[data-param]").forEach(el=>{
+    const key=el.dataset.param;
+    const upd=()=>{ const p=PARAM_BY_KEY[key]; c[key]=clampParam(key, p.type==="bool"? el.checked : el.value); const o=$("o-"+key); if(o) o.textContent=formatParam(key,c[key]); };
+    el.oninput=upd; el.onchange=upd;
+  });
   $("f-name").oninput=e=>c.name=e.target.value;
-  $("f-date").onchange=e=>{ if(e.target.value) c.date=e.target.value; };
+  $("f-date").onchange=e=>{ if(e.target.value){ c.date=e.target.value; renderScenario(); } };
   $("f-burst").oninput=e=>{ c.burst.n=+e.target.value; $("o-burst").textContent=e.target.value; };
   $("f-burstat").onchange=e=>{ if(e.target.value) c.burst.at=toMin(e.target.value); };
   $("f-urgroom").onchange=e=>{ c.urgRoom=e.target.value; if(!c.rooms.includes(c.urgRoom)) c.rooms.push(c.urgRoom); renderScenario(); };
+  $("f-seed").oninput=e=>{ c.seed=Math.max(1,+e.target.value||1); };
   $("f-dice").onclick=()=>{ c.seed=1+Math.floor(Math.random()*99998); $("f-seed").value=c.seed; };
+  $("f-autorooms").onclick=()=>{ c.rooms=roomsFor(c.date, c.seed); renderScenario(); };
   $("mclose").onclick=closeScenario;
-  modal.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{ const p=PRESETS.find(x=>x.id===b.dataset.preset); scn=p.apply({...defaultConfig(), seed:c.seed, date:c.date}); renderScenario(); });
+  modal.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{ const p=PRESETS.find(x=>x.id===b.dataset.preset); scn=p.apply({...defaultConfig(), seed:c.seed}); renderScenario(); });
   modal.querySelectorAll("[data-room]").forEach(b=>b.onclick=()=>{ const r=b.dataset.room; c.rooms = c.rooms.includes(r) ? c.rooms.filter(x=>x!==r) : [...c.rooms, r]; if(!c.rooms.length) c.rooms=[r]; renderScenario(); });
   modal.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ c.events.splice(+b.dataset.del,1); renderScenario(); });
   const kind=$("e-kind");

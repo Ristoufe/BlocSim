@@ -13,3 +13,6 @@ logs/
 
 # Fichiers déposés par l app Claude (pièces jointes du chat), hors projet
 Claude outputs/
+
+# sorties du mode campagne (régénérables)
+campagnes/

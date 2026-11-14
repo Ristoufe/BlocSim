@@ -6,11 +6,11 @@ Ce guide explique comment produire des journées simulées, les régler, récup�
 
 1. [Prérequis](#1-prérequis)
 2. [Générer avec l'interface](#2-générer-avec-linterface)
-3. [Générer dans le terminal](#3-générer-dans-le-terminal)
+3. [Générer dans le terminal](#3-générer-dans-le-terminal), dont le [mode campagne](#31-mode-campagne--des-milliers-de-journées-variées)
 4. [Les paramètres](#4-les-paramètres)
 5. [Ce qui est produit](#5-ce-qui-est-produit)
 6. [Recettes](#6-recettes)
-7. [Vérifier le réalisme](#7-vérifier-le-réalisme)
+7. [Vérifier le réalisme](#7-vérifier-le-réalisme) : tests automatiques, comparaison aux données, hypothèses à calibrer
 8. [Recalculer les données de base](#8-recalculer-les-données-de-base)
 9. [En cas de problème](#9-en-cas-de-problème)
 
@@ -34,11 +34,12 @@ npm start
 Puis ouvrir http://localhost:8080.
 
 1. Cliquer sur **+ Créer une journée**, dans la barre des journées en haut.
-2. Choisir un **scénario de départ** : journée type, accident collectif, urgences en continu, panne de salle, SSPI réduite, sous-effectif, programme surchargé.
-3. Ajuster les **réglages** et ajouter des **événements** si besoin (voir la [partie 4](#4-les-paramètres)).
-4. Cliquer sur **Lancer la simulation**.
+2. Choisir un **scénario de départ** : journée type, jeudi chargé, accident collectif, épidémie hivernale, mi-août, dimanche de garde, panne de salle, SSPI sous tension, sous-effectif, pénurie de brancards, programme surchargé.
+3. Choisir la **date** : le jour de la semaine et le mois règlent le volume du programme et des urgences, comme dans les vraies données. Le bouton « Tirer les salles selon le jour » ouvre un nombre de salles réaliste pour ce jour.
+4. Ajuster les **réglages détaillés** (65 paramètres rangés par groupe, chacun borné à des valeurs plausibles) et ajouter des **événements** si besoin (voir la [partie 4](#4-les-paramètres)).
+5. Cliquer sur **Lancer la simulation**.
 
-La journée apparaît en tête de la barre des journées et se joue sur le plan. Le panneau de droite affiche le **bilan**, comparé à la même journée sans urgences ni pannes.
+La journée apparaît en tête de la barre des journées et se joue sur le plan. Le panneau de droite affiche le **bilan** : activité, délais, minutes perdues par cause (MAR, chirurgien, brancard, SSPI, pré-anesthésie, équipement, aval), comparés à la même journée sans aléas, et le résultat des **contrôles de réalisme** (personne à deux endroits, MAR à plus de deux patients, SSPI sans personnel, brancards et lits). Un clic sur une salle montre l'intervention en cours, le mode d'arrivée du patient, son passage en pré-anesthésie, le délai maximal d'une urgence, les attentes et l'équipe.
 
 Les deux CSV de la journée sont enregistrés automatiquement dans `logs/` (le chemin s'affiche dans la rubrique « Exporter la journée »). Les boutons « CSV format OPROOM » et « CSV détaillé » les téléchargent aussi, pour une journée simulée comme pour une journée réelle.
 
@@ -63,62 +64,80 @@ npm run sim -- --scenario sspi --tirages 50 --sans-csv   # bilan seulement, aucu
 
 Équivalent sans npm : `node tools/simulate.js [options]`.
 
+### 3.1 Mode campagne : des milliers de journées variées
+
+Pour tester une fiche technique dans énormément de contextes, le mode campagne tire lui-même des journées plausibles et différentes, les simule, vérifie chacune et écrit un rapport.
+
+```bash
+npm run campagne -- --aide
+npm run campagne -- --n 3000                                   # fréquences réelles
+npm run campagne -- --n 2000 --profil contrastes --sans-weekend  # couverture des cas rares
+```
+
+Pour chaque journée, la campagne tire :
+
+- une **date** de l'année (les jours de la semaine et les mois arrivent donc à leur fréquence réelle) ;
+- la **période** : épidémie hivernale (jusqu'à une chance sur deux en janvier), vacances scolaires, ou période normale ;
+- les **salles ouvertes** selon le jour et le mois (5,3 salles le lundi, 6,2 le jeudi, moins en août) ;
+- les **effectifs et capacités** autour des valeurs habituelles : brancardiers, ASH, IDE de SSPI, lits de SSPI, brancards, postes de pré-anesthésie, MAR supplémentaires, double salle ;
+- les **aléas** : absences et remplacements, retards et annulations de patients, lits d'aval, places de réanimation ;
+- une **famille de situation** qui pousse certains réglages, toujours dans leurs bornes : journée ordinaire, sous-effectif, SSPI ou aval sous tension, programme surchargé, panne de salle ou d'équipement, brancardage limité, patients en retard ou non prêts, vérifications avant l'anesthésie défaillantes, stérilisation ou matériel en tension, panne informatique, forte activité d'enseignement, afflux de victimes.
+
+Le profil `realiste` tire ces familles à leur fréquence estimée (53 % de journées ordinaires, 0,5 % d'afflux). Le profil `contrastes` leur donne le même poids, pour avoir assez de cas rares.
+
+Sorties, dans `campagnes/<date-heure>/` (non versionné) :
+
+| Fichier | Contenu |
+| --- | --- |
+| `RAPPORT.md` | Couverture des situations, distribution des indicateurs (moyenne, P5, médiane, P95, max), comparaison par famille, période et jour, sensibilité de chaque indicateur à chaque réglage, 15 journées les plus difficiles, contrôles de cohérence, méthode pour tester une fiche technique |
+| `contextes.csv` | Une ligne par journée : contexte, réglages tirés, 25 indicateurs, nombre de contrôles et d'incohérences |
+| `configs.jsonl` | La configuration complète de chaque journée, pour la rejouer à l'identique |
+| `journees/` | Avec `--csv` : le CSV OPROOM détaillé de chaque journée |
+
+Rejouer une journée du rapport : copier le champ `cfg` de sa ligne dans `configs.jsonl` vers un fichier, puis `npm run sim -- --config journee.json`.
+
+Une campagne de 3 000 journées prend environ 20 secondes. Deux exemples sont commentés dans `docs/campagne-exemple-realiste.md` et `docs/campagne-exemple-contrastes.md`.
+
 ## 4. Les paramètres
 
 ### 4.1 Ceux que tu règles
 
-Ils sont disponibles dans l'interface et dans le terminal.
+Les 65 paramètres sont décrits au même endroit, `js/params.js` : libellé, valeur par défaut, bornes, unité, source (données, réglementation ou hypothèse) et explication. L'écran « Créer une journée » en construit ses « Réglages détaillés », et la simulation ramène toute valeur hors bornes à la borne la plus proche. Il est donc impossible de créer une situation qui ne pourrait pas arriver.
 
-**Point de départ**
+| Groupe | Paramètres (défaut) |
+| --- | --- |
+| Calendrier | Date (le jour et le mois règlent le volume), contexte : normale, épidémie hivernale, vacances scolaires |
+| Organisation du bloc | Remplissage du programme (1), heure du premier patient (8 h), heure limite de démarrage d'un cas programmé (18 h), part de chirurgiens en double salle (0) |
+| Pré-anesthésie | Salle de pré-anesthésie devant chaque salle (oui, 1 place) : le patient y est vérifié et préparé puis entre en salle en une minute ; zone d'accueil commune avec postes assis (4) et couchés (4) pour attendre ; IDE d'accueil (1), délai d'appel du patient (25 min), ALR faite en pré-anesthésie (oui) |
+| Patients | Absents (2 %), en retard (10 %, 20 min en moyenne), autres annulations le jour même (1,5 %), dossier administratif incomplet (4 %), porteurs de BMR (3 %), patients ambulatoires qui viennent à pied (oui) |
+| Vérifications avant l'anesthésie | Ambulatoires vus par le MAR le jour même (70 %), jeûne non respecté (1,2 %), anticoagulant non arrêté (0,5 %), consentement manquant (1 %), marquage du côté absent (3 %), examen manquant (3 %), discordance d'identité (0,3 %), patient non préparé (5 %) |
+| Brancards et transports | Brancards (10), hospitalisés amenés dans leur lit (oui), brancardiers (3) |
+| Personnel | ASH (3), IDE de SSPI (3), MAR en plus des MAR de salle (1), absences de dernière minute (3 %), absences remplacées (80 %), pauses repas (oui) |
+| Équipements partagés | Amplificateurs (2), colonnes de coelioscopie (3), robot (1), échographes (2), pannes |
+| Stérilisation, matériel et implants | Parc de boîtes d'instruments (1 = parc habituel par spécialité), délai de stérilisation (4 h), boîtes non conformes (2 %), panne d'autoclave (1 % par jour), implant ou ancillaire manquant (1,5 %), dispositif stérile manquant (3 %) |
+| Pendant l'intervention | Manipulateurs radio (1), intubations difficiles (2 %), extemporanés et transfusions (fréquence habituelle), délai de l'EFS (40 min), interventions avec un interne (15 %), check-list HAS, brancardier pour le transfert en SSPI, bionettoyage de fin de programme |
+| SSPI et aval | Lits de SSPI (10), patients bloqués faute de lit en service (4 %), places de réanimation (2), fermeture de l'ambulatoire (19 h) |
+| Urgences et garde | Nombre d'urgences (auto : tiré selon le jour), équipes de garde la nuit (1), délai de venue de l'astreinte (25 min) |
+| Aléas | Pannes de salle et d'équipement (1 % par jour), complications peropératoires (4 %) et en SSPI, panne informatique (2 % par jour, mode dégradé de 1 à 4 h) |
 
-| Paramètre | Terminal | Valeurs | Rôle |
-| --- | --- | --- | --- |
-| Scénario | `--scenario` | `type`, `afflux`, `urg`, `panne`, `sspi`, `effectif`, `surcharge` | Réglages prêts à l'emploi, que les autres options modifient |
-| Fichier de réglages | `--config` | chemin d'un JSON | Reprend des réglages enregistrés (voir [6.6](#66-enregistrer-des-réglages-dans-un-fichier)) |
-| Nom | `--nom` | texte | Nom affiché et utilisé dans les noms de fichiers |
+Dans le terminal, les options courantes :
 
-**Organisation du bloc**
-
-| Paramètre | Terminal | Défaut | Rôle |
-| --- | --- | --- | --- |
-| Salles ouvertes | `--salles "OP 2,OP 3,OP 4"` | 7 salles (OP 2, 3, 4, 5, 7, 9, 10) | Salles qui tournent dans la journée |
-| Salle d'urgence | `--salle-urgence "OP 5"` | OP 5 | Prend les urgences en priorité, a un demi-programme, seule salle ouverte la nuit |
-| Remplissage du programme | `--programme 1.2` | 1 | 1 = habituel, de 0,4 à 1,4. Au-dessus de 1 : retards, débordements, déprogrammations |
-
-**Demande imprévue**
-
-| Paramètre | Terminal | Défaut | Rôle |
-| --- | --- | --- | --- |
-| Urgences | `--urgences 12` | 6 | Urgences tirées au hasard sur 24 h, selon les heures et spécialités réelles |
-| Afflux de victimes | `--afflux 6@14:00` | aucun | Groupe de patients arrivant en 25 minutes, un tiers d'urgences vitales |
-
-**Capacités** (les goulots d'étranglement)
-
-| Paramètre | Terminal | Défaut | Ce qui se passe quand il manque |
-| --- | --- | --- | --- |
-| Lits de SSPI | `--lits 4` | 8 | Le patient reste en salle, la salle est bloquée |
-| Brancardiers | `--brancardiers 1` | 3 | Le patient arrive en retard en salle |
-| Agents de bionettoyage | `--bionettoyage 1` | 3 | La salle attend d'être nettoyée avant le cas suivant |
-
-**Événements à la main** (options répétables)
-
-| Paramètre | Terminal | Format |
-| --- | --- | --- |
-| Urgence précise | `--urgence` | `priorité@HH:MM@spécialité[@durée]`, priorité parmi `vitale`, `urgente`, `differee` |
-| Panne de salle | `--panne` | `"salle@HH:MM-HH:MM"` |
+| Option | Rôle |
+| --- | --- |
+| `--scenario` | `type`, `jeudi`, `afflux`, `epidemie`, `aout`, `weekend`, `panne`, `sspi`, `effectif`, `brancards`, `surcharge` |
+| `--config fichier.json` | Tous les paramètres ci-dessus, avec leurs noms de `js/params.js` (voir [6.6](#66-enregistrer-des-réglages-dans-un-fichier)) |
+| `--date 2026-12-01` | Date simulée |
+| `--salles "OP 2,OP 3"`, `--salle-urgence "OP 5"` | Salles ouvertes |
+| `--programme 1.2` | Remplissage, de 0,7 à 1,25 |
+| `--urgences 12`, `--afflux 6@14:00` | Demande imprévue |
+| `--lits 6`, `--brancardiers 2`, `--bionettoyage 2` | Capacités |
+| `--urgence vitale@10:30@"Chirurgie Orthopédique"`, `--panne "OP 3@10:00-14:30"` | Événements à la main, répétables |
+| `--graine 7`, `--tirages 50` | Tirage aléatoire, nombre de journées |
+| `--sortie`, `--sans-csv`, `--json` | Sorties |
 
 Spécialités acceptées pour une urgence : `Anesthésie`, `Cardiologie`, `Chirurgie Générale et Digestive`, `Chirurgie ORL`, `Chirurgie Orthopédique`, `Chirurgie Urologique`, `Endoscopie Digestive`, `Gynécologie Obstétrique`, `Stomatologie`, `VISCERAL ROBOT`.
 
-**Tirage et sorties**
-
-| Paramètre | Terminal | Défaut | Rôle |
-| --- | --- | --- | --- |
-| Graine | `--graine 7` | 42 | Même graine et mêmes réglages = même journée, à l'identique |
-| Tirages | `--tirages 50` | 1 | Nombre de journées, graines successives (7, 8, 9, etc.) |
-| Date | `--date 2026-12-01` | 2026-11-16 | Remplit les colonnes Jour et Date du CSV |
-| Dossier de sortie | `--sortie logs/essai` | `logs` | Où écrire les CSV |
-| Sans fichiers | `--sans-csv` | non | Affiche le bilan sans écrire de CSV |
-| Sortie JSON | `--json` | non | Réglages et bilan complets en JSON, pour un script |
+Le choix des éléments du bloc pris en compte, et de ceux qui sont écartés, est expliqué dans `docs/ELEMENTS_JOURNEE.md`.
 
 ### 4.2 Ceux qui viennent des vraies données
 
@@ -132,19 +151,22 @@ Calculés une fois pour toutes dans `data/stats.json` à partir de l'export OPRO
 - urgences : nombre par jour, heure d'arrivée, spécialité ;
 - type d'anesthésie et part d'ambulatoire par spécialité.
 
-### 4.3 Les hypothèses du modèle
+### 4.3 Les règles du modèle
 
-Fixées dans `js/generator.js` et `js/engine.js`, faute de données pour les mesurer. Ce sont les points à faire valider par les équipes du bloc.
+Fixées dans `js/generator.js`. Les règles réglementaires ne sont pas réglables ; les autres sont à faire valider par les équipes du bloc.
 
-| Hypothèse | Valeur actuelle |
+| Règle | Valeur |
 | --- | --- |
-| Priorité des urgences | Vitale : première salle libre. Urgente : salle d'urgence, ou toute salle après 45 min d'attente. Différée : comble les trous |
-| Heure limite du programmé | Aucun cas programmé ne démarre après 18 h (il est déprogrammé) |
-| Garde de nuit | Après 19 h 30, seule la salle d'urgence tourne, plus une seconde salle pour une urgence vitale |
-| Répartition des urgences | 12 % vitales, 58 % urgentes, 30 % différées |
-| Durée en SSPI | Anesthésie générale 55 à 85 min, locorégionale 45, sédation 25, locale 12, un peu moins en ambulatoire |
-| Bionettoyage | 4 à 10 min après un cas court, 7 à 17 min après un cas long |
-| Phases d'une intervention | Parts fixes de la durée en salle (induction, installation, fermeture, réveil), pour l'animation |
+| Une personne, un seul endroit | Chaque soignant, brancard, lit, poste de pré-anesthésie et équipement est une ressource unique, occupée sur des intervalles |
+| MAR | Deux patients au plus en même temps hors anesthésie locale (SFAR, CNP ARMPO 2024), présent à l'induction et au réveil ; il décide de la sortie de SSPI |
+| SSPI | Au moins un IDE, et deux agents dès six patients (CSP D6124-101). Une pause n'est prise que si l'effectif restant le permet, sinon elle est décalée ou sautée |
+| Chirurgien | Une salle à la fois, sauf double salle explicite ; l'astreinte arrive en 25 min ; un collègue de la même spécialité libre peut le relayer pour une urgence vitale |
+| Classes d'urgence | Immédiate (15 min, 8 %), moins de 1 h (17 %), moins de 6 h (45 %), moins de 24 h (30 %) |
+| Programmé | Jamais avant l'heure prévue pour le premier cas, avancé de 30 min au plus ensuite ; déprogrammé s'il finirait après 18 h 30 ou s'il n'a pas démarré à 18 h |
+| Ordre du programme | Allergie au latex puis enfants en premier, patients septiques en dernier |
+| Garde | Une équipe et un MAR de garde la nuit et le week-end. Afflux de victimes : rappel des astreintes (plan blanc), jusqu'à deux équipes et un MAR en 30 min |
+| Absences | Remplacées, sinon redéploiement (ouverture retardée) ou fermeture de salle ; une équipe n'est jamais vide (rappel) |
+| Volume | Salles ouvertes et programme selon le jour et le mois des vraies données (jeudi 132 %, vendredi 80 %, août 51 %) |
 
 ## 5. Ce qui est produit
 
@@ -282,6 +304,26 @@ npm run sim --silent -- --scenario surcharge --tirages 10 --sans-csv --json > re
 
 ## 7. Vérifier le réalisme
 
+### 7.1 Tests automatiques
+
+```bash
+npm test                      # 50 tirages par scénario
+node tools/test.js --tirages=200
+```
+
+Quatre familles de tests, à lancer après toute modification du moteur :
+
+| Test | Ce qui est vérifié |
+| --- | --- |
+| Zéro violation physique | Sur les 11 scénarios × 50 tirages (environ un million de contrôles) et sur les journées réelles rejouées : aucun soignant à deux endroits, aucun chevauchement de patients ou de bionettoyage en salle, MAR à deux patients au plus, SSPI jamais sans IDE, brancards et lits jamais utilisés deux fois |
+| Reproductibilité | Même graine et mêmes réglages : CSV détaillé identique octet par octet |
+| Nombres aléatoires communs | Changer une capacité (lits de SSPI, IDE de SSPI, brancardiers, brancards) garde exactement les mêmes patients, durées, urgences, annulations et absences. La référence « sans aléas » garde les mêmes patients et les mêmes urgences habituelles |
+| Référence calibrée | 50 jours ouvrés, salles tirées selon le jour, comparés aux mesures de l'export : salles par jour, interventions par salle, délai entre deux cas, première entrée, dernière sortie, salles finissant après 18 h 30, occupation |
+
+Les nombres aléatoires communs reposent sur des flux séparés : un par salle pour le programme, un par patient (annulation, retard, absence, complication, durée de bionettoyage...), un pour les urgences, un par soignant pour les absences, un pour les pannes. Comparer deux organisations sur la même graine compare donc vraiment la même journée.
+
+### 7.2 Comparaison détaillée aux données réelles
+
 `tools/compare_logs.py` compare des journées générées à l'export réel : volume, salles, durées, horaires, délais, annulations, urgences, spécialités, anesthésie, occupation.
 
 ```bash
@@ -291,7 +333,23 @@ python3 tools/compare_logs.py data/raw/OPROOM.xls logs/verif/*graine*[0-9].csv
 
 Sans liste de fichiers, le script prend tous les CSV de `logs/` (hors versions détaillées et bilans). Il compare de préférence des **journées types** : un scénario d'afflux ou de panne n'a pas vocation à ressembler à un jour moyen.
 
-Dernière vérification (30 journées types contre 208 jours de semaine réels) : volume, salles, durées, heures de début et de fin, délais d'arrivée, annulations et heures des urgences sont proches du réel. Deux écarts restent connus : la gynécologie est trop représentée et l'orthopédie pas assez, et l'occupation des salles est un peu basse (53 % contre 67 %).
+Dernière vérification (50 jours ouvrés contre 208 jours ouvrés réels) :
+
+| Mesure | Réel | Simulé |
+| --- | --- | --- |
+| Salles ouvertes par jour | 5,5 | 5,5 |
+| Interventions programmées par salle et par jour | 4,53 | 4,21 |
+| Délai sortie de salle → entrée suivante (médiane) | 12 min (dont 7 min entre fin du bionettoyage et entrée) | 12 min |
+| Première entrée en salle (médiane) | 8 h 41 | 8 h 40 |
+| Dernière sortie de salle (moyenne) | 15 h 24 | 15 h 28 |
+| Salles qui finissent après 18 h 30 | 7,8 % | 8,9 % |
+| Occupation 8 h - 18 h 30 par salle ouverte | 64 % | 61 % |
+
+Tous les indicateurs de référence sont dans les mesures réelles. La salle de pré-anesthésie de chaque salle raccourcit l'entrée en salle ; la préparation de la salle par l'IBODE après le bionettoyage ramène le délai entre deux patients aux 12 min réelles.
+
+### 7.3 Ce qui reste à calibrer
+
+Toute valeur non mesurable dans l'export est signalée **à calibrer** : étiquette sur chaque réglage concerné dans l'écran « Créer une journée », liste dans le bilan (« Hypothèses à calibrer ») et dans chaque rapport de campagne. Les principales : durée de séjour en SSPI (l'heure de sortie de SSPI n'est remplie que pour 0,2 % des lignes), découpage des phases en salle, classes et délais des urgences, transferts, arrivée des chirurgiens, effectifs et capacités par défaut. Le bionettoyage, lui, est maintenant calibré sur la colonne « Fin bio » de l'export (remplie à 96 %).
 
 ## 8. Recalculer les données de base
 

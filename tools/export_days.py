@@ -38,7 +38,8 @@ for ds in days:
             adm={'Ambulatoire':'AMB','Hospitalisation':'HOSP'}.get(r.Admission,'EXT'),
             an=anes(getattr(r,'_20')), anl=str(getattr(r,'_20')) if isinstance(getattr(r,'_20'),str) else 'Non renseignée',
             ch=CH.get(str(r.Chirurgien).strip(),'CHIR-??'), mar=MAR.get(str(r.Anesthésiste).strip(),'MAR-??'),
-            arr=m(r._9) if isinstance(r._9,str) else None))
+            arr=m(r._9) if isinstance(r._9,str) else None,
+            bio=(lambda so,fb: fb-so if so is not None and fb is not None and 0<=fb-so<=120 else None)(m(r._11) if isinstance(r._11,str) else None, m(r._12) if isinstance(r._12,str) else None)))
     an=day[day.Statut!='fermé']
     canc=[dict(spec=r.Spécialité.strip(),proc=re.sub(r'\s+',' ',str(r.Procédure)).strip(),reason=(r._23 if isinstance(r._23,str) else 'Non renseigné').strip()) for r in an.itertuples()]
     dt=pd.Timestamp(ds)

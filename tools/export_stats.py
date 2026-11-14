@@ -67,7 +67,29 @@ session=dict(am=round(float((g.l<=840).mean()),3), pm=round(float((g.f>=750).mea
     firstMu=round(float(full.f.mean()),1), firstSd=round(float(full.f.std()),1))
 arrival=dict(mu=round(float(np.log(ad).mean()),3), sigma=round(float(np.log(ad).std()),3))
 cancelRate=round(float(canc_mask.mean()),3)
-out=dict(session=session, arrival=arrival, cancelRate=cancelRate, source="Export OPROOM, janvier à octobre 2026", specs=specs, rooms=rooms, urg=urg,
+# calendrier : volume, salles ouvertes et urgences par jour de semaine et par mois
+allc=d[(d.Statut=='fermé')&d.s.notna()].copy()
+allc['wd']=allc.dt.dt.dayofweek; allc['mo']=allc.dt.dt.month
+alld=allc.groupby('dt').agg(n=('s','size'), wd=('wd','first'), mo=('mo','first'),
+    urg=('Type', lambda x: x.isin(['urgence','Urg différé']).sum()),
+    prog=('Type', lambda x: (x=='programmé').sum()),
+    rooms=('Salle', lambda x: x[(allc.loc[x.index,'Type']=='programmé') & x.astype(str).str.startswith('OP')].nunique()))
+wdays=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"]
+calendar=dict(
+  weekday={wdays[k]:dict(days=int(len(g)), prog=round(float(g.prog.mean()),1), rooms=round(float(g.rooms.mean()),2),
+        urg=[int(x) for x in g.urg.values]) for k,g in alld.groupby('wd')},
+  month={int(k):dict(days=int(len(g)), progWeekday=round(float(g[g.wd<5].prog.mean()),1)) for k,g in alld.groupby('mo')})
+wkMean=float(alld[alld.wd<5].prog.mean())
+for k,v in calendar['month'].items(): v['factor']=round(v['progWeekday']/wkMean,3)
+for k,v in calendar['weekday'].items(): v['factor']=round(v['prog']/wkMean,3)
+# bionettoyage réel : Fin bio - Sortie salle, quantiles 0 à 100 % par pas de 5 %
+d['fb']=d['Fin bio'].map(mins)
+bc=d[(d.Statut=='fermé')&d.Salle.astype(str).str.startswith('OP')&d['Durée'].between(3,600)].copy()
+bc['bio']=bc.fb-bc.e; bc=bc[bc.bio.between(0,120)]
+qs=[i/20 for i in range(21)]
+bq=lambda x:[round(float(v),1) for v in x.bio.quantile(qs).values]
+bio=dict(court=bq(bc[(bc.Type=='programmé')&(bc['Durée']<40)]), long=bq(bc[(bc.Type=='programmé')&(bc['Durée']>=40)]), urgence=bq(bc[bc.Type!='programmé']), n=int(len(bc)))
+out=dict(calendar=calendar, bio=bio, session=session, arrival=arrival, cancelRate=cancelRate, source="Export OPROOM, janvier à octobre 2026", specs=specs, rooms=rooms, urg=urg,
     urgHours=[int(x) for x in hours.values], urgRoom=uroom.index[0],
     urgPerWeekday=round(float(U[U.dt.dt.dayofweek<5].groupby('dt').size().mean()),2),
     progPerRoomDay=round(float(P.groupby(['dt','Salle']).size().mean()),2),

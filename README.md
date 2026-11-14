@@ -2,7 +2,7 @@
 
 Simulateur de journée de bloc opératoire du projet **Blocapta**. Il rejoue des journées réelles d'un bloc de 10 salles, vues du dessus : patients, chirurgiens, anesthésistes, IADE, IBODE, brancardiers et agents de bionettoyage se déplacent entre l'accueil, les salles et la SSPI.
 
-Le guide pas à pas pour générer des journées, régler les paramètres et exploiter les CSV est dans [GUIDE.md](GUIDE.md).
+Le guide pas à pas pour générer des journées, régler les paramètres et exploiter les CSV est dans [GUIDE.md](GUIDE.md). Les règles de réalisme à intégrer ensuite sont listées dans [docs/REALISME.md](docs/REALISME.md).
 
 ## Lancer en local
 
@@ -65,6 +65,14 @@ Avec `npm start`, chaque simulation lancée est aussi enregistrée automatiqueme
 python3 tools/compare_logs.py data/raw/OPROOM.xls
 ```
 
+### Tests
+
+```bash
+npm test
+```
+
+Vérifie qu'aucune personne n'est à deux endroits (journées générées et journées réelles rejouées), que la même graine redonne la même journée, que changer une capacité garde les mêmes patients et les mêmes urgences, et que la journée de référence reste dans les mesures réelles. Détails dans [GUIDE.md](GUIDE.md#71-tests-automatiques).
+
 ### Rejouer une vraie journée
 
 - Choisir une des 6 journées de démonstration (jeudi chargé, journée robot, lundi, journée d'urgences, août, dimanche de garde).
@@ -88,14 +96,25 @@ npm run sim -- --lits 5 --brancardiers 2 \
 
 Pour chaque tirage, la commande écrit les deux CSV (format OPROOM et détaillé) dans `logs/`, plus un fichier `bilan` avec une ligne d'indicateurs par tirage. Elle affiche ensuite le bilan : comparaison à la journée sans aléas pour un tirage, moyenne, minimum, médiane et maximum pour plusieurs tirages. `--json` sort le résultat complet en JSON, et `--config fichier.json` reprend des réglages enregistrés.
 
+Pour tester une fiche technique dans beaucoup de situations, le **mode campagne** tire lui-même des milliers de journées plausibles et variées (date, saison, épidémie, vacances, salles, effectifs, absences, lits, brancards, pannes, afflux rares), les simule, vérifie leur cohérence et écrit un rapport complet :
+
+```bash
+npm run campagne -- --n 3000                                     # fréquences réelles
+npm run campagne -- --n 2000 --profil contrastes --sans-weekend  # cas rares bien représentés
+```
+
+Résultats dans `campagnes/` : `RAPPORT.md`, `contextes.csv` (une ligne par journée) et `configs.jsonl` (chaque journée rejouable). Détails dans [GUIDE.md](GUIDE.md#31-mode-campagne--des-milliers-de-journées-variées).
+
 ## Structure
 
 ```
 index.html            page de l'application
 css/style.css         styles
+js/params.js          les 65 paramètres : défaut, bornes, unité, source, explication
 js/config.js          plan du bloc, postes autour de la table, rôles, états de salle
 js/engine.js          moteur : phases, équipes, brancardage, SSPI, trajets, constantes
-js/generator.js       scénarios, tirage du programme et des urgences, ordonnanceur minute par minute
+js/generator.js       scénarios, tirage du programme et des urgences, ordonnanceur minute par minute,
+                      contrôles de réalisme de chaque journée
 js/export.js          export CSV au format OPROOM et enregistrement dans logs/
 js/render.js          dessin du plan, des salles, des personnes et de la frise
 js/app.js             état, panneaux, boucle d'animation, interactions
@@ -105,6 +124,8 @@ tools/export_days.py  export des journées depuis le fichier OPROOM
 tools/export_stats.py calcul des distributions depuis le fichier OPROOM
 tools/compare_logs.py comparaison des simulations aux données réelles
 tools/simulate.js     option en ligne de commande (npm run sim)
+tools/test.js         tests d'acceptation (npm test)
+tools/campagne.js     mode campagne : milliers de journées variées et rapport (npm run campagne)
 server.js             serveur local sans dépendance (fichiers + enregistrement des logs)
 ```
 
@@ -128,6 +149,10 @@ python3 tools/export_stats.py data/raw/OPROOM.xls
 ```
 
 Les deux scripts s'arrêtent si un nom de soignant apparaît dans leur sortie.
+
+## Éléments du bloc pris en compte
+
+Le tri de tous les éléments d'un bloc (ressources, parcours patient, services, informatique, hygiène) entre ceux qui changent une journée et ceux qui sont écartés est dans [docs/ELEMENTS_JOURNEE.md](docs/ELEMENTS_JOURNEE.md).
 
 ## Ce qui est réel, ce qui est modélisé
 

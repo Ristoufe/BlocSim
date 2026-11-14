@@ -16,18 +16,19 @@ BlocSim en ligne de commande (l'usage principal reste l'interface : npm start)
 Usage : npm run sim -- [options]      ou      node tools/simulate.js [options]
 
 Scénario
-  --scenario <id>       type | afflux | urg | panne | sspi | effectif | surcharge   (défaut : type)
+  --scenario <id>       type | jeudi | afflux | epidemie | aout | weekend | panne | sspi |
+                        effectif | brancards | surcharge   (défaut : type)
   --config <fichier>    réglages en JSON (mêmes champs que l'écran « Créer une journée »)
   --nom <texte>         nom de la journée
-  --date <AAAA-MM-JJ>   date écrite dans le CSV (défaut : 2026-11-16)
+  --date <AAAA-MM-JJ>   date simulée : le jour et le mois règlent le volume (défaut : 2026-11-17)
 
 Réglages (remplacent ceux du scénario)
   --salles "OP 2,OP 3,..."   salles ouvertes
   --salle-urgence "OP 5"     salle d'urgence
-  --programme <0.4-1.4>      remplissage du programme (1 = habituel)
-  --urgences <n>             nombre d'urgences tirées au hasard
+  --programme <0.7-1.25>     remplissage du programme (1 = habituel)
+  --urgences <n>             nombre d'urgences tirées au hasard (défaut : selon le jour)
   --afflux <n>@<HH:MM>       afflux de victimes, ex. 6@14:00
-  --lits <2-8>               lits de SSPI ouverts
+  --lits <4-12>              lits de SSPI ouverts
   --brancardiers <n>         --bionettoyage <n>
   --urgence <prio>@<HH:MM>@<spécialité>[@durée]   urgence ajoutée à la main (prio : vitale | urgente | differee), répétable
   --panne "<salle>@<HH:MM>-<HH:MM>"                panne de salle, répétable
@@ -41,6 +42,8 @@ Sorties
   --sans-csv            ne pas écrire les CSV, seulement le bilan
   --json                bilan au format JSON
   --aide                cette aide
+
+Pour des centaines de journées dans des contextes variés : npm run campagne -- --aide
 
 Exemples
   npm run sim -- --scenario afflux
@@ -70,7 +73,7 @@ const num = (v, name, lo, hi) => { const n = Number(v); if (!Number.isFinite(n) 
 /* ---------- chargement du moteur de l'interface ---------- */
 function loadEngine() {
   const ctx = vm.createContext({ console, Math, JSON, Date, Number, String, Object, Array, Set, Map, isNaN, parseInt, parseFloat });
-  for (const f of ["js/config.js", "js/engine.js", "js/generator.js", "js/export.js"]) {
+  for (const f of ["js/params.js", "js/config.js", "js/engine.js", "js/generator.js", "js/export.js"]) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), "utf8"), ctx, { filename: f });
   }
   const stats = fs.readFileSync(path.join(ROOT, "data/stats.json"), "utf8");
@@ -100,12 +103,12 @@ function buildConfig(E, a) {
   }
   if (a["salle-urgence"]) { if (!rooms.includes(a["salle-urgence"])) fail(`salle inconnue : ${a["salle-urgence"]}`); cfg.urgRoom = a["salle-urgence"]; }
   if (!cfg.rooms.includes(cfg.urgRoom)) cfg.rooms.push(cfg.urgRoom);
-  if (a.programme) cfg.load = num(a.programme, "programme", 0.4, 1.4);
+  if (a.programme) cfg.load = num(a.programme, "programme", 0.7, 1.25);
   if (a.urgences) cfg.urgCount = num(a.urgences, "urgences", 0, 60);
   if (a.afflux) { const [n, h] = a.afflux.split("@"); cfg.burst = { n: num(n, "afflux", 0, 30), at: h ? toMin(h) : 840 }; }
-  if (a.lits) cfg.sspiBeds = num(a.lits, "lits", 2, 8);
-  if (a.brancardiers) cfg.bran = num(a.brancardiers, "brancardiers", 1, 10);
-  if (a.bionettoyage) cfg.ash = num(a.bionettoyage, "bionettoyage", 1, 10);
+  if (a.lits) cfg.sspiBeds = num(a.lits, "lits", 4, 12);
+  if (a.brancardiers) cfg.bran = num(a.brancardiers, "brancardiers", 1, 6);
+  if (a.bionettoyage) cfg.ash = num(a.bionettoyage, "bionettoyage", 1, 6);
   const specs = Object.keys(vm.runInContext("STATS.urg", E));
   cfg.events = [...(cfg.events || [])];
   for (const u of a.multi.urgence) {
@@ -177,7 +180,7 @@ function printSummary(cfg, R, writeCsv, outDir, stamp) {
   ];
   const fmtN = (x) => (Math.round(x * 10) / 10).toString().replace(".", ",");
   console.log(`\nBlocSim - ${cfg.name}`);
-  console.log(`${cfg.rooms.length} salles (urgences : ${cfg.urgRoom}) · programme ${Math.round(cfg.load * 100)} % · ${cfg.urgCount} urgences` +
+  console.log(`${cfg.rooms.length} salles (urgences : ${cfg.urgRoom}) · programme ${Math.round(cfg.load * 100)} % · ${cfg.urgCount < 0 ? "urgences selon le jour" : cfg.urgCount + " urgences"}` +
     `${cfg.burst && cfg.burst.n ? ` + afflux de ${cfg.burst.n}` : ""} · ${cfg.sspiBeds} lits SSPI · ${cfg.bran} brancardier(s) · ${cfg.ash} agent(s) de bionettoyage` +
     `${cfg.events.length ? ` · ${cfg.events.length} événement(s) ajouté(s)` : ""}`);
   console.log(`${R.length} tirage(s), graine${R.length > 1 ? `s ${R[0].seed} à ${R[R.length - 1].seed}` : ` ${R[0].seed}`}\n`);

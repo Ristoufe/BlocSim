@@ -12,7 +12,8 @@ const ROLE = {
   ASH:{label:"Agent de bionettoyage", color:"#e3a21a", cap:"#a8740a"},
   BRAN:{label:"Brancardier", color:"#9a7259", cap:"#6b4b37"},
   IDESSPI:{label:"IDE de SSPI", color:"#c2386f", cap:"#8a1f4b"},
-  PAT:{label:"Patient", color:"#ffffff", cap:"#9fb4c4"}
+  IDEPRE:{label:"IDE d'accueil (pré-anesthésie)", color:"#7a5cc0", cap:"#4d3790"},
+  PAT:{label:"Patient", color:"#d9e8f5", cap:"#9fb4c4"}
 };
 const STATE = {
   ferme:{label:"Fermée", color:"#9aa6ab"},
@@ -25,7 +26,11 @@ const STATE = {
   ferm:{label:"Fermeture", color:"#1f6a8a"},
   reveil:{label:"Réveil", color:"#6d5bb5"},
   bio:{label:"Bionettoyage", color:"#3a9ad9"},
-  attente:{label:"Attente lit SSPI", color:"#c2412d"},
+  attente:{label:"Attente de sortie", color:"#c2412d"},
+  attMar:{label:"Attente MAR", color:"#b45309"},
+  attChir:{label:"Attente chirurgien", color:"#a16207"},
+  attEquip:{label:"Attente équipement", color:"#92400e"},
+  attPat:{label:"Attente patient", color:"#7c6f9b"},
   panne:{label:"Panne", color:"#5b3a3a"}
 };
 const PHASES = [
@@ -43,8 +48,11 @@ const ORDER = ["OP 2","OP 3","OP 4","OP 5","OP 6","OP 7","OP 8","OP 9","OP 10","
 ORDER.forEach((n,i)=>{
   const col = i%5, top = i<5, x = 270+col*254, y = top?40:530, w = 238, h = 400;
   ROOMS[n] = {name:n, label:n, x, y, w, h, top, sign: top?1:-1, k:1,
-    door:{x:x+w/2, y: top? y+h : y}, cx:x+w/2, cy: top? y+h*0.44 : y+h*0.56};
+    door:{x:x+w/2, y: top? y+h : y}, cx:x+w/2, cy: top? y+h*0.44 : y+h*0.56,
+    sas:{x, y: top? y+h-92 : y, w, h:92}};   // salle de pré-anesthésie, côté couloir
 });
+/* places dans la salle de pré-anesthésie d'une salle : à gauche puis à droite de la porte */
+function sasSpot(room, i){ const R=ROOMS[room], S=R.sas; return {x: i? S.x+S.w-50 : S.x+50, y:S.y+S.h/2, z:room}; }
 ROOMS["SSPI"] = {name:"SSPI", label:"Box actes", x:1690, y:300, w:130, h:140, top:true, sign:1, k:0.55,
   door:{x:1755, y:440}, cx:1755, cy:372, small:true};
 const ZONES = {
@@ -64,7 +72,7 @@ function spot(room, role, idx){
     case "MAR": return P(-24,-72);
     case "IADE": return P(24,-68);
     case "CHIR": return P(40,6);
-    case "CONSOLE": return {x:R.x+R.w-34, y: R.top? R.y+R.h-62 : R.y+62, z:room};
+    case "CONSOLE": return {x:R.x+R.w-34, y: R.top? R.y+R.h-132 : R.y+132, z:room};
     case "IBODE": return P(-40,18);
     case "CIRC": return P(-78,-30);
     case "BRAN": return P(30,96);
@@ -74,7 +82,13 @@ function spot(room, role, idx){
   }
 }
 const ACC_SLOTS = []; for(let r=0;r<5;r++) for(let c=0;c<2;c++) ACC_SLOTS.push({x:70+c*95, y:95+r*68, z:"ACC"});
-const REC_BEDS = []; for(let r=0;r<4;r++) for(let c=0;c<2;c++) REC_BEDS.push({x:1600+c*110, y:85+r*52, z:"REC", c, r});
+/* pré-anesthésie : postes couchés à gauche, postes assis à droite */
+const PRE_BEDS = []; for(let r=0;r<5;r++) for(let c=0;c<2;c++) PRE_BEDS.push({x:52+c*58, y:222+r*46, z:"ACC"});
+const PRE_SEATS = []; for(let r=0;r<5;r++) for(let c=0;c<2;c++) PRE_SEATS.push({x:176+c*40, y:222+r*46, z:"ACC"});
+const PRE_DESK = {x:200, y:200, z:"ACC"};
+const SERV = {x:26, y:112, z:"ACC"};
+/* SSPI : jusqu'à 12 lits sur 3 colonnes */
+const REC_BEDS = []; for(let r=0;r<4;r++) for(let c=0;c<3;c++) REC_BEDS.push({x:1592+c*86, y:80+r*50, z:"REC", c, r});
 const OFF_SLOTS = []; for(let r=0;r<7;r++) for(let c=0;c<4;c++) OFF_SLOTS.push({x:48+c*52, y:590+r*46, z:"OFF"});
 const ARS_SLOTS = []; for(let r=0;r<4;r++) for(let c=0;c<3;c++) ARS_SLOTS.push({x:1610+c*70, y:640+r*58, z:"ARS"});
 const EXIT = {x:24, y:250, z:"ACC"};
