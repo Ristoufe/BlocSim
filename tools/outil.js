@@ -44,6 +44,7 @@ function parseArgs(argv){
     if(!k.startsWith("--")){ a._.push(k); continue; }
     const name = k.slice(2);
     if(["sans-csv","json","aide","help","verifier","sensibilite","rapport-ia"].includes(name)){ a[name]=true; continue; }
+    if(!["fiche","scenario","jours","repetitions","graine","debut","lambda","alpha","kappa","sortie","modele"].includes(name)) fail(`option inconnue : --${name}`);
     if(argv[i+1]===undefined) fail(`valeur manquante pour --${name}`);
     a[name] = argv[++i];
   }

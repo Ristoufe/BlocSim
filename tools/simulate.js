@@ -60,6 +60,9 @@ function parseArgs(argv) {
     k = k.slice(2);
     const flags = ["sans-csv", "json", "aide", "help", "h"];
     if (flags.includes(k)) { a[k] = true; continue; }
+    const opts = ["scenario", "config", "nom", "date", "salles", "salle-urgence", "programme", "urgences", "afflux", "lits",
+      "brancardiers", "bionettoyage", "urgence", "panne", "graine", "tirages", "sortie"];
+    if (!opts.includes(k)) fail(`option inconnue : --${k}`);
     const v = argv[++i];
     if (v === undefined) fail(`Valeur manquante pour --${k}`);
     if (k in a.multi) a.multi[k].push(v); else a[k] = v;
