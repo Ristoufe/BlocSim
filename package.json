@@ -10,6 +10,7 @@
     "outil": "node tools/outil.js",
     "fiche": "node tools/outil.js --verifier",
     "test": "node tools/test.js",
+    "calibrer": "node tools/calibrer.js",
     "check": "node tools/check.js && node tools/check_humain.js",
     "data": "python3 tools/export_days.py"
   },

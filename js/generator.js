@@ -196,7 +196,9 @@ function planProgram(cfg, r0){
       const pw={}; procs.forEach((p,i)=>pw[i]=p.n);
       const p = (S2.n && r() > covered) ? {name:"Autre acte ("+SPEC_SHORT_LABEL(sp)+")", mu:S2.mu, sigma:S2.sigma} : procs[+pickW(r,pw)];
       const est = Math.round(Math.exp(p.mu));
-      const d = logn(r, p.mu, Math.min(p.sigma,0.6), 8, 420);
+      // durée de base : les aléas ajoutés en salle par le moteur (attentes, complications, interne...) sont déjà
+      // contenus dans les durées réelles ; le facteur mesuré par tools/calibrer.js évite de les compter deux fois
+      const d = Math.max(8, Math.round(logn(r, p.mu, Math.min(p.sigma,0.6), 8, 420)*(STATS.calib?.dur?.[sp] ?? 1)));
       if(list.length>0 && (t+est > roomEnd+15 || bookedSum+est/2 > booked)) break;   // on garde le cas qui rapproche le plus du temps visé
       bookedSum += Math.exp(p.mu + Math.min(p.sigma,0.6)**2/2);   // temps opéré attendu : durée moyenne de l'acte (loi log-normale)
       const an=pickW(r,S2.an||{AG:1}), adm= r()<S2.amb?"AMB":"HOSP";
@@ -949,11 +951,15 @@ const CALM = {roomPanne:0, equipPanne:0, absent:0, noShow:0, latePatient:0, same
 let GEN_COUNT=0;
 // La référence « sans aléas » garde la même graine, les mêmes patients programmés, les mêmes annulations
 // et les mêmes urgences habituelles ; elle retire absences, pannes, retards, complications, afflux et événements ajoutés.
+// annulations tirées avant le jour J : le taux réel couvre toutes les annulations, y compris celles du jour même
+// (absents, jeûne, examens, déprogrammations) que le moteur simule à part ; tools/calibrer.js règle ce taux
+// pour que le total simulé retrouve le taux réel, sans compter deux fois les annulations du jour même
+function preCancelRate(){ return STATS.calib?.preCancel ?? STATS.cancelRate; }
 function runOnce(cfg, withAleas, hook){
   const all=planProgram(cfg);
   const canc=[], planned=[], idx={};
   all.forEach(c=>{ const k=idx[c.room]=(idx[c.room]||0)+1; c.rr=rng(seedOf(cfg.seed,"patient",c.room,k));
-    if(c.rr()<STATS.cancelRate) canc.push({...c, reason:pickW(c.rr,STATS.cancelReasons)}); else planned.push(c); });
+    if(c.rr()<preCancelRate()) canc.push({...c, reason:pickW(c.rr,STATS.cancelReasons)}); else planned.push(c); });
   const c2 = withAleas ? cfg : {...cfg, ...CALM, events:[], burst:{at:cfg.burst.at, n:0}};
   const urg=makeUrgences(c2, rng(seedOf(cfg.seed,"urgences")));
   return {res:simulate(c2, planned, urg, rng(seedOf(cfg.seed,"divers")), hook), canc, cfg:c2, planned, urg};
