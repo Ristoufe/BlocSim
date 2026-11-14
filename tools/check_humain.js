@@ -29,6 +29,8 @@ check("Fiche incomplète refusée", ca.verdict==="NON_ANALYSABLE" && ca.fiche_no
 check("Fiche avec durées de l'éditeur : réserves, confiance faible", cb.verdict==="ANALYSABLE_AVEC_RESERVES" && cb.confiance==="faible", `${cb.verdict} / ${cb.confiance}`);
 E.__d = fiche("piege-vague"); const cd = run("checkFiche(__d)");
 check("Fiche piège : les règles seules ne la bloquent pas (c'est le rôle du LLM)", cd.verdict!=="NON_ANALYSABLE", cd.verdict);
+E.__r = fiche("reel-scandm-sources-publiques"); const cr = run("checkFiche(__r)");
+check("Logiciel réel, sources publiques seules : refusé, champs à demander à l'éditeur listés", cr.verdict==="NON_ANALYSABLE" && cr.questions_a_l_auteur.length>=5, `${cr.verdict}, obligatoires ${cr.score_completude.obligatoires}`);
 check("Fiche mesurée sur site : analysable, confiance élevée", cc.verdict==="ANALYSABLE" && cc.confiance==="elevee", `${cc.verdict} / ${cc.confiance}`);
 check("Campagne refusée sur fiche incomplète", run("runCampaign({fiche:__a, reps:1, days:5})").blocked===true);
 

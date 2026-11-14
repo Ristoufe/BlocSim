@@ -3,7 +3,9 @@
 const LAB_FICHES = [
   {file:"scantrace-v2.json", label:"ScanTrace v2 - traçabilité des implants (durées de l'éditeur)"},
   {file:"checklist-tablette.json", label:"CheckBloc - check-list sur tablette (mesuré sur site)"},
-  {file:"scantrace-incomplete.json", label:"ScanTrace v2 - fiche commerciale incomplète"}
+  {file:"scantrace-incomplete.json", label:"ScanTrace v2 - fiche commerciale incomplète"},
+  {file:"reel-scandm-sources-publiques.json", label:"scanDM (logiciel réel) - sources publiques seules"},
+  {file:"piege-vague.json", label:"PlanOp - fiche piège remplie mais creuse"}
 ];
 // palette catégorielle (référence dataviz, mode clair), dans l'ordre fixe des emplacements
 const SERIES = ["#2a78d6","#eb6834","#1baf7a","#eda100"];
