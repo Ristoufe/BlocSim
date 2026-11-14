@@ -120,6 +120,10 @@ function schedule(cfg, planned, urg, r){
   const closed=(room,t)=>closures.some(z=>z.room===room && t>=z.from && t<z.to);
   const beds = Array(cfg.sspiBeds).fill(0), bran = Array(cfg.bran).fill(0), ash = Array(cfg.ash).fill(0);
   const done=[], deprog=[], waiting=[]; let ui=0;
+  // chirurgiens : fin de l'opération en cours. Urgence : chirurgien de garde de la spécialité,
+  // sinon celui d'astreinte (CHIR-A-…), sinon elle attend.
+  const chBusy={};
+  const freeCh=(c,t)=>[c.ch, c.ch.replace("CHIR-G-","CHIR-A-")].find(x=>!(chBusy[x]>t));
   const extra=[];
   const LAST_PROG_START = 1080;      // pas de programmé démarré après 18 h
   const NIGHT = 1170;                // après 19 h 30 et avant 7 h, garde réduite
@@ -131,6 +135,7 @@ function schedule(cfg, planned, urg, r){
     const s = Math.max(t, bran[bi]);
     bran[bi] = s+3;
     c.an2 = inferAn({...c}).an;
+    c.ch = freeCh(c,t) || c.ch; chBusy[c.ch]=s+c.dur;
     Object.assign(c, {room:R.n, s, waitBed:0});
     R.cur=c; R.phase="op"; R.opEnd=s+c.dur; R.freeAt=1e9;
     done.push(c);
@@ -162,10 +167,10 @@ function schedule(cfg, planned, urg, r){
     for(const R of order){
       if(R.phase!=="idle" || closed(R.n,t)) continue;
       const night = t>=NIGHT || t<420, isU = R.n===urgRoom;
-      const vit = waiting.find(c=>c.prio==="vitale");
+      const vit = waiting.find(c=>c.prio==="vitale" && freeCh(c,t));
       const urgFree = rooms.some(x=>x.n===urgRoom && x.phase==="idle" && !closed(x.n,t));
-      const urgt = waiting.find(c=>c.prio==="urgente");
-      const diff = waiting.find(c=>c.prio==="differee");
+      const urgt = waiting.find(c=>c.prio==="urgente" && freeCh(c,t));
+      const diff = waiting.find(c=>c.prio==="differee" && freeCh(c,t));
       const next = R.q[0];
       let pick=null;
       if(vit && (!night || isU || !urgFree)) pick=vit;
