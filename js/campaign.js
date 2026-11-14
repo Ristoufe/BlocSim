@@ -291,3 +291,57 @@ function buildCampaignReport(out){
     ]
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* Analyse de sensibilité : un paramètre « à calibrer » à la fois       */
+/* ------------------------------------------------------------------ */
+// Chaque paramètre est poussé à sa borne basse puis haute, les autres restant à leur valeur par défaut.
+// On regarde si la conclusion (niveau vert / orange / rouge) et les chiffres clés changent.
+const SENS_PARAMS = [
+  {k:"lambda", label:"Aversion à la perte λ", lo:1.8, hi:2.25},
+  {k:"alpha", label:"Vitesse d'apprentissage α", lo:0.04, hi:0.16},
+  {k:"kappaScale", label:"Influence des collègues κ", lo:0.5, hi:2},
+  {k:"scarHalfLife", label:"Mémoire d'une panne (jours)", lo:5, hi:30},
+  {k:"useLow", label:"Seuil de contournement", lo:0.1, hi:0.3},
+  {k:"learnB", label:"Pente d'apprentissage", lo:0.3, hi:0.7},
+  {k:"tlxAlert", label:"Seuil de surcharge", lo:60, hi:80}
+];
+const SENS_OUT = [
+  {k:"late", label:"Retard ajouté (min / intervention)", get:o=>o.totals[o.mainArm].late.dMed},
+  {k:"T", label:"Confiance finale", get:o=>o.totals[o.mainArm].T.med},
+  {k:"adoption", label:"Usage de l'outil (%)", get:o=>o.totals[o.mainArm].adoption.med},
+  {k:"overload", label:"Journées de surcharge en plus", get:o=>o.totals[o.mainArm].overload.dMed}
+];
+// une ligne du tableau : un paramètre poussé à ses deux bornes
+function sensRow(opts, p, reps){
+  const val = o => Object.fromEntries(SENS_OUT.map(s=>[s.k, s.get(o)]));
+  const run = v => { const o = runCampaign({...opts, reps, human:{...(opts.human||{}), [p.k]:v}}); return {v, level:o.report.level, conclusion:o.report.conclusion, out:val(o)}; };
+  return {...p, base:(opts.human&&opts.human[p.k]) ?? HUMAN_DEFAULTS[p.k], low:run(p.lo), high:run(p.hi)};
+}
+function sensBase(opts, reps){
+  const base = runCampaign({...opts, reps});
+  if(base.blocked) return null;
+  return {scenario:base.scenario, conclusion:base.report.conclusion, level:base.report.level, out:Object.fromEntries(SENS_OUT.map(s=>[s.k, s.get(base)]))};
+}
+function sensSummary(ref, rows){
+  const variants = rows.flatMap(r=>[r.low, r.high]);
+  const same = variants.filter(v=>v.level===ref.level).length;
+  // paramètre le plus influent pour chaque résultat : plus grand écart entre borne basse et haute
+  const top = Object.fromEntries(SENS_OUT.map(s=>{
+    const r = [...rows].sort((a,b)=>Math.abs(b.high.out[s.k]-b.low.out[s.k])-Math.abs(a.high.out[s.k]-a.low.out[s.k]))[0];
+    return [s.k, {param:r.label, spread:Math.abs(r.high.out[s.k]-r.low.out[s.k])}];
+  }));
+  const robust = same===variants.length;
+  return {
+    blocked:false, scenario:ref.scenario, ref, rows, top, same, total:variants.length, robust,
+    summary: robust
+      ? `La conclusion (« ${ref.conclusion} ») reste la même pour les ${variants.length} variantes testées : elle ne dépend pas des paramètres à calibrer dans leurs fourchettes.`
+      : `La conclusion change dans ${variants.length-same} variante(s) sur ${variants.length}, à cause de : ${rows.filter(r=>r.low.level!==ref.level||r.high.level!==ref.level).map(r=>r.label.toLowerCase()).join(", ")}. Ces paramètres doivent être calibrés avec les équipes avant de trancher.`
+  };
+}
+function runSensitivity(opts){
+  const reps = opts.reps || 10;
+  const ref = sensBase(opts, reps);
+  if(!ref) return {blocked:true};
+  return sensSummary(ref, SENS_PARAMS.map(p=>sensRow(opts, p, reps)));
+}

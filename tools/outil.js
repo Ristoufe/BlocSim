@@ -25,6 +25,7 @@ Options de campagne
   --alpha <x>          vitesse d'apprentissage de la confiance (défaut : 0,08, à calibrer)
   --kappa <x>          multiplie la sensibilité aux collègues (défaut : 1, à calibrer)
   --sortie <dossier>   dossier des CSV (défaut : logs)
+  --sensibilite        pousse chaque paramètre « à calibrer » à ses bornes et dit si la conclusion change
   --sans-csv           ne pas écrire les CSV
   --json               résultat complet en JSON
 
@@ -40,7 +41,7 @@ function parseArgs(argv){
     const k = argv[i];
     if(!k.startsWith("--")){ a._.push(k); continue; }
     const name = k.slice(2);
-    if(["sans-csv","json","aide","help","verifier"].includes(name)){ a[name]=true; continue; }
+    if(["sans-csv","json","aide","help","verifier","sensibilite"].includes(name)){ a[name]=true; continue; }
     if(argv[i+1]===undefined) fail(`valeur manquante pour --${name}`);
     a[name] = argv[++i];
   }
@@ -154,6 +155,19 @@ if(a.lambda) opts.human.lambda = num(a.lambda,"lambda",1,3);
 if(a.alpha) opts.human.alpha = num(a.alpha,"alpha",0.001,1);
 if(a.kappa) opts.human.kappaScale = num(a.kappa,"kappa",0,5);
 E.__o = opts;
+if(a.sensibilite){
+  const t0 = Date.now();
+  const S = vm.runInContext("runSensitivity({...__o, reps: Math.min(__o.reps, 10)})", E);
+  if(S.blocked){ console.error("Campagne non lancée : la fiche est incomplète."); process.exit(2); }
+  if(a.json){ console.log(JSON.stringify(S,null,1)); process.exit(0); }
+  const f = x => x==null? "-" : ((Math.round(x*100)/100)||0).toString().replace(".",",");
+  console.log(`\nSensibilité - scénario ${S.scenario.id}, ${S.total} variantes, ${((Date.now()-t0)/1000).toFixed(0)} s\n`);
+  console.log(`${"Paramètre".padEnd(32)}${"bornes".padEnd(14)}${"conclusion".padEnd(18)}${"retard ajouté".padEnd(16)}${"confiance".padEnd(14)}usage (%)`);
+  console.log(`${"Référence".padEnd(32)}${"-".padEnd(14)}${S.ref.level.padEnd(18)}${f(S.ref.out.late).padEnd(16)}${f(S.ref.out.T).padEnd(14)}${f(S.ref.out.adoption)}`);
+  for(const r of S.rows) console.log(`${r.label.padEnd(32)}${(f(r.lo)+" / "+f(r.hi)).padEnd(14)}${(r.low.level+" / "+r.high.level).padEnd(18)}${(f(r.low.out.late)+" / "+f(r.high.out.late)).padEnd(16)}${(f(r.low.out.T)+" / "+f(r.high.out.T)).padEnd(14)}${f(r.low.out.adoption)} / ${f(r.high.out.adoption)}`);
+  console.log(`\n${S.summary}\n`);
+  process.exit(0);
+}
 const o = vm.runInContext("runCampaign(__o)", E);
 if(o.blocked){
   printCheck(o.check, path.basename(a.fiche));

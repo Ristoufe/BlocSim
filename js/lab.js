@@ -13,7 +13,8 @@ const VERDICT_TXT = {NON_ANALYSABLE:"Non analysable", ANALYSABLE_AVEC_RESERVES:"
 const CONF_TXT = {aucune:"aucune", faible:"faible", moyenne:"moyenne", elevee:"élevée"};
 
 const lab = {file:LAB_FICHES[0].file, fiche:null, check:null, scenario:"A", days:20, reps:20, human:{...HUMAN_DEFAULTS}, out:null, busy:false,
-  llm:{status:null, model:null, busy:null, error:null, text:"", garde:null, generated:false}};
+  llm:{status:null, model:null, busy:null, error:null, text:"", garde:null, generated:false},
+  sens:null};
 const labEl = document.createElement("div"); labEl.className="modal labwrap"; labEl.hidden=true; document.body.appendChild(labEl);
 const esc = s => String(s??"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fr1 = x => x==null||!Number.isFinite(x) ? "-" : ((Math.round(x*10)/10)||0).toLocaleString("fr-FR");
@@ -170,6 +171,7 @@ function runLab(){
   setTimeout(()=>{
     const t0=performance.now();
     lab.out = runCampaign({fiche:lab.fiche, scenario:lab.scenario, days:lab.days, reps:lab.reps, human:{...lab.human}});
+    lab.sens = null;
     lab.out.wall = performance.now()-t0;
     lab.busy=false; renderLab();
     labEl.querySelector("#l-res")?.scrollIntoView({block:"start", behavior:"smooth"});
@@ -227,6 +229,8 @@ function resultsHTML(o){
   <h3>Voir une journée sur le plan</h3>
   <div class="row wrap"><select id="l-dayarm" aria-label="Bras">${A.map((a,i)=>`<option value="${i}" ${i===A.length-1?"selected":""}>${esc(a.label)}</option>`).join("")}</select><select id="l-dayn" aria-label="Jour">${dayOpts}</select><button class="btn" type="button" id="l-keep">Rejouer cette journée</button></div>
   <p class="note">La journée s'ajoute à la barre du haut : pannes, contournements et échecs de l'outil apparaissent dans le fil des événements.</p>
+  <h3>Solidité de la conclusion</h3>
+  ${sensHTML(o)}
   <h3>Hypothèses et paramètres</h3>
   <ul class="clist">${R.hypotheses.map(h=>`<li>${esc(h)}</li>`).join("")}</ul>
   <table class="ltable params"><tbody>${HUMAN_PARAMS_DOC.map(p=>`<tr><th>${esc(p.label)}</th><td class="mono">${fr2((o.C.human&&o.C.human[p.k])??HUMAN_DEFAULTS[p.k])}</td><td>${esc(p.src)} ${p.calib?`<span class="tag">à calibrer</span>`:""}</td></tr>`).join("")}</tbody></table>
@@ -287,6 +291,7 @@ function bindCharts(){
     el.addEventListener("pointerleave",()=>{ tip.hidden=true; });
   });
   const csv=labEl.querySelector("#l-csv"); if(csv) csv.onclick=()=>labCSV(lab.out);
+  const sn=labEl.querySelector("#l-sens"); if(sn) sn.onclick=runSens;
 }
 const xsOf = o => o.daily[0].map(x=>x.date.slice(8,10)+"/"+x.date.slice(5,7));
 
@@ -337,6 +342,54 @@ function weekChart(o){
   return `<div class="chart">${arms.length>1?`<div class="legend">${arms.map(i=>`<span><i style="background:${ARM_COLOR[i]}"></i>${esc(o.arms[i].label)}</span>`).join("")}</div>`:""}
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Retard ajouté par l'outil, en minutes par intervention programmée, semaine par semaine">${ticks}<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" class="zero"/>${bars}${xl}</svg><div class="ctip" hidden></div></div>
     <p class="note">Minutes de retard en plus (ou en moins) par intervention programmée, comparé à la même semaine sans outil. Trait : 80 % des répétitions.</p>`;
+}
+
+/* analyse de sensibilité : un paramètre « à calibrer » à la fois, à ses deux bornes */
+const LEVEL_TXT = {vert:"vert", orange:"orange", rouge:"rouge"};
+function sensHTML(o){
+  const S = lab.sens;
+  if(!S) return `<p class="note">Les paramètres humains marqués « à calibrer » ne sont pas mesurés au bloc. On les pousse un par un à leurs bornes pour voir si la conclusion change (${SENS_PARAMS.length*2} variantes, 10 répétitions chacune).</p>
+    <div class="rbtns"><button class="btn" type="button" id="l-sens">Tester la sensibilité (environ 1 min)</button></div>`;
+  if(S.busy) return `<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="${SENS_PARAMS.length+1}" aria-valuenow="${S.done}"><i style="width:${Math.round(100*S.done/(SENS_PARAMS.length+1))}%"></i></div><p class="note">Calcul : ${S.done} / ${SENS_PARAMS.length+1}${S.done>0&&S.done<=SENS_PARAMS.length?` · ${esc(SENS_PARAMS[S.done-1].label)}`:""}</p>`;
+  const R = S.result, lvl = {rouge:"crit", orange:"warn", vert:"ok"};
+  const icon = {rouge:"✕", orange:"!", vert:"✓"};
+  const chip = l => `<span class="lchip ${lvl[l]}"><span aria-hidden="true">${icon[l]}</span> ${LEVEL_TXT[l]}</span>`;
+  // tornade sur la confiance finale : écart borne basse / borne haute autour de la valeur de référence
+  const ref = R.ref.out.T, vals = R.rows.flatMap(r=>[r.low.out.T, r.high.out.T, ref]).filter(Number.isFinite);
+  const lo = Math.floor((Math.min(...vals)-0.02)*20)/20, hi = Math.ceil((Math.max(...vals)+0.02)*20)/20;
+  const X = v => 100*(v-lo)/(hi-lo);
+  const rows = [...R.rows].sort((a,b)=>Math.abs(b.high.out.T-b.low.out.T)-Math.abs(a.high.out.T-a.low.out.T));
+  return `<div class="concl ${R.robust?"ok":"warn"}"><div class="ctop"><span class="cicon" aria-hidden="true">${R.robust?"✓":"!"}</span><b>${esc(R.summary)}</b></div>
+    <span class="cconf">Paramètre le plus influent : sur le retard, ${esc(R.top.late.param.toLowerCase())} ; sur la confiance, ${esc(R.top.T.param.toLowerCase())} ; sur l'usage, ${esc(R.top.adoption.param.toLowerCase())}.</span></div>
+  <div class="chart tornado" aria-label="Confiance finale selon chaque paramètre, borne basse et borne haute">
+    <div class="legend"><span><i style="background:${SERIES[0]}"></i>Borne basse</span><span><i style="background:${SERIES[1]}"></i>Borne haute</span><span><i class="refline"></i>Référence ${fr2(ref)}</span></div>
+    ${rows.map(r=>{ const a=X(r.low.out.T), b=X(r.high.out.T), l=Math.min(a,b), w=Math.max(1,Math.abs(b-a));
+      return `<div class="tb" data-bar="<b>${esc(r.label)}</b><div class='mono'>${fr2(r.lo)} : confiance ${fr2(r.low.out.T)} · ${fr2(r.hi)} : ${fr2(r.high.out.T)}</div>"><span>${esc(r.label)}</span>
+        <div class="track"><i class="seg" style="left:${l}%;width:${w}%"></i><i class="dot" style="left:${a}%;background:${SERIES[0]}"></i><i class="dot" style="left:${b}%;background:${SERIES[1]}"></i><i class="ref" style="left:${X(ref)}%"></i></div></div>`; }).join("")}
+    <div class="taxis"><span>${fr2(lo)}</span><span>Confiance finale</span><span>${fr2(hi)}</span></div>
+    <div class="ctip" hidden></div>
+  </div>
+  <div class="tscroll"><table class="ltable"><thead><tr><th>Paramètre</th><th>Bornes</th><th>Conclusion</th><th>Retard ajouté</th><th>Confiance</th><th>Usage</th></tr></thead><tbody>
+    <tr><th>Référence</th><td class="mono">-</td><td>${chip(R.ref.level)}</td><td class="mono">${fr1(R.ref.out.late)}</td><td class="mono">${fr2(R.ref.out.T)}</td><td class="mono">${fr1(R.ref.out.adoption)} %</td></tr>
+    ${R.rows.map(r=>`<tr><th>${esc(r.label)}</th><td class="mono">${fr2(r.lo)} / ${fr2(r.hi)}</td><td>${chip(r.low.level)} ${chip(r.high.level)}</td><td class="mono">${fr1(r.low.out.late)} / ${fr1(r.high.out.late)}</td><td class="mono">${fr2(r.low.out.T)} / ${fr2(r.high.out.T)}</td><td class="mono">${fr1(r.low.out.adoption)} / ${fr1(r.high.out.adoption)} %</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+function runSens(){
+  const opts = {fiche:lab.fiche, scenario:lab.scenario, days:lab.days, human:{...lab.human}};
+  const reps = 10;
+  lab.sens = {busy:true, done:0, rows:[]}; renderLab();
+  const step = () => {
+    const S = lab.sens; if(!S || !S.busy) return;
+    if(S.done===0) S.ref = sensBase(opts, reps);
+    else S.rows.push(sensRow(opts, SENS_PARAMS[S.done-1], reps));
+    S.done++;
+    if(S.done>SENS_PARAMS.length){ lab.sens = {busy:false, result:sensSummary(S.ref, S.rows)}; }
+    const keep = labEl.querySelector(".lbox")?.parentElement?.scrollTop;
+    renderLab();
+    if(keep!=null) labEl.scrollTop = keep;
+    if(lab.sens.busy) setTimeout(step, 20);
+  };
+  setTimeout(step, 20);
 }
 
 function labCSV(o){
