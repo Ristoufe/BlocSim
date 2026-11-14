@@ -17,7 +17,7 @@ const SHORT_SPEC = {
 function defaultConfig(){
   return {
     name:"Journée type", seed:42, date:"2026-11-16",
-    rooms: ALL_ROOMS.filter(r=>(STATS.rooms[r]?.open||0)>0.47),   // environ 7 salles, comme un jour plein réel
+    rooms: [...ALL_ROOMS],             // salles disponibles : chacune ouvre selon sa fréquence réelle (generateDay)
     urgRoom: STATS.urgRoom,
     load:1.0,
     urgCount: Math.round(STATS.urgPerWeekday),
@@ -47,6 +47,7 @@ const PRESETS = [
 function gauss(r){ const u=Math.max(1e-9,r()), v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
 function logn(r,mu,sigma,lo,hi){ return clamp(Math.round(Math.exp(mu+sigma*gauss(r))), lo, hi); }
 function pickW(r,obj){ const e=Object.entries(obj); const tot=e.reduce((a,[,w])=>a+w,0); let x=r()*tot; for(const [k,w] of e){ x-=w; if(x<=0) return k; } return e[e.length-1][0]; }
+function poisson(r,lambda){ let k=0, p=r(); const L=Math.exp(-lambda); while(p>L){ k++; p*=r(); } return k; }
 function pickAn(r,mix){ const a=pickW(r,mix||{AG:1}); return a; }
 const AN_LABEL={AG:"Anesthésie générale",ALR:"Anesthésie locorégionale","AL+S":"Anesthésie locale avec sédation",AL:"Anesthésie locale",NR:"Non renseignée"};
 
@@ -94,7 +95,8 @@ function makeUrgences(cfg, r){
     const proc = procName || (U.procs.length? U.procs[Math.floor(r()*U.procs.length)] : spec);
     list.push({room:null, spec, proc, dur:d, arr:at, type:PRIO[prio].type, prio, an:pickAn(r,U.an), adm:"HOSP", ch:"CHIR-G-"+(SHORT_SPEC[spec]||"CHIR"), mar:"MAR-garde"});
   };
-  for(let i=0;i<cfg.urgCount;i++){
+  const nUrg=poisson(r,cfg.urgCount);   // urgCount = nombre moyen par jour
+  for(let i=0;i<nUrg;i++){
     const h=+pickW(r,hours), at=h*60+Math.floor(r()*60);
     const x=r(), prio = x<0.12? "vitale" : x<0.7? "urgente" : "differee";
     mk(at, pickW(r,specs), prio);
@@ -157,7 +159,9 @@ function schedule(cfg, planned, urg, r){
     if(R.phase==="clean" && t>=R.freeAt){ R.phase="idle"; R.cur=null; }
   };
 
-  for(let t=0; t<1440+720; t++){
+  const HORIZON = 1440+720;           // plus aucun cas démarré au-delà ; ceux en cours vont jusqu'au bout
+  for(let t=0; t<1440*3; t++){
+    if(t>=HORIZON){ rooms.forEach(R=>advance(R,t)); if(rooms.every(R=>R.phase==="idle")) break; continue; }
     while(ui<urg.length && urg[ui].arr<=t) waiting.push(urg[ui++]);
     if(t===LAST_PROG_START){
       rooms.forEach(R=>{ R.q.forEach(c=>{ deprog.push(c); extra.push({t, room:R.n, txt:`Déprogrammé faute de temps : ${c.proc} (prévu à ${fmt(c.planned)})`, kind:"late"}); }); R.q=[]; });
@@ -217,16 +221,22 @@ function report(res, cfg){
 let GEN_COUNT=0;
 function generateDay(cfg){
   const r=rng(cfg.seed*7919+13);
-  const all=planProgram(cfg,r);
+  // programme du jour : chaque salle selon sa fréquence réelle (toujours si un événement la touche) ;
+  // la salle d'urgence est ouverte tous les jours, avec un programme seulement si elle est tirée
+  const evRooms=new Set(cfg.events.map(e=>e.room).filter(Boolean));
+  const progRooms=cfg.rooms.filter(x=>evRooms.has(x) || r()<(STATS.rooms[x]?.open ?? 1));
+  const cfgDay={...cfg, rooms: cfg.rooms.filter(x=>progRooms.includes(x) || x===cfg.urgRoom)};
+  if(!cfgDay.rooms.length) cfgDay.rooms=[cfg.rooms[0]];
+  const all=planProgram({...cfgDay, rooms:progRooms},r);
   // annulations de la veille ou du jour, au taux et pour les motifs réels
   const canc=[], planned=[];
   all.forEach(c=>{ if(r()<STATS.cancelRate){ canc.push({...c, reason:pickW(r,STATS.cancelReasons)}); } else planned.push(c); });
   const plannedCopy=planned.map(c=>({...c}));
-  const urg=makeUrgences(cfg,r);
-  const res=schedule(cfg,planned,urg,r);
+  const urg=makeUrgences(cfgDay,r);
+  const res=schedule(cfgDay,planned,urg,r);
   // même programme, sans aléas : pour comparer
-  const base=schedule({...cfg, events:[]}, plannedCopy, [], rng(1));
-  const rep=report(res,cfg), repBase=report(base,cfg);
+  const base=schedule({...cfgDay, events:[]}, plannedCopy, [], rng(1));
+  const rep=report(res,cfgDay), repBase=report(base,cfgDay);
   GEN_COUNT++;
   const ra=rng(cfg.seed*31+7);
   const cases=res.done.sort((a,b)=>a.s-b.s).map((c,i)=>({
@@ -241,7 +251,7 @@ function generateDay(cfg){
   res.closures.forEach(z=>{ extra.push({t:z.from, room:z.room, txt:`${z.label} : salle indisponible jusqu'à ${fmt(z.to)}`, kind:"u"}); extra.push({t:z.to, room:z.room, txt:"Salle de nouveau disponible", kind:"bio"}); });
   return {
     date: cfg.date || "2026-11-16", label: cfg.name || ("Simulation "+GEN_COUNT),
-    generated:true, cfg:JSON.parse(JSON.stringify(cfg)), cases, cancelled,
+    generated:true, cfg:JSON.parse(JSON.stringify(cfg)), roomsOpen:cfgDay.rooms, cases, cancelled,
     staff:{bran:cfg.bran, ash:cfg.ash}, sspiBeds:cfg.sspiBeds, closures:res.closures, extraEvents:extra,
     report:rep, baseline:repBase
   };

@@ -22,10 +22,10 @@ Scénario
   --date <AAAA-MM-JJ>   date écrite dans le CSV (défaut : 2026-11-16)
 
 Réglages (remplacent ceux du scénario)
-  --salles "OP 2,OP 3,..."   salles ouvertes
+  --salles "OP 2,OP 3,..."   salles disponibles (chacune ouvre selon sa fréquence réelle)
   --salle-urgence "OP 5"     salle d'urgence
   --programme <0.4-1.4>      remplissage du programme (1 = habituel)
-  --urgences <n>             nombre d'urgences tirées au hasard
+  --urgences <n>             nombre moyen d'urgences par jour (loi de Poisson)
   --afflux <n>@<HH:MM>       afflux de victimes, ex. 6@14:00
   --lits <2-8>               lits de SSPI ouverts
   --brancardiers <n>         --bionettoyage <n>
@@ -177,7 +177,7 @@ function printSummary(cfg, R, writeCsv, outDir, stamp) {
   ];
   const fmtN = (x) => (Math.round(x * 10) / 10).toString().replace(".", ",");
   console.log(`\nBlocSim - ${cfg.name}`);
-  console.log(`${cfg.rooms.length} salles (urgences : ${cfg.urgRoom}) · programme ${Math.round(cfg.load * 100)} % · ${cfg.urgCount} urgences` +
+  console.log(`${cfg.rooms.length} salles disponibles (urgences : ${cfg.urgRoom}) · programme ${Math.round(cfg.load * 100)} % · ${cfg.urgCount} urgences en moyenne` +
     `${cfg.burst && cfg.burst.n ? ` + afflux de ${cfg.burst.n}` : ""} · ${cfg.sspiBeds} lits SSPI · ${cfg.bran} brancardier(s) · ${cfg.ash} agent(s) de bionettoyage` +
     `${cfg.events.length ? ` · ${cfg.events.length} événement(s) ajouté(s)` : ""}`);
   console.log(`${R.length} tirage(s), graine${R.length > 1 ? `s ${R[0].seed} à ${R[R.length - 1].seed}` : ` ${R[0].seed}`}\n`);
