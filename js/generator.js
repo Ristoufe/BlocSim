@@ -246,7 +246,11 @@ function occupy(p,a,b,what,caseId){ p.iv.push({a,b,what,caseId}); p.freeAt=Math.
 /* ------------------------------------------------------------------ */
 /* 4. Ordonnanceur                                                     */
 /* ------------------------------------------------------------------ */
-function simulate(cfg, planned, urg, r){
+// hook (facultatif) : appelé à l'entrée en salle de chaque patient, dans l'ordre chronologique.
+// Il renvoie les minutes ajoutées (ou retirées) au temps en salle par un outil numérique ; elles
+// s'ajoutent à la phase opératoire. Il ne consomme aucun tirage du moteur : les journées « avec » et
+// « sans » outil gardent les mêmes patients, durées, urgences et aléas (nombres aléatoires communs).
+function simulate(cfg, planned, urg, r, hook){
   const di=cfg.__di;
   const DAY0=420, DAY1=1170;                  // 7 h - 19 h 30 : équipes de jour, ensuite garde
   const events=[], cancelled=[], done=[];
@@ -491,6 +495,12 @@ function simulate(cfg, planned, urg, r){
     c.Vd=V.slice(8);
     if(team.ibode.interim){ c.ph.ins=Math.round(c.ph.ins*1.2); c.ph.fer=Math.round(c.ph.fer*1.15); }
     if(team.iade.interim) c.ph.ind=Math.round(c.ph.ind*1.15);
+    if(hook){
+      const v={room:R.n, spec:c.spec, proc:c.proc, type:c.type, dur:c.dur, s:t+tr, ch:c.ch, mar:mar? mar.label : "MAR-garde"};
+      const extra=Math.round(hook(v, t+tr)||0);
+      c.tool=v.tool||null; c.toolMin=extra;
+      if(extra) c.ph.chir=Math.max(3, c.ph.chir+extra);
+    }
     c.status="salle"; R.cur=c;
     if(c.type==="P"){
       freePre(c); R.called=R.called.filter(x=>x!==c); R.q=R.q.filter(x=>x!==c);
@@ -854,7 +864,14 @@ function report(res, cfg, annulAvant){
   const uw=c=>c.s-c.arr;
   const over = cfg.rooms.map(r=>{ const L=P.filter(c=>c.room===r); const e=L.length? Math.max(...L.map(c=>c.exit||0)) : 0; return Math.max(0,e-1110); });
   const C=res.cancelled;
+  // taux d'occupation des vacations, même définition que le classeur « Ratios v2 » : heures opérées
+  // pendant la vacation 8 h 30 - 17 h 30 / heures offertes, sur les salles qui ont du programmé
+  // (les urgences ne sont pas rattachées à une vacation)
+  const VAC0=510, VAC1=1050, endOf=c=>(c.phT&&c.phT[6]!=null)? c.phT[6] : c.s+c.dur;
+  const vacRooms=[...new Set(D.filter(c=>c.type!=="U").map(c=>c.room))];
+  const opMin=sum(D.filter(c=>c.type!=="U").map(c=>Math.max(0,Math.min(VAC1,endOf(c))-Math.max(VAC0,c.s))));
   return {
+    occ: vacRooms.length? Math.round(1000*opMin/(vacRooms.length*(VAC1-VAC0)))/10 : 0,
     done:D.length, prog:P.length, urg:U.length,
     annul: annulAvant||0,
     deprog:C.filter(c=>/Déprogrammé/.test(c.reason)).length,
@@ -903,19 +920,19 @@ const CALM = {roomPanne:0, equipPanne:0, absent:0, noShow:0, latePatient:0, same
 let GEN_COUNT=0;
 // La référence « sans aléas » garde la même graine, les mêmes patients programmés, les mêmes annulations
 // et les mêmes urgences habituelles ; elle retire absences, pannes, retards, complications, afflux et événements ajoutés.
-function runOnce(cfg, withAleas){
+function runOnce(cfg, withAleas, hook){
   const all=planProgram(cfg);
   const canc=[], planned=[], idx={};
   all.forEach(c=>{ const k=idx[c.room]=(idx[c.room]||0)+1; c.rr=rng(seedOf(cfg.seed,"patient",c.room,k));
     if(c.rr()<STATS.cancelRate) canc.push({...c, reason:pickW(c.rr,STATS.cancelReasons)}); else planned.push(c); });
   const c2 = withAleas ? cfg : {...cfg, ...CALM, events:[], burst:{at:cfg.burst.at, n:0}};
   const urg=makeUrgences(c2, rng(seedOf(cfg.seed,"urgences")));
-  return {res:simulate(c2, planned, urg, rng(seedOf(cfg.seed,"divers"))), canc, cfg:c2, planned, urg};
+  return {res:simulate(c2, planned, urg, rng(seedOf(cfg.seed,"divers")), hook), canc, cfg:c2, planned, urg};
 }
-function generateDay(cfgIn){
+function generateDay(cfgIn, hook){
   const cfg=normalizeConfig(cfgIn);
   cfg.__di=dayInfo(cfg.date);
-  const main=runOnce(cfg,true), res=main.res;
+  const main=runOnce(cfg,true,hook), res=main.res;
   const val=validateDay(res,cfg);
   const rep=report(res,cfg,main.canc.length);
   const base=runOnce(cfg,false); const repBase=report(base.res,base.cfg,base.canc.length);
@@ -938,7 +955,8 @@ function generateDay(cfgIn){
       vpaMar:c.vpaMar||null, chirVisit:c.chirVisit||null, labo:c.labo||null, jeuneReport:!!c.jeuneReport, ident:!!c.ident, prep:!!c.prep,
       consent:!!c.consent, marq:!!c.marq, box:c.box||c.boxBack? (BOX_LABEL[c.box]||"") : "", boxGroup: BOX_LABEL[BOX_GROUP[c.spec]]||"", boxRefused:!!c.boxRefused,
       radio:c.radio||null, extempoAt:c.extempoAt||null, transfuAt:c.transfuAt||null, intub:!!c.intub, interne:!!c.interne, bmr:!!c.bmr,
-      dmMiss:!!c.dmMiss, implantAt:c.implantAt??null, comptage:!!c.comptage, degrade:!!c.degrade, trBy:c.trBy||null
+      dmMiss:!!c.dmMiss, implantAt:c.implantAt??null, comptage:!!c.comptage, degrade:!!c.degrade, trBy:c.trBy||null,
+      tool:c.tool||null, toolMin:c.toolMin||0
     };
   });
   const allCanc=[...main.canc.map(c=>({spec:c.spec, proc:c.proc, reason:c.reason, when:"avant"})), ...res.cancelled.map(c=>({spec:c.spec, proc:c.proc, reason:c.reason, when:"jour", planned:c.planned??null, room:c.room||null}))];
