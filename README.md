@@ -65,6 +65,20 @@ Avec `npm start`, chaque simulation lancée est aussi enregistrée automatiqueme
 python3 tools/compare_logs.py data/raw/OPROOM.xls
 ```
 
+### Calibration du moteur
+
+Le moteur ajoute en salle des attentes et des aléas (MAR, chirurgien, équipement, complications, interne) et des annulations le jour même (absents, jeûne, examens, déprogrammations). Les durées et le taux d'annulation de l'export les contiennent déjà : sans correction, ils seraient comptés deux fois. `npm run calibrer` fait tourner le moteur avec ses réglages par défaut sur 150 jours ouvrés de janvier à octobre 2026, puis mesure :
+- un facteur par spécialité appliqué à la durée de base d'un cas programmé, pour que la durée en salle simulée retrouve celle de l'export (ophtalmologie 0,75, endoscopie 0,82, stomatologie 0,89, viscéral 0,91, gynécologie 0,93, orthopédie 0,93, ORL 0,95, urologie 0,97) ;
+- le taux d'annulation tiré avant le jour J (6,8 %), pour que le total des annulations retrouve le taux réel (14,9 % des lignes, urgences comprises).
+
+Le résultat est écrit dans `data/stats.json` (clé `calib`) et conservé par `tools/export_stats.py`. À relancer après un changement du moteur ou des réglages par défaut ; `node tools/calibrer.js --verifier` mesure sans rien écrire.
+
+Le programme de chaque salle suit aussi les données réelles :
+- temps opéré du jour selon la spécialité principale de la salle (une salle de gynécologie fait souvent 1 à 3 cas courts, une salle d'orthopédie environ 7 h), ajusté au jour et au mois ;
+- cas d'autres spécialités dans la même salle, à leur part réelle ;
+- actes rares (hors des 14 plus fréquents) tirés de la distribution de leur spécialité ;
+- salle d'urgence : toujours ouverte, mais un programme seulement à sa fréquence réelle (environ un jour ouvré sur deux).
+
 ### Tests
 
 ```bash
@@ -126,6 +140,7 @@ tools/export_stats.py calcul des distributions depuis le fichier OPROOM
 tools/compare_logs.py comparaison des simulations aux données réelles
 tools/simulate.js     option en ligne de commande (npm run sim)
 tools/test.js         tests d'acceptation (npm test)
+tools/calibrer.js     calibration du moteur sur l'export : durées de base par spécialité, annulations avant le jour J (npm run calibrer)
 tools/check.js        contrôles des règles physiques sur les journées exportées (npm run check)
 tools/campagne.js     mode campagne : milliers de journées variées et rapport (npm run campagne)
 server.js             serveur local sans dépendance (fichiers + enregistrement des logs)
