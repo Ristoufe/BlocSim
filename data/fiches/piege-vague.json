@@ -1,0 +1,50 @@
+{
+  "version_template": "0.1",
+  "exemple_fictif": true,
+  "commentaire": "Fiche piège : tous les champs sont remplis, mais plusieurs champs critiques sont creux. Les règles seules la laissent passer ; un relecteur attentif doit la bloquer.",
+  "champs": {
+    "B0.nom": "PlanOp Smart 3",
+    "B0.editeur": "Société fictive PlanOp",
+    "B0.type_outil": "Planning du bloc",
+    "B0.statut_projet": "Déjà déployé ailleurs",
+    "B0.auteur_date": "Chef de projet de l'éditeur, 14/11/2026",
+    "B0.sources": "Présentation commerciale de l'éditeur",
+    "B0.classe_reglementaire": "Non dispositif médical",
+    "B1.probleme": "Le planning du bloc est géré dans un tableur partagé, les modifications de dernière minute sont mal diffusées.",
+    "B1.situation_actuelle": "Tableur partagé et appels téléphoniques du cadre.",
+    "B1.resultat_attendu": "Une organisation optimisée et des équipes plus sereines.",
+    "B2.acteurs": [
+      {"role": "Cadre de santé", "utilise": true, "actions": "Gère le planning", "moment": "Pendant la journée", "frequence": "Selon les besoins", "formation": "Courte"},
+      {"role": "IBODE", "utilise": true, "actions": "Consulte l'application", "moment": "Au bloc", "frequence": "Régulièrement", "formation": "Courte"}
+    ],
+    "B3.fonctions_incluses": "Planning des salles, notifications, tableau de bord",
+    "B3.fonctions_exclues": "Pas de facturation",
+    "B3.salles_specialites": "Toutes les salles",
+    "B3.etapes_parcours": "Avant l'intervention, en salle",
+    "B3.volume": "Tout le bloc",
+    "B4.etapes": [
+      {"n": 1, "etape": "Modifier le programme", "qui": "Cadre de santé", "action": "Déplacer une intervention dans l'application", "moment": "Avant l'intervention", "sans": 10, "avec": 2, "unite": "min", "source": "Retours terrain très positifs"},
+      {"n": 2, "etape": "Prendre connaissance du changement", "qui": "IBODE", "action": "Lire la notification", "moment": "En salle", "sans": 3, "avec": 0.5, "unite": "min", "source": "Estimation de l'éditeur"}
+    ],
+    "B5.donnees_saisies": "Programme opératoire",
+    "B5.donnees_produites": "Planning, notifications",
+    "B5.liens_logiciels": "Interfaçable avec tous les logiciels du marché",
+    "B5.mode_echange": "Temps réel",
+    "B5.materiel": "Un smartphone ou un poste",
+    "B6.disponibilite": "Haute disponibilité garantie",
+    "B6.mode_degrade": "Procédure habituelle de l'établissement",
+    "B6.support": "Support réactif inclus dans l'abonnement",
+    "B6.pannes_connues": "Aucune panne significative",
+    "B7.formation_initiale": "Prise en main intuitive, formation courte",
+    "B7.calendrier": "Déploiement progressif",
+    "B7.accompagnement": "Accompagnement personnalisé",
+    "B8.reglementaire": "Conforme à la réglementation en vigueur",
+    "B8.risques_patient": "Aucun risque, la solution a fait ses preuves",
+    "B8.risques_organisation": "Résistance au changement",
+    "B9.niveau_preuve": "Retours clients",
+    "B9.sites_utilisateurs": "Plus de 50 établissements",
+    "B9.etudes": "Livre blanc de l'éditeur",
+    "B9.retours_soignants": "Très satisfaits",
+    "B10.indicateurs": [{"indicateur": "Satisfaction des équipes", "actuel": "Moyenne", "cible": "Excellente"}]
+  }
+}

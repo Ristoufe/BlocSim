@@ -1,0 +1,36 @@
+{
+  "version_template": "0.1",
+  "exemple_fictif": true,
+  "commentaire": "Fiche volontairement incomplète, recopiée d'une notice commerciale : elle doit être refusée.",
+  "champs": {
+    "B0.nom": "ScanTrace v2",
+    "B0.editeur": "Société fictive ScanTrace",
+    "B0.type_outil": "Traçabilité",
+    "B0.statut_projet": "À l'étude",
+    "B0.auteur_date": "Commercial de l'éditeur, 14/11/2026",
+    "B0.sources": "Plaquette commerciale",
+    "B1.probleme": "Solution révolutionnaire pour la traçabilité, zéro erreur garanti.",
+    "B1.situation_actuelle": "Papier",
+    "B1.resultat_attendu": "Gain de 75 % sur le temps de traçabilité",
+    "B2.acteurs": [
+      {"role": "IBODE", "utilise": true, "actions": "Scanne", "moment": "", "frequence": "", "formation": ""}
+    ],
+    "B3.fonctions_incluses": "Scan UDI",
+    "B3.fonctions_exclues": "",
+    "B3.salles_specialites": "Toutes les salles",
+    "B3.etapes_parcours": "En salle",
+    "B4.etapes": [
+      {"n": 1, "etape": "Tracer un implant", "qui": "IBODE", "action": "Scanner", "sans": 2, "avec": 0.5, "source": ""}
+    ],
+    "B5.donnees_saisies": "Code UDI",
+    "B5.donnees_produites": "Traçabilité",
+    "B5.liens_logiciels": "Inconnu",
+    "B6.disponibilite": "100 %",
+    "B6.mode_degrade": "",
+    "B6.support": "Inconnu",
+    "B7.formation_initiale": "Quelques minutes",
+    "B8.reglementaire": "Inconnu",
+    "B8.risques_patient": "Aucun",
+    "B9.niveau_preuve": "Déclaration de l'éditeur"
+  }
+}
