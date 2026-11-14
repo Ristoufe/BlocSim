@@ -45,7 +45,8 @@ Ensuite, liste les alertes :
 - "affirmation_non_etayee" : promesse commerciale sans mesure (« révolutionnaire », « zéro erreur », « gain de X % », « aucun risque »).
 - "incoherence" : deux champs qui se contredisent vraiment (un rôle du processus absent des acteurs, une étape hors du périmètre).
 - "rgpd" : seulement si tu vois un nom de personne, un numéro de dossier patient ou une date de naissance. Ne recopie jamais la donnée.
-Puis pose une question courte à l'auteur pour chaque champ non concret, avec un exemple de réponse. Français simple, pas de tiret long.`;
+Puis pose une question courte à l'auteur pour les champs non concrets les plus importants (5 au plus), avec un exemple de réponse. Français simple, pas de tiret long.
+Sois bref : "manque" est une chaîne vide quand concret = true, et une phrase de 15 mots au plus sinon. Résumé : 2 lignes.`;
 
 const AGENT1_SCHEMA = {
   type:"object",
@@ -71,7 +72,7 @@ function agent1Messages(fiche, det){
   const items = todo.map(g=>`- id: ${g.id}\n  champ: ${g.label}${CRITICAL.includes(g.id)?" (critique)":""}\n  attendu: ${g.attendu}\n  texte: ${JSON.stringify(C[g.id])}`).join("\n");
   return [
     {role:"system", content:AGENT1_SYSTEM},
-    {role:"user", content:`Champs à juger (${todo.length}) :\n${items}\n\nRéponds pour chacun de ces ${todo.length} champs, puis donne les alertes, les questions et un résumé de 3 lignes.`}
+    {role:"user", content:`Champs à juger (${todo.length}) :\n${items}\n\nRéponds pour chacun de ces ${todo.length} champs, puis donne les alertes, au plus 5 questions et un résumé de 2 lignes.`}
   ];
 }
 
@@ -116,7 +117,8 @@ const AGENT2_SYSTEM_HEAD = `Tu remplis la fiche logiciel Blocapta (template v0.1
 Règles strictes :
 1. N'écris que ce qui est dans le texte. Si une information manque, écris exactement "Inconnu". Ne complète jamais avec tes connaissances.
 2. Chaque chiffre que tu écris doit figurer dans le texte, avec son unité.
-3. Pour chaque étape du processus (B4.etapes), donne : qui (métier exact : IBODE, IADE, Chirurgien, Anesthésiste, Cadre, Pharmacien...), l'action, le moment (avant, en salle, SSPI, après, hors bloc), la durée sans et avec le logiciel en minutes (nombre, ou null si absente), et la source de la durée recopiée du texte (« essai de l'éditeur », « chronométrage sur site »...). Ajoute une citation courte du texte qui justifie l'étape.
+3. Pour chaque étape du processus (B4.etapes), donne : qui (métier exact : IBODE, IADE, Chirurgien, Anesthésiste, Cadre, Pharmacien...), l'action, le moment (avant, en salle, SSPI, après, hors bloc), la durée sans et avec le logiciel en minutes (nombre, ou null si absente), et la source de la durée recopiée du texte (« essai de l'éditeur », « chronométrage sur site »...). Ajoute une citation du texte de 15 mots au plus qui justifie l'étape.
+   Sois bref dans tous les champs : une phrase courte suffit.
 4. Recopie les affirmations commerciales telles quelles : ne les reformule pas en faits.
 5. Aucune donnée personnelle : remplace tout nom de personne par sa fonction.
 6. Une étape = une ligne avec les DEUX durées (sans et avec le logiciel) : ne sépare pas l'ancienne et la nouvelle méthode en deux étapes. Convertis les secondes en minutes (30 secondes = 0.5).
@@ -177,3 +179,4 @@ async function agent2(text, opts={}){
   const garde = guardAgent2(fiche, text);
   return {fiche, garde, ms:r.ms, model:r.model};
 }
+
