@@ -31,7 +31,7 @@ L'application doit être servie par un serveur local : ouverte directement depui
 Le bouton **+ Créer une journée** ouvre l'écran de scénario :
 
 - **Scénarios prêts à l'emploi** : journée type, accident collectif (afflux de victimes à 14 h), urgences en continu, panne de salle, SSPI réduite à 4 lits, sous-effectif de brancardiers et d'agents de bionettoyage, programme surchargé.
-- **Réglages** : salles ouvertes, salle d'urgence, remplissage du programme (40 à 140 %), nombre d'urgences, afflux de victimes et son heure, lits de SSPI, brancardiers, agents de bionettoyage, tirage aléatoire.
+- **Réglages** : salles disponibles (chacune ouvre selon sa fréquence réelle), salle d'urgence, remplissage du programme (40 à 140 %), nombre moyen d'urgences (loi de Poisson), afflux de victimes et son heure, lits de SSPI, brancardiers, agents de bionettoyage, tirage aléatoire.
 - **Événements à la main** : urgence vitale, urgence ou urgence différée à une heure et dans une spécialité données, panne d'une salle sur un créneau.
 
 Le programme opératoire et les urgences sont tirés des distributions réelles (`data/stats.json`). Le bloc est ensuite simulé minute par minute :

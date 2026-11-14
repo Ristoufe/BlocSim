@@ -81,7 +81,7 @@ Ils sont disponibles dans l'interface et dans le terminal.
 
 | Paramètre | Terminal | Défaut | Rôle |
 | --- | --- | --- | --- |
-| Salles ouvertes | `--salles "OP 2,OP 3,OP 4"` | 7 salles (OP 2, 3, 4, 5, 7, 9, 10) | Salles qui tournent dans la journée |
+| Salles disponibles | `--salles "OP 2,OP 3,OP 4"` | les 10 salles | Chaque salle ouvre selon sa fréquence réelle ; la salle d'urgence et les salles en panne sont toujours ouvertes |
 | Salle d'urgence | `--salle-urgence "OP 5"` | OP 5 | Prend les urgences en priorité, a un demi-programme, seule salle ouverte la nuit |
 | Remplissage du programme | `--programme 1.2` | 1 | 1 = habituel, de 0,4 à 1,4. Au-dessus de 1 : retards, débordements, déprogrammations |
 
@@ -89,7 +89,7 @@ Ils sont disponibles dans l'interface et dans le terminal.
 
 | Paramètre | Terminal | Défaut | Rôle |
 | --- | --- | --- | --- |
-| Urgences | `--urgences 12` | 6 | Urgences tirées au hasard sur 24 h, selon les heures et spécialités réelles |
+| Urgences | `--urgences 12` | 6 | Nombre moyen par jour (loi de Poisson), heures et spécialités réelles |
 | Afflux de victimes | `--afflux 6@14:00` | aucun | Groupe de patients arrivant en 25 minutes, un tiers d'urgences vitales |
 
 **Capacités** (les goulots d'étranglement)

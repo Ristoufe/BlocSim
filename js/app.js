@@ -243,7 +243,7 @@ function reportHTML(d){
   const cfg=d.cfg;
   return `<div class="sec report">
     <h2>Bilan de la simulation</h2>
-    <p class="note">${d.label} · ${cfg.rooms.length} salles · ${cfg.sspiBeds} lits de SSPI · ${cfg.bran} brancardier${cfg.bran>1?"s":""} · ${cfg.ash} agent${cfg.ash>1?"s":""} de bionettoyage · graine ${cfg.seed}</p>
+    <p class="note">${d.label} · ${(d.roomsOpen||cfg.rooms).length} salles ouvertes · ${cfg.sspiBeds} lits de SSPI · ${cfg.bran} brancardier${cfg.bran>1?"s":""} · ${cfg.ash} agent${cfg.ash>1?"s":""} de bionettoyage · graine ${cfg.seed}</p>
     <div class="rgrid">
       <div class="kpi"><b>${R.done}</b><span>interventions réalisées (${R.urg} urgences)</span></div>
       <div class="kpi ${R.deprog?"bad":""}"><b>${R.deprog}</b><span>déprogrammées faute de temps${R.annul!=null?` (+ ${R.annul} annulées avant le jour J)`:""}</span>${delta(R.deprog,B.deprog)}</div>
@@ -281,10 +281,10 @@ function renderScenario(){
     <div class="form">
       <label for="f-name">Nom</label><input id="f-name" type="text" value="${c.name.replace(/"/g,"&quot;")}">
       <label for="f-date">Date simulée (pour le CSV)</label><input id="f-date" type="date" value="${c.date||"2026-11-16"}">
-      <span class="flabel">Salles ouvertes</span><div class="roomchips">${ALL_ROOMS.map(r=>`<button type="button" class="rchip" data-room="${r}" aria-pressed="${c.rooms.includes(r)}">${r}${r===c.urgRoom?" · urg.":""}</button>`).join("")}</div>
+      <span class="flabel">Salles disponibles (chacune ouvre selon sa fréquence réelle ; salle d'urgence toujours ouverte)</span><div class="roomchips">${ALL_ROOMS.map(r=>`<button type="button" class="rchip" data-room="${r}" aria-pressed="${c.rooms.includes(r)}">${r}${r===c.urgRoom?" · urg.":""}</button>`).join("")}</div>
       <label for="f-urgroom">Salle d'urgence</label><select id="f-urgroom">${ALL_ROOMS.map(r=>`<option ${r===c.urgRoom?"selected":""}>${r}</option>`).join("")}</select>
       <label for="f-load">Programme : <output id="o-load">${Math.round(c.load*100)} %</output></label><input id="f-load" type="range" min="40" max="140" step="5" value="${Math.round(c.load*100)}">
-      <label for="f-urg">Urgences dans la journée : <output id="o-urg">${c.urgCount}</output></label><input id="f-urg" type="range" min="0" max="30" value="${c.urgCount}">
+      <label for="f-urg">Urgences dans la journée, en moyenne : <output id="o-urg">${c.urgCount}</output></label><input id="f-urg" type="range" min="0" max="30" value="${c.urgCount}">
       <label for="f-burst">Afflux de victimes : <output id="o-burst">${c.burst.n}</output></label><div class="row"><input id="f-burst" type="range" min="0" max="12" value="${c.burst.n}"><span>à</span><input id="f-burstat" type="time" value="${fmt(c.burst.at)}"></div>
       <label for="f-beds">Lits de SSPI : <output id="o-beds">${c.sspiBeds}</output></label><input id="f-beds" type="range" min="2" max="8" value="${c.sspiBeds}">
       <label for="f-bran">Brancardiers : <output id="o-bran">${c.bran}</output></label><input id="f-bran" type="range" min="1" max="5" value="${c.bran}">
