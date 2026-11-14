@@ -7,8 +7,11 @@
     "start": "node server.js 8080",
     "sim": "node tools/simulate.js",
     "campagne": "node tools/campagne.js",
+    "outil": "node tools/outil.js",
+    "fiche": "node tools/outil.js --verifier",
     "test": "node tools/test.js",
-    "check": "node tools/check.js",
+    "calibrer": "node tools/calibrer.js",
+    "check": "node tools/check.js && node tools/check_humain.js",
     "data": "python3 tools/export_days.py"
   },
   "engines": {

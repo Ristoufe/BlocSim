@@ -82,7 +82,10 @@ function autoRooms(dateISO, r){
   // nombre de salles autour de la moyenne réelle du jour (réduite les mois creux), puis tirage pondéré par le taux d'ouverture de chaque salle
   const W=STATS.calendar.weekday[di.jour]||{rooms:5.5};
   const target=Math.max(2, W.rooms*Math.min(1, Math.sqrt(di.mf)));
-  const n=clamp(Math.round(target+gauss(r)), Math.max(2,Math.round(target)-2), Math.round(target)+2);
+  // la salle d'urgence est toujours ouverte, mais n'a un programme qu'à sa fréquence réelle (planProgram) :
+  // on tire les autres salles pour que le nombre moyen de salles avec du programme reste celui du jour
+  const pUrg=STATS.rooms[STATS.urgRoom]?.open ?? 1;
+  const n=1+clamp(Math.round(target-pUrg+gauss(r)), Math.max(1,Math.round(target-pUrg)-2), Math.round(target-pUrg)+2);
   const pool=ALL_ROOMS.filter(x=>x!==STATS.urgRoom).map(x=>[x, STATS.rooms[x]?.open||0.01]);
   const rooms=[STATS.urgRoom];
   while(rooms.length<n && pool.length){ const tot=pool.reduce((a,[,w])=>a+w,0); let x=r()*tot, i=0; for(;i<pool.length-1;i++){ x-=pool[i][1]; if(x<=0) break; } rooms.push(pool[i][0]); pool.splice(i,1); }
@@ -161,30 +164,47 @@ function bioDur(r, cls){
 function planProgram(cfg, r0){
   const di=cfg.__di, planned=[], SS=STATS.session;
   if(di.weekend) return planned;
-  let surg=1;
   const f = clamp(Math.sqrt(di.wf*di.mf),0.8,1.15);     // jeudi plus long, août plus court
   cfg.rooms.forEach(room=>{
     const r=rng(seedOf(cfg.seed,"programme",room));   // un flux par salle : ouvrir une salle de plus ne change pas les autres
+    // salle d'urgence : un programme seulement à sa fréquence réelle (environ un jour ouvré sur deux)
+    if(room===cfg.urgRoom && rng(seedOf(cfg.seed,"programme-urgence",cfg.date))() >= (STATS.rooms[room]?.open ?? 1)) return;
     const mix = STATS.rooms[room]?.mix || {"Chirurgie Générale et Digestive":1};
     const spec = pickW(r, Object.keys(mix).length? mix : {"Chirurgie Générale et Digestive":1});
     const S = STATS.specs[spec]; if(!S) return;
     const x=r(), mode = room===cfg.urgRoom ? "full" : x<SS.am ? "am" : x<SS.am+SS.pm ? "pm" : "full";
     const start = mode==="pm" ? Math.round(SS.pmStart+gauss(r)*20) : cfg.firstPlanned + Math.round(r()*10);
     const progEnd = start + (1110-start)*0.95*cfg.load*f;
-    const roomEnd = room===cfg.urgRoom ? start+(progEnd-start)*0.55 : mode==="am" ? clamp(SS.amEnd+gauss(r)*40, 600, 780) : progEnd;
-    const chir="CHIR-"+String(10+((surg++)*7)%60).padStart(2,"0");
+    // temps opéré du jour : tiré de la distribution réelle de la spécialité principale de la salle (une salle de
+    // gynécologie fait souvent 1 à 3 cas courts, une salle d'orthopédie remplit sa vacation ; matinées seules comprises),
+    // ajusté au jour et au mois, et majoré des cas qui seront annulés avant le jour J
+    const booked = S.day ? Math.exp(S.day.mu + S.day.sigma*gauss(r))*cfg.load*f/(1-STATS.cancelRate) : Infinity;
+    const roomEnd = room===cfg.urgRoom ? start+(progEnd-start)*0.55 : (mode==="am" && !S.day) ? clamp(SS.amEnd+gauss(r)*40, 600, 780) : progEnd;
+    // autres spécialités de la salle (cas secondaires du même jour), à leur part réelle
+    const others = Object.fromEntries(Object.entries(mix).filter(([k])=>k!==spec && STATS.specs[k]));
+    let bookedSum = 0;
+    const ri = ALL_ROOMS.indexOf(room);   // code lié à la salle : même titulaire d'un jour à l'autre, quelles que soient les salles ouvertes
+    const chir="CHIR-"+String(10+((ri+1)*7)%60).padStart(2,"0");
     const list=[]; let t=start;
     while(t < roomEnd-10){
-      const procs = S.procs.length? S.procs : [{name:spec, n:1, mu:S.mu, sigma:S.sigma}];
+      const sp = (list.length>0 && S.mainShare!=null && Object.keys(others).length && r() > S.mainShare) ? pickW(r, others) : spec;
+      const S2 = STATS.specs[sp];
+      // actes fréquents tirés à leur fréquence ; les actes rares (hors des 14 plus fréquents) suivent
+      // la distribution globale de la spécialité, à leur part réelle
+      const procs = S2.procs.length? S2.procs : [{name:sp, n:1, mu:S2.mu, sigma:S2.sigma}];
+      const covered = procs.reduce((x,q)=>x+q.n,0)/Math.max(1,S2.n||1);
       const pw={}; procs.forEach((p,i)=>pw[i]=p.n);
-      const p = procs[+pickW(r,pw)];
+      const p = (S2.n && r() > covered) ? {name:"Autre acte ("+SPEC_SHORT_LABEL(sp)+")", mu:S2.mu, sigma:S2.sigma} : procs[+pickW(r,pw)];
       const est = Math.round(Math.exp(p.mu));
-      const d = logn(r, p.mu, Math.min(p.sigma,0.6), 8, 420);
-      if(list.length>0 && t+est > roomEnd+15) break;
-      const an=pickW(r,S.an||{AG:1}), adm= r()<S.amb?"AMB":"HOSP";
-      const need={}; Object.entries(EQUIP_NEED[spec]||{}).forEach(([k,pp])=>{ if(chance(r,pp)) need[k]=1; });
-      const alrPre = cfg.alrInPre && /Orthop/.test(spec) && (an==="ALR" || chance(r,0.25));
-      list.push({room, spec, proc:p.name, dur:d, est, type:"P", prio:"prog", an, adm, ch:chir, need, alrPre, ...patientProfile(r,cfg,spec,adm)});
+      // durée de base : les aléas ajoutés en salle par le moteur (attentes, complications, interne...) sont déjà
+      // contenus dans les durées réelles ; le facteur mesuré par tools/calibrer.js évite de les compter deux fois
+      const d = Math.max(8, Math.round(logn(r, p.mu, Math.min(p.sigma,0.6), 8, 420)*(STATS.calib?.dur?.[sp] ?? 1)));
+      if(list.length>0 && (t+est > roomEnd+15 || bookedSum+est/2 > booked)) break;   // on garde le cas qui rapproche le plus du temps visé
+      bookedSum += Math.exp(p.mu + Math.min(p.sigma,0.6)**2/2);   // temps opéré attendu : durée moyenne de l'acte (loi log-normale)
+      const an=pickW(r,S2.an||{AG:1}), adm= r()<S2.amb?"AMB":"HOSP";
+      const need={}; Object.entries(EQUIP_NEED[sp]||{}).forEach(([k,pp])=>{ if(chance(r,pp)) need[k]=1; });
+      const alrPre = cfg.alrInPre && /Orthop/.test(sp) && (an==="ALR" || chance(r,0.25));
+      list.push({room, spec:sp, proc:p.name, dur:d, est, type:"P", prio:"prog", an, adm, ch:chir, need, alrPre, ...patientProfile(r,cfg,sp,adm)});
       t += est + Math.round(est<40? 4+r()*10 : 6+r()*18);
     }
     // ordre réaliste : allergie au latex puis enfants en premier, patients septiques en dernier
@@ -246,7 +266,11 @@ function occupy(p,a,b,what,caseId){ p.iv.push({a,b,what,caseId}); p.freeAt=Math.
 /* ------------------------------------------------------------------ */
 /* 4. Ordonnanceur                                                     */
 /* ------------------------------------------------------------------ */
-function simulate(cfg, planned, urg, r){
+// hook (facultatif) : appelé à l'entrée en salle de chaque patient, dans l'ordre chronologique.
+// Il renvoie les minutes ajoutées (ou retirées) au temps en salle par un outil numérique ; elles
+// s'ajoutent à la phase opératoire. Il ne consomme aucun tirage du moteur : les journées « avec » et
+// « sans » outil gardent les mêmes patients, durées, urgences et aléas (nombres aléatoires communs).
+function simulate(cfg, planned, urg, r, hook){
   const di=cfg.__di;
   const DAY0=420, DAY1=1170;                  // 7 h - 19 h 30 : équipes de jour, ensuite garde
   const events=[], cancelled=[], done=[];
@@ -410,8 +434,17 @@ function simulate(cfg, planned, urg, r){
   urg.forEach((c,i)=>{ c.uid="U"+i; c.status="attente"; c.waits=[]; c.interne = c.rr()<cfg.interne*0.5; });
 
   /* --- SSPI --- */
-  const sspiStaffAt=t=>sspiIde.filter(p=>!p.absent && onShift(p,t) && !inBreak(p,t)).length;
   const sspiOcc=()=>beds.filter(Boolean).length;
+  // à la relève, une IDE de SSPI ne part pas en laissant la salle sous l'effectif réglementaire
+  // (deux agents dès six patients) : elle reste en heures supplémentaires tant que c'est nécessaire
+  const sspiStaffAt=t=>{
+    const on=sspiIde.filter(p=>!p.absent && onShift(p,t) && !inBreak(p,t));
+    const o=sspiOcc(), need = o>=6 ? 2 : o>0 ? 1 : 0;
+    if(on.length>=need) return on.length;
+    const ot=sspiIde.filter(p=>!p.absent && !on.includes(p) && t>=p.shift[1] && t<p.shift[1]+240 && !inBreak(p,t)).slice(0, need-on.length);
+    ot.forEach(p=>{ p.otSSPI=Math.max(p.otSSPI||0, t); });
+    return on.length+ot.length;
+  };
   const sspiCanTake=t=>{ const o=sspiOcc(), s=sspiStaffAt(t); if(o>=beds.length || s<1) return false; if(o+1>=6 && s<2) return false; return true; };
   const sspiLog=[];
   let reaUsed=0;
@@ -458,7 +491,9 @@ function simulate(cfg, planned, urg, r){
       if(c.cls==="imm") return c;
       if(c.cls==="h1" && (isU || t-c.readyAt>=20 || !progReady)) return c;
       if(c.cls==="h6" && (isU || c.deadline-t < c.est+60 || (!progReady && !R.q.length))) return c;
-      if(c.cls==="h24" && (isU ? !ready.some(x=>x.cls!=="h24") : !R.q.length)) return c;
+      // une urgence « moins de 24 h » n'est pas démarrée si elle ne peut plus finir (salle, SSPI, bionettoyage)
+      // avant la fin de la journée simulée : elle est reportée, comme le ferait la régulation
+      if(c.cls==="h24" && t+c.est+180<=END && (isU ? !ready.some(x=>x.cls!=="h24") : !R.q.length)) return c;
     }
     return null;
   };
@@ -491,6 +526,12 @@ function simulate(cfg, planned, urg, r){
     c.Vd=V.slice(8);
     if(team.ibode.interim){ c.ph.ins=Math.round(c.ph.ins*1.2); c.ph.fer=Math.round(c.ph.fer*1.15); }
     if(team.iade.interim) c.ph.ind=Math.round(c.ph.ind*1.15);
+    if(hook){
+      const v={room:R.n, spec:c.spec, proc:c.proc, type:c.type, dur:c.dur, s:t+tr, ch:c.ch, mar:mar? mar.label : "MAR-garde"};
+      const extra=Math.round(hook(v, t+tr)||0);
+      c.tool=v.tool||null; c.toolMin=extra;
+      if(extra) c.ph.chir=Math.max(3, c.ph.chir+extra);
+    }
     c.status="salle"; R.cur=c;
     if(c.type==="P"){
       freePre(c); R.called=R.called.filter(x=>x!==c); R.q=R.q.filter(x=>x!==c);
@@ -854,7 +895,14 @@ function report(res, cfg, annulAvant){
   const uw=c=>c.s-c.arr;
   const over = cfg.rooms.map(r=>{ const L=P.filter(c=>c.room===r); const e=L.length? Math.max(...L.map(c=>c.exit||0)) : 0; return Math.max(0,e-1110); });
   const C=res.cancelled;
+  // taux d'occupation des vacations, même définition que le classeur « Ratios v2 » : heures opérées
+  // pendant la vacation 8 h 30 - 17 h 30 / heures offertes, sur les salles qui ont du programmé
+  // (les urgences ne sont pas rattachées à une vacation)
+  const VAC0=510, VAC1=1050, endOf=c=>(c.phT&&c.phT[6]!=null)? c.phT[6] : c.s+c.dur;
+  const vacRooms=[...new Set(D.filter(c=>c.type!=="U").map(c=>c.room))];
+  const opMin=sum(D.filter(c=>c.type!=="U").map(c=>Math.max(0,Math.min(VAC1,endOf(c))-Math.max(VAC0,c.s))));
   return {
+    occ: vacRooms.length? Math.round(1000*opMin/(vacRooms.length*(VAC1-VAC0)))/10 : 0,
     done:D.length, prog:P.length, urg:U.length,
     annul: annulAvant||0,
     deprog:C.filter(c=>/Déprogrammé/.test(c.reason)).length,
@@ -903,19 +951,23 @@ const CALM = {roomPanne:0, equipPanne:0, absent:0, noShow:0, latePatient:0, same
 let GEN_COUNT=0;
 // La référence « sans aléas » garde la même graine, les mêmes patients programmés, les mêmes annulations
 // et les mêmes urgences habituelles ; elle retire absences, pannes, retards, complications, afflux et événements ajoutés.
-function runOnce(cfg, withAleas){
+// annulations tirées avant le jour J : le taux réel couvre toutes les annulations, y compris celles du jour même
+// (absents, jeûne, examens, déprogrammations) que le moteur simule à part ; tools/calibrer.js règle ce taux
+// pour que le total simulé retrouve le taux réel, sans compter deux fois les annulations du jour même
+function preCancelRate(){ return STATS.calib?.preCancel ?? STATS.cancelRate; }
+function runOnce(cfg, withAleas, hook){
   const all=planProgram(cfg);
   const canc=[], planned=[], idx={};
   all.forEach(c=>{ const k=idx[c.room]=(idx[c.room]||0)+1; c.rr=rng(seedOf(cfg.seed,"patient",c.room,k));
-    if(c.rr()<STATS.cancelRate) canc.push({...c, reason:pickW(c.rr,STATS.cancelReasons)}); else planned.push(c); });
+    if(c.rr()<preCancelRate()) canc.push({...c, reason:pickW(c.rr,STATS.cancelReasons)}); else planned.push(c); });
   const c2 = withAleas ? cfg : {...cfg, ...CALM, events:[], burst:{at:cfg.burst.at, n:0}};
   const urg=makeUrgences(c2, rng(seedOf(cfg.seed,"urgences")));
-  return {res:simulate(c2, planned, urg, rng(seedOf(cfg.seed,"divers"))), canc, cfg:c2, planned, urg};
+  return {res:simulate(c2, planned, urg, rng(seedOf(cfg.seed,"divers")), hook), canc, cfg:c2, planned, urg};
 }
-function generateDay(cfgIn){
+function generateDay(cfgIn, hook){
   const cfg=normalizeConfig(cfgIn);
   cfg.__di=dayInfo(cfg.date);
-  const main=runOnce(cfg,true), res=main.res;
+  const main=runOnce(cfg,true,hook), res=main.res;
   const val=validateDay(res,cfg);
   const rep=report(res,cfg,main.canc.length);
   const base=runOnce(cfg,false); const repBase=report(base.res,base.cfg,base.canc.length);
@@ -938,7 +990,8 @@ function generateDay(cfgIn){
       vpaMar:c.vpaMar||null, chirVisit:c.chirVisit||null, labo:c.labo||null, jeuneReport:!!c.jeuneReport, ident:!!c.ident, prep:!!c.prep,
       consent:!!c.consent, marq:!!c.marq, box:c.box||c.boxBack? (BOX_LABEL[c.box]||"") : "", boxGroup: BOX_LABEL[BOX_GROUP[c.spec]]||"", boxRefused:!!c.boxRefused,
       radio:c.radio||null, extempoAt:c.extempoAt||null, transfuAt:c.transfuAt||null, intub:!!c.intub, interne:!!c.interne, bmr:!!c.bmr,
-      dmMiss:!!c.dmMiss, implantAt:c.implantAt??null, comptage:!!c.comptage, degrade:!!c.degrade, trBy:c.trBy||null
+      dmMiss:!!c.dmMiss, implantAt:c.implantAt??null, comptage:!!c.comptage, degrade:!!c.degrade, trBy:c.trBy||null,
+      tool:c.tool||null, toolMin:c.toolMin||0
     };
   });
   const allCanc=[...main.canc.map(c=>({spec:c.spec, proc:c.proc, reason:c.reason, when:"avant"})), ...res.cancelled.map(c=>({spec:c.spec, proc:c.proc, reason:c.reason, when:"jour", planned:c.planned??null, room:c.room||null}))];

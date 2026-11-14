@@ -174,6 +174,7 @@ const daysEl=document.getElementById("days");
 const newBtn=document.createElement("button"); newBtn.className="daycard newday"; newBtn.type="button";
 newBtn.innerHTML=`<b>+ Créer une journée</b><span>scénario à simuler</span>`; newBtn.onclick=()=>openScenario();
 daysEl.appendChild(newBtn);
+if(globalThis.initLab) initLab(daysEl);
 DATA.forEach((d,i)=>addDayCard(d,i));
 const spEl=document.getElementById("speeds");
 SPEEDS.forEach(s=>{ const b=document.createElement("button"); b.className="btn"; b.type="button"; b.textContent=s.l; b.title=`1 seconde = ${s.v*60} secondes simulées`; b.onclick=()=>{app.speed=s.v; syncSpeed();}; spEl.appendChild(b); });

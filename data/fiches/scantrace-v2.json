@@ -1,0 +1,55 @@
+{
+  "version_template": "0.1",
+  "exemple_fictif": true,
+  "champs": {
+    "B0.nom": "ScanTrace v2",
+    "B0.editeur": "Société fictive ScanTrace",
+    "B0.type_outil": "Traçabilité des dispositifs médicaux par scan du code UDI",
+    "B0.statut_projet": "En essai dans un autre établissement",
+    "B0.auteur_date": "Cadre de santé du bloc, 14/11/2026",
+    "B0.sources": "Notice de l'éditeur, démonstration en salle, essai de l'éditeur sur 20 cas",
+    "B0.classe_reglementaire": "Logiciel non dispositif médical",
+    "B1.probleme": "La traçabilité des implants est faite sur papier, puis recopiée dans le dossier. Des oublis et des erreurs de recopie sont constatés lors des audits.",
+    "B1.situation_actuelle": "L'IBODE colle les étiquettes des implants sur une feuille de traçabilité, la secrétaire les saisit le lendemain.",
+    "B1.resultat_attendu": "Aucun implant non tracé, traçabilité disponible le jour même.",
+    "B1.pourquoi_maintenant": "Obligation de traçabilité UDI des implants.",
+    "B2.acteurs": [
+      {"role": "IBODE", "utilise": true, "actions": "Scanne chaque dispositif implantable ouvert", "moment": "En salle, pendant l'intervention", "frequence": "À chaque intervention avec implant", "formation": "2 h"},
+      {"role": "Chirurgien", "utilise": false, "actions": "Ne touche pas le logiciel, valide oralement l'implant posé", "moment": "En salle", "frequence": "À chaque implant", "formation": "Aucune"},
+      {"role": "Pharmacien", "utilise": true, "actions": "Consulte les alertes de rappel de lot", "moment": "Hors bloc", "frequence": "Une fois par jour", "formation": "1 h"}
+    ],
+    "B3.fonctions_incluses": "Scan du code UDI, édition de la feuille de traçabilité, alertes de rappel de lot",
+    "B3.fonctions_exclues": "Ne gère ni le stock ni la facturation",
+    "B3.salles_specialites": "Salles OP 3 à OP 8, orthopédie et viscéral",
+    "B3.etapes_parcours": "En salle",
+    "B3.volume": "12 IBODE, environ 15 interventions avec implant par jour",
+    "B4.etapes": [
+      {"n": 1, "etape": "Tracer un implant", "qui": "IBODE", "action": "Scanner le code UDI de chaque implant ouvert", "moment": "En salle", "sans": 2, "avec": 0.5, "unite": "min", "source": "Essai de l'éditeur sur 20 cas"},
+      {"n": 2, "etape": "Vérifier la feuille de traçabilité", "qui": "IBODE", "action": "Relire et valider la feuille avant la sortie du patient", "moment": "En salle", "sans": 1.5, "avec": 1, "unite": "min", "source": "Estimation du cadre de santé"}
+    ],
+    "B5.donnees_saisies": "Code UDI par scan, numéro de salle par sélection",
+    "B5.donnees_produites": "Feuille de traçabilité, alertes de rappel de lot",
+    "B5.liens_logiciels": "Logiciel de bloc (planning), logiciel de pharmacie",
+    "B5.mode_echange": "Temps réel, automatique",
+    "B5.materiel": "1 scanner et 1 poste par salle",
+    "B6.disponibilite": "99,5 % (contrat de l'éditeur)",
+    "B6.mode_degrade": "Retour à la feuille papier, resaisie par l'IBODE en fin de journée, 3 min par intervention",
+    "B6.support": "Hotline de 8 h à 18 h, réponse sous 4 h, présence sur site la première semaine",
+    "B6.pannes_connues": "Lecture difficile des petits codes sur certains emballages",
+    "B6.mises_a_jour": "Mensuelle, la nuit",
+    "B7.formation_initiale": "2 h sur site pour toutes les IBODE, avant le démarrage",
+    "B7.calendrier": "Tout le périmètre d'un coup, un lundi",
+    "B7.accompagnement": "Une IBODE référente par équipe",
+    "B7.double_saisie": "Inconnu",
+    "B8.reglementaire": "Non dispositif médical, hébergement HDS chez l'éditeur, analyse RGPD faite par le DPO",
+    "B8.risques_patient": "Implant rappelé non retrouvé si la traçabilité est perdue pendant une panne",
+    "B8.risques_organisation": "Retard en salle si le scan échoue de façon répétée",
+    "B9.niveau_preuve": "Déclaration de l'éditeur et essai de l'éditeur sur 20 cas",
+    "B9.sites_utilisateurs": "Inconnu",
+    "B9.etudes": "Inconnu",
+    "B9.retours_soignants": "Inconnu",
+    "B10.indicateurs": [
+      {"indicateur": "Implants non tracés", "actuel": "4 %", "cible": "0 %"}
+    ]
+  }
+}

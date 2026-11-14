@@ -17,6 +17,26 @@ const TYPES = {
 };
 
 const LOGS = path.join(ROOT, "logs");
+const { ollamaChat, ollamaStatus } = require("./tools/ollama");
+
+// relais vers le modèle local : le navigateur n'appelle jamais Ollama directement
+function llm(req, res) {
+  let body = "";
+  req.on("data", (c) => { body += c; if (body.length > 2e6) req.destroy(); });
+  req.on("end", async () => {
+    const send = (code, obj) => { res.writeHead(code, { "Content-Type": "application/json; charset=utf-8" }); res.end(JSON.stringify(obj)); };
+    try {
+      const b = JSON.parse(body);
+      if (!Array.isArray(b.messages)) return send(400, { error: "messages manquants" });
+      const t0 = Date.now();
+      const out = await ollamaChat(b);
+      console.log(`LLM ${out.model} : ${((Date.now() - t0) / 1000).toFixed(1)} s, ${out.tokens.output} jetons`);
+      send(200, out);
+    } catch (e) {
+      send(502, { error: e.message });
+    }
+  });
+}
 
 function saveLogs(req, res) {
   let body = "";
@@ -46,7 +66,12 @@ function saveLogs(req, res) {
 
 http
   .createServer((req, res) => {
-    if (req.method === "POST" && req.url.split("?")[0] === "/api/log") return saveLogs(req, res);
+    const route = req.url.split("?")[0];
+    if (req.method === "POST" && route === "/api/log") return saveLogs(req, res);
+    if (req.method === "POST" && route === "/api/llm") return llm(req, res);
+    if (req.method === "GET" && route === "/api/llm/status") {
+      return ollamaStatus().then((s) => { res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" }); res.end(JSON.stringify(s)); });
+    }
     let urlPath = decodeURIComponent(req.url.split("?")[0]);
     if (urlPath === "/") urlPath = "/index.html";
     const file = path.normalize(path.join(ROOT, urlPath));

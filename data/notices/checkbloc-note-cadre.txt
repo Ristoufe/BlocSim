@@ -1,0 +1,13 @@
+Note du cadre de santé du bloc - essai de la check-list sur tablette CheckBloc (texte fictif écrit pour les tests Blocapta)
+
+Nous avons testé CheckBloc version 1.4 (société CheckBloc) pendant deux semaines dans les salles OP 3 et OP 4. Une IBODE a chronométré chaque étape.
+
+Avant induction, l'IADE valide les items anesthésie : 1 minute sur papier, 1,2 minute sur la tablette. Au time-out, le chirurgien annonce et signe : 0,5 minute sur papier, 0,8 minute sur tablette. L'IBODE coche les items et archive : 2 minutes sur papier, 1,5 minute sur tablette.
+
+La première semaine, l'équipe était plus lente ; la deuxième semaine, plus rapide qu'avec le papier. Deux chirurgiens ont exprimé des réticences au début.
+
+Sur le site pilote, la disponibilité mesurée sur 6 mois est de 99 %. Nous avons eu deux coupures du wifi. En cas de panne, la check-list papier HAS reste dans chaque salle et l'IBODE ressaisit sur la tablette ensuite, en 2 minutes.
+
+Un référent informatique est sur place de 7 h à 19 h et intervient en 30 minutes. Chaque soignant a reçu 1 heure de formation avant le démarrage. Une IBODE référente par équipe accompagne ses collègues.
+
+Risque identifié pour le patient : que l'équipe coche le time-out par habitude sans le faire réellement.

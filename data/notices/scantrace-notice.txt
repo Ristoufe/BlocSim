@@ -1,0 +1,13 @@
+ScanTrace v2 - Fiche produit (texte fictif écrit pour les tests Blocapta)
+
+ScanTrace, édité par la société ScanTrace SAS, est la solution de traçabilité des dispositifs médicaux implantables par lecture du code UDI. Révolutionnaire, elle garantit zéro erreur de traçabilité.
+
+Aujourd'hui, dans la plupart des blocs, l'IBODE colle les étiquettes des implants sur une feuille papier, puis une secrétaire les ressaisit le lendemain. Avec ScanTrace, l'IBODE scanne chaque implant directement en salle, au moment de son ouverture : la feuille de traçabilité est générée automatiquement et transmise au logiciel de pharmacie.
+
+Lors d'un essai réalisé par nos équipes sur 20 interventions d'orthopédie, le temps de traçabilité d'un implant est passé de 2 minutes avec la méthode papier à 30 secondes avec le scan.
+
+ScanTrace est disponible 99,5 % du temps (engagement contractuel). Notre hotline répond de 8 h à 18 h, avec un délai de prise en charge de 4 heures. Un technicien est présent sur site pendant la première semaine.
+
+La formation des IBODE dure 2 heures, sur site, avant le démarrage. Le pharmacien consulte les alertes de rappel de lot une fois par jour depuis son bureau.
+
+Le logiciel ne gère ni le stock ni la facturation. Matériel : un scanner par salle. Hébergement certifié HDS.

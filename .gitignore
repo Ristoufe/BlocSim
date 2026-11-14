@@ -19,3 +19,6 @@ campagnes/
 
 # Montage rclone du Drive Blocapta (données sensibles)
 BLOCAPTA/
+
+# Environnement Python local
+.venv/

@@ -1,0 +1,54 @@
+{
+  "version_template": "0.1",
+  "exemple_fictif": true,
+  "champs": {
+    "B0.nom": "CheckBloc tablette v1.4",
+    "B0.editeur": "Société fictive CheckBloc",
+    "B0.type_outil": "Check-list de sécurité au bloc sur tablette (aide à la décision non médicale)",
+    "B0.statut_projet": "Déjà déployé dans un autre établissement",
+    "B0.auteur_date": "IBODE référente qualité et cadre de santé, 14/11/2026",
+    "B0.sources": "Chronométrage sur site pendant 2 semaines dans 2 salles pilotes, retour des équipes",
+    "B0.classe_reglementaire": "Logiciel non dispositif médical",
+    "B1.probleme": "La check-list papier est cochée après coup ou partiellement. Les temps de pause (time-out) ne sont pas toujours faits en présence de toute l'équipe.",
+    "B1.situation_actuelle": "Check-list papier de la HAS, remplie par l'IBODE circulante et archivée dans le dossier.",
+    "B1.resultat_attendu": "100 % de check-lists complètes au moment du time-out, sans allonger le temps en salle de plus d'une minute.",
+    "B2.acteurs": [
+      {"role": "IBODE", "utilise": true, "actions": "Ouvre la check-list, coche les items avant l'induction et au time-out", "moment": "En salle, avant l'induction et avant l'incision", "frequence": "À chaque intervention", "formation": "1 h"},
+      {"role": "IADE", "utilise": true, "actions": "Valide les items anesthésie sur la tablette", "moment": "En salle, avant l'induction", "frequence": "À chaque intervention", "formation": "1 h"},
+      {"role": "Chirurgien", "utilise": true, "actions": "Valide le time-out à voix haute, signe sur la tablette", "moment": "En salle, avant l'incision", "frequence": "À chaque intervention", "formation": "30 min"}
+    ],
+    "B3.fonctions_incluses": "Check-list HAS en 3 temps, signature, horodatage, export dans le dossier patient",
+    "B3.fonctions_exclues": "Pas de lien avec le dossier d'anesthésie, pas de statistiques en temps réel",
+    "B3.salles_specialites": "Toutes les salles, toutes spécialités",
+    "B3.etapes_parcours": "En salle",
+    "B3.volume": "Environ 40 interventions par jour, 30 utilisateurs",
+    "B4.etapes": [
+      {"n": 1, "etape": "Check-list avant induction", "qui": "IADE", "action": "Valider les items anesthésie", "moment": "En salle", "sans": 1, "avec": 1.2, "unite": "min", "source": "Chronométrage sur site, 2 semaines"},
+      {"n": 2, "etape": "Time-out avant incision", "qui": "Chirurgien", "action": "Annoncer et signer le time-out", "moment": "En salle", "sans": 0.5, "avec": 0.8, "unite": "min", "source": "Chronométrage sur site, 2 semaines"},
+      {"n": 3, "etape": "Saisie de la check-list", "qui": "IBODE", "action": "Cocher les items et archiver", "moment": "En salle", "sans": 2, "avec": 1.5, "unite": "min", "source": "Chronométrage sur site, 2 semaines"}
+    ],
+    "B5.donnees_saisies": "Cases cochées sur écran tactile, signature au doigt",
+    "B5.donnees_produites": "Check-list horodatée en PDF, alerte si un item est sauté",
+    "B5.liens_logiciels": "Dossier patient informatisé (export PDF)",
+    "B5.mode_echange": "Différé, automatique en fin d'intervention",
+    "B5.materiel": "1 tablette par salle, wifi du bloc",
+    "B6.disponibilite": "99 % (mesuré sur le site pilote sur 6 mois)",
+    "B6.mode_degrade": "Check-list papier de la HAS gardée dans chaque salle, saisie a posteriori en 2 min",
+    "B6.support": "Référent informatique sur place de 7 h à 19 h, intervention sous 30 min",
+    "B6.pannes_connues": "Coupures wifi ponctuelles dans 2 salles",
+    "B7.formation_initiale": "1 h par soignant, sur site, avant le démarrage",
+    "B7.calendrier": "2 salles pilotes pendant 2 semaines, puis tout le bloc",
+    "B7.accompagnement": "Une IBODE référente (championne) par équipe",
+    "B8.reglementaire": "Non dispositif médical, hébergement HDS, analyse RGPD faite",
+    "B8.risques_patient": "Time-out validé sans être fait si l'équipe coche par habitude",
+    "B8.risques_organisation": "Dépendance au wifi du bloc",
+    "B9.niveau_preuve": "Mesure sur site (chronométrage sur 2 semaines)",
+    "B9.sites_utilisateurs": "CH de taille comparable, 8 salles, 1 an d'usage",
+    "B9.etudes": "Inconnu",
+    "B9.retours_soignants": "Plus lent la première semaine, puis plus rapide que le papier ; quelques réticences des chirurgiens au début",
+    "B10.indicateurs": [
+      {"indicateur": "Check-lists complètes au time-out", "actuel": "72 %", "cible": "100 %"},
+      {"indicateur": "Temps entre deux interventions", "actuel": "7 min", "cible": "7 min"}
+    ]
+  }
+}
