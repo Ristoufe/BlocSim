@@ -38,6 +38,17 @@ for sp,g in P.groupby('Spécialité'):
         procs.append(dict(name=pr, n=int(len(h)), **ln(h.ld)))
     procs=sorted(procs,key=lambda x:-x['n'])[:14]
     specs[sp.strip()]=dict(n=int(len(g)), **ln(g.ld), an=anmix(g), amb=round(float((g.Admission=='Ambulatoire').mean()),3), procs=procs)
+# temps opéré par salle et par jour, selon la spécialité principale de la salle ce jour-là
+# (une salle de gynécologie fait souvent 1 à 3 cas courts, une salle d'orthopédie remplit sa vacation),
+# et part de ce temps prise par la spécialité principale (le reste : cas d'autres spécialités dans la même salle)
+main=P.groupby(['dt','Salle'])['Spécialité'].agg(lambda s:s.value_counts().index[0]).rename('main')
+Pm=P.join(main,on=['dt','Salle'])
+rd=Pm.groupby(['dt','Salle']).agg(spec=('main','first'),mins=('Durée','sum'),
+    mainMins=('Durée',lambda x:x[Pm.loc[x.index,'Spécialité']==Pm.loc[x.index,'main']].sum()))
+for sp,g in rd.groupby('spec'):
+    if sp.strip() in specs and len(g)>=5:
+        specs[sp.strip()]['day']=ln(np.log(g.mins))
+        specs[sp.strip()]['mainShare']=round(float((g.mainMins/g.mins).mean()),3)
 rooms={}
 days=P.dt.nunique()
 for r,g in P.groupby('Salle'):
