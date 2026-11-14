@@ -432,8 +432,17 @@ function simulate(cfg, planned, urg, r, hook){
   urg.forEach((c,i)=>{ c.uid="U"+i; c.status="attente"; c.waits=[]; c.interne = c.rr()<cfg.interne*0.5; });
 
   /* --- SSPI --- */
-  const sspiStaffAt=t=>sspiIde.filter(p=>!p.absent && onShift(p,t) && !inBreak(p,t)).length;
   const sspiOcc=()=>beds.filter(Boolean).length;
+  // à la relève, une IDE de SSPI ne part pas en laissant la salle sous l'effectif réglementaire
+  // (deux agents dès six patients) : elle reste en heures supplémentaires tant que c'est nécessaire
+  const sspiStaffAt=t=>{
+    const on=sspiIde.filter(p=>!p.absent && onShift(p,t) && !inBreak(p,t));
+    const o=sspiOcc(), need = o>=6 ? 2 : o>0 ? 1 : 0;
+    if(on.length>=need) return on.length;
+    const ot=sspiIde.filter(p=>!p.absent && !on.includes(p) && t>=p.shift[1] && t<p.shift[1]+240 && !inBreak(p,t)).slice(0, need-on.length);
+    ot.forEach(p=>{ p.otSSPI=Math.max(p.otSSPI||0, t); });
+    return on.length+ot.length;
+  };
   const sspiCanTake=t=>{ const o=sspiOcc(), s=sspiStaffAt(t); if(o>=beds.length || s<1) return false; if(o+1>=6 && s<2) return false; return true; };
   const sspiLog=[];
   let reaUsed=0;
@@ -480,7 +489,9 @@ function simulate(cfg, planned, urg, r, hook){
       if(c.cls==="imm") return c;
       if(c.cls==="h1" && (isU || t-c.readyAt>=20 || !progReady)) return c;
       if(c.cls==="h6" && (isU || c.deadline-t < c.est+60 || (!progReady && !R.q.length))) return c;
-      if(c.cls==="h24" && (isU ? !ready.some(x=>x.cls!=="h24") : !R.q.length)) return c;
+      // une urgence « moins de 24 h » n'est pas démarrée si elle ne peut plus finir (salle, SSPI, bionettoyage)
+      // avant la fin de la journée simulée : elle est reportée, comme le ferait la régulation
+      if(c.cls==="h24" && t+c.est+180<=END && (isU ? !ready.some(x=>x.cls!=="h24") : !R.q.length)) return c;
     }
     return null;
   };
