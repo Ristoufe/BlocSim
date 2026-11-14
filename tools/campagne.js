@@ -50,6 +50,8 @@ function parseArgs(argv) {
     if (!k.startsWith("--")) continue;
     const key = k.slice(2);
     if (["csv", "aide", "help", "h", "sans-weekend"].includes(key)) { a[key] = true; continue; }
+    if (!["n", "profil", "annee", "graine", "sortie"].includes(key)) fail(`option inconnue : --${key}`);
+    if (argv[i + 1] === undefined) fail(`valeur manquante pour --${key}`);
     a[key] = argv[++i];
   }
   return a;

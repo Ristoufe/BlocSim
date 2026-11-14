@@ -25,6 +25,9 @@ Options de campagne
   --alpha <x>          vitesse d'apprentissage de la confiance (défaut : 0,08, à calibrer)
   --kappa <x>          multiplie la sensibilité aux collègues (défaut : 1, à calibrer)
   --sortie <dossier>   dossier des CSV (défaut : logs)
+  --rapport-ia         fait rédiger le rapport par le LLM local (Ollama), chiffres vérifiés, écrit en Markdown dans logs/
+  --modele <nom>       modèle Ollama (défaut : LLM_MODEL ou qwen2.5:14b)
+  --sensibilite        pousse chaque paramètre « à calibrer » à ses bornes et dit si la conclusion change
   --sans-csv           ne pas écrire les CSV
   --json               résultat complet en JSON
 
@@ -40,7 +43,8 @@ function parseArgs(argv){
     const k = argv[i];
     if(!k.startsWith("--")){ a._.push(k); continue; }
     const name = k.slice(2);
-    if(["sans-csv","json","aide","help","verifier"].includes(name)){ a[name]=true; continue; }
+    if(["sans-csv","json","aide","help","verifier","sensibilite","rapport-ia"].includes(name)){ a[name]=true; continue; }
+    if(!["fiche","scenario","jours","repetitions","graine","debut","lambda","alpha","kappa","sortie","modele"].includes(name)) fail(`option inconnue : --${name}`);
     if(argv[i+1]===undefined) fail(`valeur manquante pour --${name}`);
     a[name] = argv[++i];
   }
@@ -50,8 +54,8 @@ function fail(msg){ console.error(`Erreur : ${msg}\nVoir : node tools/outil.js -
 const num = (v,name,lo,hi)=>{ const n=Number(String(v).replace(",",".")); if(!Number.isFinite(n)||n<lo||n>hi) fail(`--${name} doit être entre ${lo} et ${hi}`); return n; };
 
 function loadEngine(){
-  const ctx = vm.createContext({console, Math, JSON, Date, Number, String, Object, Array, Set, Map, isNaN, parseInt, parseFloat});
-  for(const f of ["js/params.js","js/config.js","js/engine.js","js/generator.js","js/human.js","js/fiche.js","js/campaign.js"])
+  const ctx = vm.createContext({console, Math, JSON, Date, Number, String, Object, Array, Set, Map, isNaN, parseInt, parseFloat, Promise});
+  for(const f of ["js/params.js","js/config.js","js/engine.js","js/generator.js","js/human.js","js/fiche.js","js/campaign.js","js/llm.js"])
     vm.runInContext(fs.readFileSync(path.join(ROOT,f),"utf8"), ctx, {filename:f});
   vm.runInContext(`STATS = ${fs.readFileSync(path.join(ROOT,"data/stats.json"),"utf8")};`, ctx);
   return ctx;
@@ -154,6 +158,19 @@ if(a.lambda) opts.human.lambda = num(a.lambda,"lambda",1,3);
 if(a.alpha) opts.human.alpha = num(a.alpha,"alpha",0.001,1);
 if(a.kappa) opts.human.kappaScale = num(a.kappa,"kappa",0,5);
 E.__o = opts;
+if(a.sensibilite){
+  const t0 = Date.now();
+  const S = vm.runInContext("runSensitivity({...__o, reps: Math.min(__o.reps, 10)})", E);
+  if(S.blocked){ console.error("Campagne non lancée : la fiche est incomplète."); process.exit(2); }
+  if(a.json){ console.log(JSON.stringify(S,null,1)); process.exit(0); }
+  const f = x => x==null? "-" : ((Math.round(x*100)/100)||0).toString().replace(".",",");
+  console.log(`\nSensibilité - scénario ${S.scenario.id}, ${S.total} variantes, ${((Date.now()-t0)/1000).toFixed(0)} s\n`);
+  console.log(`${"Paramètre".padEnd(32)}${"bornes".padEnd(14)}${"conclusion".padEnd(18)}${"retard ajouté".padEnd(16)}${"confiance".padEnd(14)}usage (%)`);
+  console.log(`${"Référence".padEnd(32)}${"-".padEnd(14)}${S.ref.level.padEnd(18)}${f(S.ref.out.late).padEnd(16)}${f(S.ref.out.T).padEnd(14)}${f(S.ref.out.adoption)}`);
+  for(const r of S.rows) console.log(`${r.label.padEnd(32)}${(f(r.lo)+" / "+f(r.hi)).padEnd(14)}${(r.low.level+" / "+r.high.level).padEnd(18)}${(f(r.low.out.late)+" / "+f(r.high.out.late)).padEnd(16)}${(f(r.low.out.T)+" / "+f(r.high.out.T)).padEnd(14)}${f(r.low.out.adoption)} / ${f(r.high.out.adoption)}`);
+  console.log(`\n${S.summary}\n`);
+  process.exit(0);
+}
 const o = vm.runInContext("runCampaign(__o)", E);
 if(o.blocked){
   printCheck(o.check, path.basename(a.fiche));
@@ -163,3 +180,18 @@ if(o.blocked){
 if(a.json){ console.log(JSON.stringify(o,null,1)); process.exit(0); }
 printCampaign(o);
 if(!a["sans-csv"]) console.log(`Courbes jour par jour : ${writeCsv(o, path.resolve(ROOT, a.sortie||"logs"))}\n`);
+if(a["rapport-ia"]){
+  const { ollamaChat, LLM_MODEL } = require("./ollama");
+  E.__chat = ollamaChat; vm.runInContext("LLM_TRANSPORT = (b) => __chat(b);", E);
+  E.__m = a.modele || LLM_MODEL; E.__out = o;
+  console.log(`Rédaction du rapport par ${E.__m}…`);
+  vm.runInContext("agent5(__out, {model:__m})", E).then(r=>{
+    if(r.erreur){ console.error("Rapport impossible : "+r.erreur); process.exit(1); }
+    E.__r = r;
+    const md = vm.runInContext("reportMarkdown(__r, __out)", E);
+    const dir = path.resolve(ROOT, a.sortie||"logs"); fs.mkdirSync(dir,{recursive:true});
+    const f = path.join(dir, `${new Date().toISOString().replace(/[-:]/g,"").replace("T","-").slice(0,15)}-rapport-scenario-${o.scenario.id}.md`);
+    fs.writeFileSync(f, md, "utf8");
+    console.log(`\n${md}\n\nRapport (${(r.ms/1000).toFixed(0)} s, ${r.chiffresNonTrouves.length} chiffre(s) non vérifié(s)) : ${path.relative(ROOT,f)}\n`);
+  }).catch(e=>{ console.error("Rapport impossible : "+e.message+" (Ollama est-il lancé ?)"); process.exit(1); });
+}

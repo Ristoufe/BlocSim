@@ -1,0 +1,58 @@
+{
+  "version_template": "0.1",
+  "exemple_fictif": false,
+  "commentaire": "Premier test du template sur un logiciel réel, rempli uniquement avec des sources publiques (presse, documentation commerciale) consultées le 14/11/2026. Tout ce que ces sources ne disent pas est noté « Inconnu ». La fiche doit être complétée avec l'éditeur et l'équipe du bloc avant toute analyse chiffrée.",
+  "sources_publiques": [
+    "Le Journal des Entreprises, 16/01/2019 : https://www.lejournaldesentreprises.com/article/scandale-des-implants-medicaux-le-bordelais-ehtrace-une-solution-135905",
+    "Étude de cas Zebra, groupe Hexagone Neuilly (document commercial) : https://www.zebra.com/content/dam/zebra_new_ia/en-us/solutions-verticals/vertical-solutions/healthcare/success-stories/healthcare-success-story-hexagone-neuilly-group-fr-fr.pdf",
+    "Enquête régionale OMEDIT Auvergne-Rhône-Alpes sur la traçabilité des DMI : https://www.omedit-auvergne-rhone-alpes.ars.sante.fr/media/84749/download"
+  ],
+  "champs": {
+    "B0.nom": "scanDM (version Inconnu)",
+    "B0.editeur": "Ehtrace (Pessac, Gironde)",
+    "B0.type_outil": "Traçabilité des dispositifs médicaux (consommables, implantables, re-stérilisables) par lecture des codes-barres",
+    "B0.statut_projet": "Déjà déployé ailleurs (15 établissements 18 mois après le lancement commercial, selon la presse en 2019)",
+    "B0.auteur_date": "Équipe projet Blocapta (étudiants), 14/11/2026, à partir de sources publiques uniquement",
+    "B0.sources": "Article du Journal des Entreprises (2019), étude de cas commerciale du fabricant de terminaux (groupe Hexagone Neuilly), enquête régionale OMEDIT Auvergne-Rhône-Alpes",
+    "B0.classe_reglementaire": "Inconnu",
+    "B1.probleme": "La traçabilité des implants est obligatoire (décret de 2006) mais souvent incomplète : selon la presse, un audit ministériel de 2014 aurait trouvé plus de la moitié des dossiers audités erronés ou incomplets. La saisie manuelle des étiquettes et les doubles saisies entre logiciels (un tiers des établissements de la région Auvergne-Rhône-Alpes selon l'OMEDIT) créent des oublis et des erreurs.",
+    "B1.situation_actuelle": "Inconnu pour notre bloc (à décrire avec l'équipe : étiquettes collées sur une feuille, ressaisie par la pharmacie ?)",
+    "B1.resultat_attendu": "Inconnu (à définir avec le bloc : implants non tracés, délai de disponibilité de la traçabilité, temps IBODE)",
+    "B2.acteurs": [
+      {"role": "IBODE", "utilise": true, "actions": "Scanne le code-barres de chaque dispositif ouvert sur un terminal mobile", "moment": "En salle, pendant l'intervention", "frequence": "Inconnu", "formation": "Inconnu"},
+      {"role": "Pharmacien", "utilise": true, "actions": "Inconnu (contrôle de la traçabilité et réapprovisionnement selon l'étude de cas)", "moment": "Hors bloc", "frequence": "Inconnu", "formation": "Inconnu"}
+    ],
+    "B3.fonctions_incluses": "Lecture des codes-barres 1D, QR et DataMatrix, vérification de la péremption et du lot, journal des contrôles, traçabilité des DM consommables, implantables et re-stérilisables, suivi du coût par intervention",
+    "B3.fonctions_exclues": "Inconnu",
+    "B3.salles_specialites": "Inconnu (à définir : toutes les salles ou seulement les spécialités qui posent des implants, orthopédie, viscéral, urologie ?)",
+    "B3.etapes_parcours": "En salle ; pharmacie hospitalière",
+    "B3.volume": "Inconnu",
+    "B4.etapes": [
+      {"n": 1, "etape": "Tracer un dispositif implantable", "qui": "IBODE", "action": "Scanner le code-barres du dispositif ouvert", "moment": "En salle", "sans": null, "avec": null, "unite": "min", "source": "Inconnu : aucune durée publiée"}
+    ],
+    "B5.donnees_saisies": "Codes-barres des dispositifs par scan sur terminal mobile",
+    "B5.donnees_produites": "Traçabilité des dispositifs, historique des contrôles, coût des dispositifs par intervention",
+    "B5.liens_logiciels": "Inconnu (« système informatique » de l'établissement selon l'étude de cas, logiciels non nommés)",
+    "B5.mode_echange": "Temps réel, par wifi (étude de cas commerciale)",
+    "B5.materiel": "Terminaux mobiles Zebra TC51-HC configurés par l'éditeur ; nombre par salle Inconnu",
+    "B6.disponibilite": "Inconnu",
+    "B6.mode_degrade": "Inconnu",
+    "B6.support": "Inconnu",
+    "B6.pannes_connues": "Inconnu",
+    "B6.mises_a_jour": "Inconnu",
+    "B7.formation_initiale": "Inconnu",
+    "B7.calendrier": "Inconnu",
+    "B7.accompagnement": "Inconnu",
+    "B7.double_saisie": "Inconnu",
+    "B8.reglementaire": "Traçabilité des DMI obligatoire (décret 2006-1497, arrêté du 8/09/2021, identifiant unique IUD du règlement européen 2017/745) ; statut dispositif médical du logiciel et hébergement des données Inconnu",
+    "B8.risques_patient": "Implant non tracé ou mal tracé si le scan échoue ou si l'équipe contourne l'outil : patient introuvable en cas de rappel de lot",
+    "B8.risques_organisation": "Dépendance au wifi du bloc et aux terminaux ; temps de scan en salle Inconnu",
+    "B9.niveau_preuve": "Déclaration de l'éditeur et presse seulement : aucune mesure sur site ni étude publiée trouvée",
+    "B9.sites_utilisateurs": "15 établissements en 2019 selon la presse, dont le groupe Hexagone Neuilly (étude de cas commerciale)",
+    "B9.etudes": "Inconnu (aucune étude publiée trouvée)",
+    "B9.retours_soignants": "Inconnu",
+    "B10.indicateurs": [
+      {"indicateur": "Implants non tracés", "actuel": "Inconnu", "cible": "0"}
+    ]
+  }
+}

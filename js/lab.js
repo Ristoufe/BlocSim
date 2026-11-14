@@ -3,7 +3,10 @@
 const LAB_FICHES = [
   {file:"scantrace-v2.json", label:"ScanTrace v2 - traçabilité des implants (durées de l'éditeur)"},
   {file:"checklist-tablette.json", label:"CheckBloc - check-list sur tablette (mesuré sur site)"},
-  {file:"scantrace-incomplete.json", label:"ScanTrace v2 - fiche commerciale incomplète"}
+  {file:"scantrace-incomplete.json", label:"ScanTrace v2 - fiche commerciale incomplète"},
+  {file:"reel-scribe-ia-blocapelo.json", label:"Scribe IA (fiche technique réelle anonymisée, BLOCAPELO)"},
+  {file:"reel-scandm-sources-publiques.json", label:"scanDM (logiciel réel) - sources publiques seules"},
+  {file:"piege-vague.json", label:"PlanOp - fiche piège remplie mais creuse"}
 ];
 // palette catégorielle (référence dataviz, mode clair), dans l'ordre fixe des emplacements
 const SERIES = ["#2a78d6","#eb6834","#1baf7a","#eda100"];
@@ -13,7 +16,8 @@ const VERDICT_TXT = {NON_ANALYSABLE:"Non analysable", ANALYSABLE_AVEC_RESERVES:"
 const CONF_TXT = {aucune:"aucune", faible:"faible", moyenne:"moyenne", elevee:"élevée"};
 
 const lab = {file:LAB_FICHES[0].file, fiche:null, check:null, scenario:"A", days:20, reps:20, human:{...HUMAN_DEFAULTS}, out:null, busy:false,
-  llm:{status:null, model:null, busy:null, error:null, text:"", garde:null, generated:false}};
+  llm:{status:null, model:null, busy:null, error:null, text:"", garde:null, generated:false},
+  sens:null, rapport:null};
 const labEl = document.createElement("div"); labEl.className="modal labwrap"; labEl.hidden=true; document.body.appendChild(labEl);
 const esc = s => String(s??"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fr1 = x => x==null||!Number.isFinite(x) ? "-" : ((Math.round(x*10)/10)||0).toLocaleString("fr-FR");
@@ -170,6 +174,7 @@ function runLab(){
   setTimeout(()=>{
     const t0=performance.now();
     lab.out = runCampaign({fiche:lab.fiche, scenario:lab.scenario, days:lab.days, reps:lab.reps, human:{...lab.human}});
+    lab.sens = null; lab.rapport = null;
     lab.out.wall = performance.now()-t0;
     lab.busy=false; renderLab();
     labEl.querySelector("#l-res")?.scrollIntoView({block:"start", behavior:"smooth"});
@@ -213,6 +218,7 @@ function resultsHTML(o){
     <span class="cconf">Confiance de l'analyse : <b>${esc(R.confidence)}</b> · ${o.C.days} jours ouvrés · ${o.C.reps} répétitions · ${fr1((o.wall||o.ms)/1000)} s de calcul</span>
     <ul>${R.lines.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>
   </div>
+  ${rapportHTML(o)}
   <h3>Signaux de risque pour les patients et les équipes</h3>
   <ul class="risks">${R.risks.map(r=>`<li class="${{rouge:"crit",orange:"warn",vert:"ok"}[r.level]}"><span class="ricon" aria-hidden="true">${icon[r.level]}</span><span class="rlvl">${r.level}</span>${esc(r.txt)}</li>`).join("")}</ul>
   <h3>Confiance dans l'outil, jour après jour</h3>
@@ -227,6 +233,8 @@ function resultsHTML(o){
   <h3>Voir une journée sur le plan</h3>
   <div class="row wrap"><select id="l-dayarm" aria-label="Bras">${A.map((a,i)=>`<option value="${i}" ${i===A.length-1?"selected":""}>${esc(a.label)}</option>`).join("")}</select><select id="l-dayn" aria-label="Jour">${dayOpts}</select><button class="btn" type="button" id="l-keep">Rejouer cette journée</button></div>
   <p class="note">La journée s'ajoute à la barre du haut : pannes, contournements et échecs de l'outil apparaissent dans le fil des événements.</p>
+  <h3>Solidité de la conclusion</h3>
+  ${sensHTML(o)}
   <h3>Hypothèses et paramètres</h3>
   <ul class="clist">${R.hypotheses.map(h=>`<li>${esc(h)}</li>`).join("")}</ul>
   <table class="ltable params"><tbody>${HUMAN_PARAMS_DOC.map(p=>`<tr><th>${esc(p.label)}</th><td class="mono">${fr2((o.C.human&&o.C.human[p.k])??HUMAN_DEFAULTS[p.k])}</td><td>${esc(p.src)} ${p.calib?`<span class="tag">à calibrer</span>`:""}</td></tr>`).join("")}</tbody></table>
@@ -287,6 +295,10 @@ function bindCharts(){
     el.addEventListener("pointerleave",()=>{ tip.hidden=true; });
   });
   const csv=labEl.querySelector("#l-csv"); if(csv) csv.onclick=()=>labCSV(lab.out);
+  const sn=labEl.querySelector("#l-sens"); if(sn) sn.onclick=runSens;
+  const rp=labEl.querySelector("#l-rapport"); if(rp) rp.onclick=runRapport;
+  const md=labEl.querySelector("#l-rapport-md"); if(md) md.onclick=()=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([reportMarkdown(lab.rapport, lab.out)],{type:"text/markdown"})); a.download=`rapport-blocapta-scenario-${lab.out.scenario.id}.md`; a.click(); };
+  const cp=labEl.querySelector("#l-rapport-copy"); if(cp) cp.onclick=async()=>{ try{ await navigator.clipboard.writeText(reportMarkdown(lab.rapport, lab.out)); cp.textContent="Copié"; }catch(e){ cp.textContent="Copie impossible"; } };
 }
 const xsOf = o => o.daily[0].map(x=>x.date.slice(8,10)+"/"+x.date.slice(5,7));
 
@@ -337,6 +349,82 @@ function weekChart(o){
   return `<div class="chart">${arms.length>1?`<div class="legend">${arms.map(i=>`<span><i style="background:${ARM_COLOR[i]}"></i>${esc(o.arms[i].label)}</span>`).join("")}</div>`:""}
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Retard ajouté par l'outil, en minutes par intervention programmée, semaine par semaine">${ticks}<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" class="zero"/>${bars}${xl}</svg><div class="ctip" hidden></div></div>
     <p class="note">Minutes de retard en plus (ou en moins) par intervention programmée, comparé à la même semaine sans outil. Trait : 80 % des répétitions.</p>`;
+}
+
+/* agent 5 : rapport rédigé par le LLM local, à partir des seuls chiffres de la campagne */
+function rapportHTML(o){
+  const S = lab.llm.status, P = lab.rapport;
+  if(!S || !S.ok) return "";
+  if(!P) return `<div class="rbtns"><button class="btn" type="button" id="l-rapport">Rédiger le rapport avec l'IA</button><span class="note">Le LLM local met en mots les chiffres ci-dessous, sans en ajouter${lab.sens&&lab.sens.result?", sensibilité comprise":""}.</span></div>`;
+  if(P.busy) return `<div class="rapport"><p class="note">Rédaction du rapport par ${esc(lab.llm.model)}… (environ 1 min)</p></div>`;
+  if(P.erreur) return `<div class="rapport"><p class="note crit">Rédaction impossible : ${esc(P.erreur)}</p><div class="rbtns"><button class="btn" type="button" id="l-rapport">Réessayer</button></div></div>`;
+  const R = P.rapport, bad = P.chiffresNonTrouves;
+  const cite = t => esc(t).replace(/\[([a-z0-9_ ,]+)\]/gi, (m,ids)=>`<span class="cite">${ids}</span>`);
+  return `<article class="rapport">
+    <h3 class="rtitle">${esc(R.titre)}</h3>
+    <p class="note">Rédigé par ${esc(P.model)} en ${fr1(P.ms/1000)} s à partir de ${P.facts.length} faits calculés par la simulation · ${bad.length?`<b class="crit">${bad.length} chiffre(s) absent(s) des résultats : ${bad.map(b=>esc(String(b.valeur).replace(".",","))).join(", ")}</b>`:"tous les chiffres sont vérifiés"}</p>
+    <p class="enbref">${cite(R.en_bref)}</p>
+    ${R.sections.map(sct=>`<h4>${esc(sct.titre)}</h4><ul>${sct.points.map(p=>`<li>${cite(p)}</li>`).join("")}</ul>`).join("")}
+    <h4>Recommandations</h4><ul>${R.recommandations.map(p=>`<li>${cite(p)}</li>`).join("")}</ul>
+    <h4>Limites</h4><ul>${R.limites.map(p=>`<li>${cite(p)}</li>`).join("")}</ul>
+    <div class="rbtns"><button class="btn" type="button" id="l-rapport-md">Télécharger (Markdown)</button><button class="btn" type="button" id="l-rapport-copy">Copier</button><button class="btn" type="button" id="l-rapport">Rédiger à nouveau</button></div>
+  </article>`;
+}
+async function runRapport(){
+  lab.rapport = {busy:true}; renderLab();
+  try{
+    const r = await agent5(lab.out, {model:lab.llm.model, sens:lab.sens&&lab.sens.result});
+    lab.rapport = r.erreur ? {erreur:r.erreur} : r;
+  } catch(e){ lab.rapport = {erreur:e.message}; }
+  renderLab();
+}
+
+/* analyse de sensibilité : un paramètre « à calibrer » à la fois, à ses deux bornes */
+const LEVEL_TXT = {vert:"vert", orange:"orange", rouge:"rouge"};
+function sensHTML(o){
+  const S = lab.sens;
+  if(!S) return `<p class="note">Les paramètres humains marqués « à calibrer » ne sont pas mesurés au bloc. On les pousse un par un à leurs bornes pour voir si la conclusion change (${SENS_PARAMS.length*2} variantes, 10 répétitions chacune).</p>
+    <div class="rbtns"><button class="btn" type="button" id="l-sens">Tester la sensibilité (environ 1 min)</button></div>`;
+  if(S.busy) return `<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="${SENS_PARAMS.length+1}" aria-valuenow="${S.done}"><i style="width:${Math.round(100*S.done/(SENS_PARAMS.length+1))}%"></i></div><p class="note">Calcul : ${S.done} / ${SENS_PARAMS.length+1}${S.done>0&&S.done<=SENS_PARAMS.length?` · ${esc(SENS_PARAMS[S.done-1].label)}`:""}</p>`;
+  const R = S.result, lvl = {rouge:"crit", orange:"warn", vert:"ok"};
+  const icon = {rouge:"✕", orange:"!", vert:"✓"};
+  const chip = l => `<span class="lchip ${lvl[l]}"><span aria-hidden="true">${icon[l]}</span> ${LEVEL_TXT[l]}</span>`;
+  // tornade sur la confiance finale : écart borne basse / borne haute autour de la valeur de référence
+  const ref = R.ref.out.T, vals = R.rows.flatMap(r=>[r.low.out.T, r.high.out.T, ref]).filter(Number.isFinite);
+  const lo = Math.floor((Math.min(...vals)-0.02)*20)/20, hi = Math.ceil((Math.max(...vals)+0.02)*20)/20;
+  const X = v => 100*(v-lo)/(hi-lo);
+  const rows = [...R.rows].sort((a,b)=>Math.abs(b.high.out.T-b.low.out.T)-Math.abs(a.high.out.T-a.low.out.T));
+  return `<div class="concl ${R.robust?"ok":"warn"}"><div class="ctop"><span class="cicon" aria-hidden="true">${R.robust?"✓":"!"}</span><b>${esc(R.summary)}</b></div>
+    <span class="cconf">Paramètre le plus influent : sur le retard, ${esc(R.top.late.param.toLowerCase())} ; sur la confiance, ${esc(R.top.T.param.toLowerCase())} ; sur l'usage, ${esc(R.top.adoption.param.toLowerCase())}.</span></div>
+  <div class="chart tornado" aria-label="Confiance finale selon chaque paramètre, borne basse et borne haute">
+    <div class="legend"><span><i style="background:${SERIES[0]}"></i>Borne basse</span><span><i style="background:${SERIES[1]}"></i>Borne haute</span><span><i class="refline"></i>Référence ${fr2(ref)}</span></div>
+    ${rows.map(r=>{ const a=X(r.low.out.T), b=X(r.high.out.T), l=Math.min(a,b), w=Math.max(1,Math.abs(b-a));
+      return `<div class="tb" data-bar="<b>${esc(r.label)}</b><div class='mono'>${fr2(r.lo)} : confiance ${fr2(r.low.out.T)} · ${fr2(r.hi)} : ${fr2(r.high.out.T)}</div>"><span>${esc(r.label)}</span>
+        <div class="track"><i class="seg" style="left:${l}%;width:${w}%"></i><i class="dot" style="left:${a}%;background:${SERIES[0]}"></i><i class="dot" style="left:${b}%;background:${SERIES[1]}"></i><i class="ref" style="left:${X(ref)}%"></i></div></div>`; }).join("")}
+    <div class="taxis"><span>${fr2(lo)}</span><span>Confiance finale</span><span>${fr2(hi)}</span></div>
+    <div class="ctip" hidden></div>
+  </div>
+  <div class="tscroll"><table class="ltable"><thead><tr><th>Paramètre</th><th>Bornes</th><th>Conclusion</th><th>Retard ajouté</th><th>Confiance</th><th>Usage</th></tr></thead><tbody>
+    <tr><th>Référence</th><td class="mono">-</td><td>${chip(R.ref.level)}</td><td class="mono">${fr1(R.ref.out.late)}</td><td class="mono">${fr2(R.ref.out.T)}</td><td class="mono">${fr1(R.ref.out.adoption)} %</td></tr>
+    ${R.rows.map(r=>`<tr><th>${esc(r.label)}</th><td class="mono">${fr2(r.lo)} / ${fr2(r.hi)}</td><td>${chip(r.low.level)} ${chip(r.high.level)}</td><td class="mono">${fr1(r.low.out.late)} / ${fr1(r.high.out.late)}</td><td class="mono">${fr2(r.low.out.T)} / ${fr2(r.high.out.T)}</td><td class="mono">${fr1(r.low.out.adoption)} / ${fr1(r.high.out.adoption)} %</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+function runSens(){
+  const opts = {fiche:lab.fiche, scenario:lab.scenario, days:lab.days, human:{...lab.human}};
+  const reps = 10;
+  lab.sens = {busy:true, done:0, rows:[]}; renderLab();
+  const step = () => {
+    const S = lab.sens; if(!S || !S.busy) return;
+    if(S.done===0) S.ref = sensBase(opts, reps);
+    else S.rows.push(sensRow(opts, SENS_PARAMS[S.done-1], reps));
+    S.done++;
+    if(S.done>SENS_PARAMS.length){ lab.sens = {busy:false, result:sensSummary(S.ref, S.rows)}; }
+    const keep = labEl.querySelector(".lbox")?.parentElement?.scrollTop;
+    renderLab();
+    if(keep!=null) labEl.scrollTop = keep;
+    if(lab.sens.busy) setTimeout(step, 20);
+  };
+  setTimeout(step, 20);
 }
 
 function labCSV(o){

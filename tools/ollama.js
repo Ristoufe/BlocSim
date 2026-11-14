@@ -12,8 +12,9 @@ async function ollamaChat(body) {
     model,
     messages: body.messages,
     stream: false,
+    keep_alive: "30m", // le modèle reste chargé entre deux appels (évite plusieurs secondes de chargement)
     think: false, // modèles « à réflexion » (qwen3...) : réponse directe, plus rapide
-    options: { temperature: body.temperature ?? 0, seed: body.seed ?? 42, num_ctx: 16384 },
+    options: { temperature: body.temperature ?? 0, seed: body.seed ?? 42, num_ctx: 8192 }, // prompts de 2 500 à 4 000 jetons
   };
   if (body.schema) req.format = body.schema; // sortie JSON contrainte par le schéma
   const r = await fetch(`${LLM_URL}/api/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(req) });

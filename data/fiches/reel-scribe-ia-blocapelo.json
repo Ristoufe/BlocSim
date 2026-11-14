@@ -1,0 +1,58 @@
+{
+  "version_template": "0.1",
+  "exemple_fictif": false,
+  "commentaire": "Conversion au template Blocapta de la fiche technique d'audit BLOCAPELO « Scribe IA - Consultation médicale augmentée » (Drive de l'équipe, 03 - Données / fiches techniques, version anonymisée : éditeur et contacts retirés). Les fourchettes de la fiche (« 5-15 min, estimation indicative ») sont remplacées par leur valeur centrale, la fourchette restant citée dans la source. L'outil sert en consultation, hors salle d'opération : pour le bloc, on le rattache à la consultation de chirurgie ou d'anesthésie de chaque patient opéré (hypothèse de transposition).",
+  "source": "Fiche technique d'audit BLOCAPELO, AI Scribe (anonymisée), Drive Blocapta",
+  "champs": {
+    "B0.nom": "AI Scribe, avec Coding Assistant et Clinical Decision Support (version auditée non renseignée dans la fiche source)",
+    "B0.editeur": "Anonymisé dans la fiche source (éditeur français, connu de l'équipe projet)",
+    "B0.type_outil": "Scribe médical IA : transcription de la consultation, compte rendu, courriers et codage assistés",
+    "B0.statut_projet": "Déjà déployé ailleurs : produit commercial, plus de 10 000 organisations dans 14 pays européens selon l'éditeur",
+    "B0.auteur_date": "Fiche d'audit BLOCAPELO de l'équipe (auteur et date d'audit non renseignés), convertie au template par l'équipe projet le 14/11/2026",
+    "B0.sources": "Fiche technique d'audit BLOCAPELO (pages produit, mesures techniques et organisationnelles, étude de l'éditeur sur 375 000 notes, rapport sur 841 visites codées)",
+    "B0.classe_reglementaire": "Dispositif médical classe IIa (règlement MDR 2017/745) pour le scribe, le Coding Assistant et le Clinical Decision Support",
+    "B1.probleme": "La documentation médicale (compte rendu, courriers, codage) prend une part importante du temps des praticiens, en fin de consultation ou en fin de journée. Pendant l'échange, le praticien est tourné vers l'écran plutôt que vers le patient.",
+    "B1.situation_actuelle": "Rédaction manuelle ou dictée du compte rendu dans le logiciel du dossier patient, courrier rédigé séparément, codage des actes saisi à la main.",
+    "B1.resultat_attendu": "Moins de temps de documentation par consultation (-29 % annoncés par l'éditeur), compte rendu structuré prêt à relire à la fin de la visite, plus d'attention portée au patient.",
+    "B1.pourquoi_maintenant": "Charge administrative des praticiens, maturité des outils de transcription",
+    "B2.acteurs": [
+      {"role": "Chirurgien", "utilise": true, "actions": "Lance l'enregistrement (1 clic), relit et valide le compte rendu, les courriers et les codes suggérés", "moment": "Consultation de chirurgie, avant l'intervention", "frequence": "À chaque consultation", "formation": "Aucune obligatoire (démarrage en libre-service) ; onboarding personnalisé en offre établissement"},
+      {"role": "Anesthésiste", "utilise": true, "actions": "Mêmes actions pendant la consultation d'anesthésie (transposition, la fiche cite les consultations hospitalières sans viser l'anesthésie)", "moment": "Consultation d'anesthésie, avant l'intervention", "frequence": "À chaque consultation", "formation": "Aucune obligatoire ; onboarding personnalisé en offre établissement"},
+      {"role": "Secrétariat", "utilise": false, "actions": "Moins de frappe de courriers, transfert en 1 clic vers le dossier patient", "moment": "Après la consultation", "frequence": "À chaque consultation", "formation": "Aucune"},
+      {"role": "Patient", "utilise": false, "actions": "Informé de l'usage de l'outil, peut s'y opposer (le praticien ne lance pas l'enregistrement)", "moment": "Pendant la consultation", "frequence": "À chaque consultation", "formation": "Aucune"}
+    ],
+    "B3.fonctions_incluses": "Transcription en temps réel, compte rendu structuré par spécialité, courriers d'adressage, certificats et lettre patient, suggestion de codes CIM-10 / CCAM / NGAP, aide à la décision clinique, transfert en 1 clic vers plus de 100 logiciels",
+    "B3.fonctions_exclues": "Pas d'alimentation directe du DMP, pas d'API ouverte, INS en cours de production, rien n'est transféré au dossier sans validation du praticien",
+    "B3.salles_specialites": "Hors salle d'opération : consultations de chirurgie et d'anesthésie de toutes spécialités (outil multi-spécialités)",
+    "B3.etapes_parcours": "Avant l'intervention (consultation), hors bloc",
+    "B3.volume": "Une consultation par patient opéré, soit environ 35 par jour de semaine pour ce bloc",
+    "B4.etapes": [
+      {"n": 1, "etape": "Rédiger le compte rendu de consultation", "qui": "Chirurgien", "action": "Relire et valider la note générée au lieu de la rédiger", "moment": "Après la consultation, hors bloc", "sans": 10, "avec": 2, "unite": "min", "source": "Estimation indicative de la fiche d'audit (5-15 min sans, 1-3 min avec) ; étude de l'éditeur : -29 % de temps de documentation sur 375 000 notes"},
+      {"n": 2, "etape": "Rédiger le compte rendu de consultation d'anesthésie", "qui": "Anesthésiste", "action": "Relire et valider la note générée", "moment": "Après la consultation, hors bloc", "sans": 10, "avec": 2, "unite": "min", "source": "Même estimation indicative de la fiche d'audit, transposée à la consultation d'anesthésie"},
+      {"n": 3, "etape": "Rédiger le courrier d'adressage", "qui": "Chirurgien", "action": "Relire le courrier généré en 1 clic", "moment": "Après la consultation, hors bloc", "sans": 7.5, "avec": 1.5, "unite": "min", "source": "Estimation indicative de la fiche d'audit (5-10 min sans, 1-2 min avec)"}
+    ],
+    "B5.donnees_saisies": "Audio de la consultation (micro de l'ordinateur, du smartphone ou micro de conférence), dictée et instructions vocales d'édition",
+    "B5.donnees_produites": "Note structurée, transcription traçable, courriers, certificats, codes suggérés, alertes de codage",
+    "B5.liens_logiciels": "Dossier patient et logiciels de cabinet : transfert en 1 clic vers plus de 100 logiciels, dont Maincare et Easily en France ; copier-coller avec tout autre logiciel",
+    "B5.mode_echange": "Transfert manuel en 1 clic après validation ; intégrations sur mesure en offre établissement",
+    "B5.materiel": "Aucun matériel obligatoire (ordinateur ou smartphone) ; micro de conférence en option",
+    "B6.disponibilite": "99,9 % annoncés par l'éditeur, reprise en 1 h (RTO), page de statut publique",
+    "B6.mode_degrade": "Retour au mode de documentation habituel du praticien (rédaction ou dictée) ; la transcription fonctionne hors ligne, la génération du compte rendu demande une connexion",
+    "B6.support": "Équipe de support de plus de 75 médecins et psychologues, centre d'aide en ligne, support prioritaire en offre établissement ; délai de réponse non précisé",
+    "B6.pannes_connues": "Qualité de transcription dépendante du micro et du bruit ambiant ; risque d'hallucinations et d'omissions propre aux modèles génératifs",
+    "B6.mises_a_jour": "Notes de version publiées",
+    "B7.formation_initiale": "Pas de formation obligatoire : démarrage en libre-service en 1 clic ; onboarding personnalisé avec l'équipe clinique de l'éditeur en offre établissement, durée selon la taille du centre",
+    "B7.calendrier": "Dépend de la taille du centre",
+    "B7.accompagnement": "Équipe clinique de l'éditeur ; pas de référent interne désigné dans la fiche",
+    "B8.reglementaire": "Dispositif médical classe IIa (MDR), système d'IA à haut risque (AI Act, auto-évaluation), hébergement certifié HDS en UE, ISO 27001, ISO 13485, ISO 42001, audio non conservé, aucune donnée patient utilisée pour l'entraînement",
+    "B8.risques_patient": "Hallucination ou omission clinique dans le compte rendu validé sans relecture attentive ; le praticien reste responsable de ce qu'il valide",
+    "B8.risques_organisation": "Dépendance à la connexion pour générer le compte rendu ; risque de validation sans relecture lié à l'habitude ; déqualification documentaire à surveiller",
+    "B9.niveau_preuve": "Étude de l'éditeur en vie réelle (375 000 notes) et estimations indicatives de la fiche d'audit ; aucune mesure sur notre site",
+    "B9.sites_utilisateurs": "Plus de 10 000 organisations dans 14 pays européens selon l'éditeur",
+    "B9.etudes": "Étude de l'éditeur sur 375 000 notes (-29 % de temps de documentation) ; rapport de l'éditeur sur 841 visites codées sans correction rétrospective",
+    "B9.retours_soignants": "Témoignages de praticiens publiés par l'éditeur : plus d'attention au patient, environ 5 min d'administratif économisées par patient (gynécologue) ; test interne BLOCAPELO non encore réalisé",
+    "B10.indicateurs": [
+      {"indicateur": "Temps de documentation par consultation", "actuel": "5-15 min (estimation)", "cible": "-29 %"}
+    ]
+  }
+}
