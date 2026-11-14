@@ -8,6 +8,7 @@
     "sim": "node tools/simulate.js",
     "campagne": "node tools/campagne.js",
     "test": "node tools/test.js",
+    "calibrer": "node tools/calibrer.js",
     "check": "node tools/check.js",
     "data": "python3 tools/export_days.py"
   },

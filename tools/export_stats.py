@@ -109,6 +109,12 @@ s=json.dumps(out,ensure_ascii=False,separators=(',',':'))
 for col in ['Chirurgien','Anesthésiste']:
     for n in d[col].dropna().astype(str).str.strip().unique():
         if len(n)>3 and n in s: sys.exit('Fuite de nom détectée : export annulé')
+# la calibration du moteur (tools/calibrer.js) n'est pas tirée de l'export : on la conserve
+try:
+    old=json.load(open(os.path.join(ROOT,'data','stats.json'),encoding='utf-8'))
+    if 'calib' in old:
+        out['calib']=old['calib']; s=json.dumps(out,ensure_ascii=False,separators=(',',':'))
+except Exception: pass
 open(os.path.join(ROOT,'data','stats.json'),'w').write(s)
 print('data/stats.json :',len(s),'octets |',len(specs),'spécialités |',len(rooms),'salles | salle urgences',out['urgRoom'],'| urg/jour',out['urgPerWeekday'],'| prog/salle/jour',out['progPerRoomDay'])
 print({r:(v['open'],list(v['mix'])[:2]) for r,v in rooms.items()})
