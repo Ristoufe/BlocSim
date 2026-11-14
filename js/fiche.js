@@ -216,7 +216,9 @@ function normalizeFiche(f){
     };
   }).filter(e=>e.role && Number.isFinite(e.without) && Number.isFinite(e.with));
   const support = String(v("B6.support")||"");
-  const supportH = /(\d+)\s*h/.exec(support), supportMin = /(\d+)\s*min/.exec(support);
+  // délai d'intervention (« sous 4 h », « en 30 min ») ; une plage horaire (« de 8 h à 18 h ») n'en est pas un
+  const delay = /(?:sous|en moins de|en|d[ée]lai(?: de)?|dans les)\s+(\d+(?:[.,]\d+)?)\s*(min|h)\b/i.exec(support);
+  const supportMin = /(\d+)\s*min/.exec(support);
   const formation = String(v("B7.formation_initiale")||"");
   const fH = /(\d+(?:[.,]\d+)?)\s*h/.exec(formation);
   const acc = String(v("B7.accompagnement")||"");
@@ -232,7 +234,7 @@ function normalizeFiche(f){
     steps: etapes,
     availability: (num(v("B6.disponibilite"))||99)/100,
     supportOnSite: /sur site|sur place|présence|presence/i.test(support),
-    restoreMin: supportMin ? +supportMin[1] : supportH ? +supportH[1]*60 : 240,
+    restoreMin: delay ? +delay[1].replace(",",".")*(/h/i.test(delay[2])?60:1) : supportMin ? +supportMin[1] : 240,
     trainingH: fH ? +fH[1].replace(",",".") : 0,
     champions: /référent|referent|champion/i.test(acc),
     microFail: /aucun/i.test(pannes) ? 0.005 : pannes.trim() ? 0.02 : 0.01,

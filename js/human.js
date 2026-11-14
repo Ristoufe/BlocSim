@@ -62,17 +62,21 @@ const ROLE_LABEL = {CHIR:"Chirurgiens", MAR:"Anesthésistes", IADE:"IADE", IBODE
 function makeTeam(params, seed, profiles){
   const P = {...HUMAN_DEFAULTS, ...(params||{})};
   const r = rng(seed*104729+17);
-  return { P, r, agents:{}, ties:{}, profiles:profiles||[], day:0, log:[] };
+  return { P, r, seed, agents:{}, ties:{}, profiles:profiles||[], day:0, log:[] };
 }
 
+// tirage propre à chaque soignant (graine + code) : son profil ne dépend pas de l'ordre des rencontres
+// ni des tirages d'usage de l'outil, donc il est le même dans tous les bras d'une campagne
+function codeRng(H, code){ let h=H.seed>>>0; for(const ch of code) h=Math.imul(h^ch.charCodeAt(0), 2654435761)>>>0; const r=rng(h); r(); r(); return r; }
 function pickRogers(r){ let x=r(); for(const g of ROGERS){ x-=g.share; if(x<=0) return g; } return ROGERS[ROGERS.length-1]; }
 
 // un agent est identifié par son code (CHIR-24, MAR-03, IBODE OP4...)
 function agentOf(H, role, code, room){
   let a = H.agents[code];
   if(a) return a;
-  const g = pickRogers(H.r);
-  const exp = role==="CHIR"||role==="MAR" ? 4+Math.floor(H.r()*2) : 2+Math.floor(H.r()*4);   // Dreyfus 1 (novice) à 5 (expert)
+  const ar = codeRng(H, code);
+  const g = pickRogers(ar);
+  const exp = role==="CHIR"||role==="MAR" ? 4+Math.floor(ar()*2) : 2+Math.floor(ar()*4);   // Dreyfus 1 (novice) à 5 (expert)
   a = H.agents[code] = {
     code, role, room, profile:g.id, exp,
     T:g.t0, T0:g.t0, kappa:g.kappa, influence:1,

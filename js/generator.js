@@ -161,7 +161,6 @@ function bioDur(r, cls){
 function planProgram(cfg, r0){
   const di=cfg.__di, planned=[], SS=STATS.session;
   if(di.weekend) return planned;
-  let surg=1;
   const f = clamp(Math.sqrt(di.wf*di.mf),0.8,1.15);     // jeudi plus long, août plus court
   cfg.rooms.forEach(room=>{
     const r=rng(seedOf(cfg.seed,"programme",room));   // un flux par salle : ouvrir une salle de plus ne change pas les autres
@@ -172,7 +171,8 @@ function planProgram(cfg, r0){
     const start = mode==="pm" ? Math.round(SS.pmStart+gauss(r)*20) : cfg.firstPlanned + Math.round(r()*10);
     const progEnd = start + (1110-start)*0.95*cfg.load*f;
     const roomEnd = room===cfg.urgRoom ? start+(progEnd-start)*0.55 : mode==="am" ? clamp(SS.amEnd+gauss(r)*40, 600, 780) : progEnd;
-    const chir="CHIR-"+String(10+((surg++)*7)%60).padStart(2,"0");
+    const ri = ALL_ROOMS.indexOf(room);   // code lié à la salle : même titulaire d'un jour à l'autre, quelles que soient les salles ouvertes
+    const chir="CHIR-"+String(10+((ri+1)*7)%60).padStart(2,"0");
     const list=[]; let t=start;
     while(t < roomEnd-10){
       const procs = S.procs.length? S.procs : [{name:spec, n:1, mu:S.mu, sigma:S.sigma}];
