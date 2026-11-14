@@ -1,0 +1,277 @@
+
+=== 300 journées aléatoires (tous paramètres perturbés) + 6 vraies journées — dépôt : <racine du dépôt BlocSim> ===
+
+id            journées en échec   moy./journée  description
+C1            0/300               0.0           Ligne CSV (hors minuit) dont la chronologie arrivée→entrée→sortie→SSPI→sortie bloc n'est pas croissante
+C2            0/300               0.0           Ligne CSV dont le nombre de colonnes diffère de l'en-tête
+C3            0/300               0.0           Urgence dont l'attente du CSV détaillé diffère de l'attente du bilan
+C4            0/300               0.0           Nombre de lignes du CSV différent du nombre de cas réalisés ou annulés
+D1            0/300               0.0           Chirurgien en train d'opérer dans deux salles à la fois (minutes ; intervalle chirIn)
+D2            0/300               0.0           Anesthésiste (MAR) à une induction ou un réveil dans deux salles à la fois (minutes)
+D3_CIRC       0/300               0.0           Équipe CIRC dans deux salles à la fois, de l'entrée en salle à la fin du réveil (minutes)
+D3_IADE       0/300               0.0           Équipe IADE dans deux salles à la fois, de l'entrée en salle à la fin du réveil (minutes)
+D3_IBODE      0/300               0.0           Équipe IBODE dans deux salles à la fois, de l'entrée en salle à la fin du réveil (minutes)
+D4            0/300               0.0           Agent de bionettoyage dans deux salles à la fois (minutes)
+D5            0/300               0.0           Lit de SSPI occupé par deux patients à la fois (minutes ; sspiIn à recOut)
+D6            0/300               0.0           Plus de patients en SSPI que de lits (pic observé moins nombre de lits)
+D7            0/300               0.0           Deux patients dans la même salle (entrée avant la fin du bionettoyage précédent)
+E1_ASH        0/300               0.0           Animation : personnel ASH à deux endroits en même temps (minutes)
+E1_BRAN       0/300               0.0           Animation : personnel BRAN à deux endroits en même temps (minutes)
+E1_CHIR       0/300               0.0           Animation : personnel CHIR à deux endroits en même temps (minutes)
+E1_CIRC       0/300               0.0           Animation : personnel CIRC à deux endroits en même temps (minutes)
+E1_CIRC-garde 0/300               0.0           Animation : personnel CIRC-garde à deux endroits en même temps (minutes)
+E1_IADE       0/300               0.0           Animation : personnel IADE à deux endroits en même temps (minutes)
+E1_IADE-garde 0/300               0.0           Animation : personnel IADE-garde à deux endroits en même temps (minutes)
+E1_IBODE      0/300               0.0           Animation : personnel IBODE à deux endroits en même temps (minutes)
+E1_IBODE-garde0/300               0.0           Animation : personnel IBODE-garde à deux endroits en même temps (minutes)
+E1_MAR        0/300               0.0           Animation : personnel MAR à deux endroits en même temps (minutes)
+E1_MAR-garde  0/300               0.0           Animation : personnel MAR-garde à deux endroits en même temps (minutes)
+E2_ASH        0/300               0.0           Animation : visites ASH atteintes avec plus de 3 min de retard sur le poste
+E2_BRAN       38/300              0.2           Animation : visites BRAN atteintes avec plus de 3 min de retard sur le poste
+E2_IADE       0/300               0.0           Animation : visites IADE atteintes avec plus de 3 min de retard sur le poste
+E2_IBODE      0/300               0.0           Animation : visites IBODE atteintes avec plus de 3 min de retard sur le poste
+E2_MAR        0/300               0.0           Animation : visites MAR atteintes avec plus de 3 min de retard sur le poste
+E2_MAR-garde  0/300               0.0           Animation : visites MAR-garde atteintes avec plus de 3 min de retard sur le poste
+E3            0/300               0.0           Animation : lit de SSPI occupé par deux patients à la fois
+E5            0/300               0.0           Animation : visite de durée négative
+E6            0/300               0.0           Animation : seuils jour/nuit différents entre ordonnanceur (19 h 30 / 7 h) et animation (18 h 30 / 7 h 30)
+G2            0/300               0.0           Cas programmé démarré plus de 15 min après l'heure limite (lastProgStart)
+G9            42/300              0.6           Inversion d'ordre de sortie de salle (un patient qui finit après sort avant, alors que l'autre attend un lit)
+G10           113/300             0.4           Panne démarrant pendant une opération qui continue normalement (choix de modèle)
+G12           223/300             2.1           Cas dont la fin de salle, de SSPI ou de bionettoyage dépasse minuit (heure CSV repliée)
+G14           0/300               0.0           Valeurs non finies (NaN) dans les cas
+I1            122/300             0.9           Urgence immédiate (classe imm) opérée après son délai maximal
+I2            42/300              0.2           Urgence immédiate ou sous 1 h opérée hors délai alors qu'un cas moins prioritaire démarre dans la même salle pendant son attente (à expliquer : peut venir d'une indisponibilité de chirurgien)
+K1            39/300              0.2           Patients générés absents de la sortie (ni opérés, ni annulés)
+K1b           0/300               0.0           Patients en trop dans la sortie (dupliqués)
+K2            39/300              0.3           Le bilan (report) ne correspond pas aux cas exportés (réalisés, programmés, urgences)
+K3            0/300               0.0           Le bilan ne correspond pas aux annulations exportées (déprogrammées, annulées avant le jour J)
+M1            0/100               0.0           Changer une capacité modifie les patients, les urgences, les annulations ou les absents (nombres aléatoires communs)
+M2            0/30                0.0           Trois lits de SSPI de plus augmentent le blocage en salle (même journée)
+N1            0/300               0.0           Plus d'équipes de garde ou d'astreinte simultanées la nuit que la règle du GUIDE (garde + 2 rappelées par le plan blanc)
+N2            0/300               0.0           Plus d'anesthésistes de garde ou d'astreinte simultanés la nuit que la règle (1 + 1 rappelé par le plan blanc)
+P1            0/270               0.0           Paramètre à une borne : exception, NaN, patient perdu ou violation de validation
+R1_ASH        0/6                 0.0           Animation : personnel ASH à deux endroits en même temps (minutes)
+R1_BRAN       0/6                 0.0           Animation : personnel BRAN à deux endroits en même temps (minutes)
+R1_CHIR       0/6                 0.0           Animation : personnel CHIR à deux endroits en même temps (minutes)
+R1_CIRC       0/6                 0.0           Animation : personnel CIRC à deux endroits en même temps (minutes)
+R1_CIRC-garde 0/6                 0.0           Animation : personnel CIRC-garde à deux endroits en même temps (minutes)
+R1_IADE       0/6                 0.0           Animation : personnel IADE à deux endroits en même temps (minutes)
+R1_IADE-garde 0/6                 0.0           Animation : personnel IADE-garde à deux endroits en même temps (minutes)
+R1_IBODE      0/6                 0.0           Animation : personnel IBODE à deux endroits en même temps (minutes)
+R1_IBODE-garde0/6                 0.0           Animation : personnel IBODE-garde à deux endroits en même temps (minutes)
+R1_MAR        0/6                 0.0           Animation : personnel MAR à deux endroits en même temps (minutes)
+R1_MAR-garde  0/6                 0.0           Animation : personnel MAR-garde à deux endroits en même temps (minutes)
+R2_ASH        0/6                 0.0           Animation : visites ASH atteintes avec plus de 3 min de retard sur le poste
+R2_BRAN       0/6                 0.0           Animation : visites BRAN atteintes avec plus de 3 min de retard sur le poste
+R2_IADE       0/6                 0.0           Animation : visites IADE atteintes avec plus de 3 min de retard sur le poste
+R2_IBODE      0/6                 0.0           Animation : visites IBODE atteintes avec plus de 3 min de retard sur le poste
+R2_MAR        0/6                 0.0           Animation : visites MAR atteintes avec plus de 3 min de retard sur le poste
+R2_MAR-garde  0/6                 0.0           Animation : visites MAR-garde atteintes avec plus de 3 min de retard sur le poste
+R3            0/6                 0.0           Animation : lit de SSPI occupé par deux patients à la fois
+R5            1/6                 0.3           Animation : visite de durée négative
+R6            0/6                 0.0           Animation : seuils jour/nuit différents entre ordonnanceur (19 h 30 / 7 h) et animation (18 h 30 / 7 h 30)
+V1            0/300               0.0           Violations détectées par la validation interne de l'équipe (validateDay)
+
+=== Expériences et tests ciblés ===
+{
+ "balayageDesBornes": {
+  "parametres": 67,
+  "testsEnEchec": 0,
+  "details": []
+ },
+ "M1": {
+  "changementsTestes": 100,
+  "ecarts": 0,
+  "exemple": null
+ },
+ "M2": {
+  "journeesTestees": 30,
+  "blocageAugmente": 0,
+  "pireAugmentationMin": 0
+ },
+ "effetDesScenarios": {
+  "type": {
+   "urgWait": 73,
+   "vitWait": 2.8,
+   "urgInTime": 96.5,
+   "late": 28,
+   "overMin": 21.1,
+   "bedBlock": 0.1,
+   "deprog": 1
+  },
+  "jeudi": {
+   "urgWait": 73,
+   "vitWait": 2.4,
+   "urgInTime": 97.3,
+   "late": 30,
+   "overMin": 25.7,
+   "bedBlock": 0.8,
+   "deprog": 4.4
+  },
+  "afflux": {
+   "urgWait": 61,
+   "vitWait": 17.8,
+   "urgInTime": 79.8,
+   "late": 33,
+   "overMin": 28.7,
+   "bedBlock": 0,
+   "deprog": 3.9
+  },
+  "epidemie": {
+   "urgWait": 73.4,
+   "vitWait": 3.5,
+   "urgInTime": 97.2,
+   "late": 24.5,
+   "overMin": 0,
+   "bedBlock": 1.6,
+   "deprog": 0.6
+  },
+  "aout": {
+   "urgWait": 69.8,
+   "vitWait": 4,
+   "urgInTime": 97.5,
+   "late": 21.3,
+   "overMin": 0,
+   "bedBlock": 1.8,
+   "deprog": 0.3
+  },
+  "weekend": {
+   "urgWait": 119,
+   "vitWait": 16.4,
+   "urgInTime": 90.9,
+   "late": 0,
+   "overMin": 0,
+   "bedBlock": 1.1,
+   "deprog": 0
+  },
+  "panne": {
+   "urgWait": 73,
+   "vitWait": 2.8,
+   "urgInTime": 96.5,
+   "late": 41.5,
+   "overMin": 4.4,
+   "bedBlock": 0.1,
+   "deprog": 1.9
+  },
+  "sspi": {
+   "urgWait": 73.2,
+   "vitWait": 2.6,
+   "urgInTime": 96.9,
+   "late": 30,
+   "overMin": 21.1,
+   "bedBlock": 22.3,
+   "deprog": 0.9
+  },
+  "effectif": {
+   "urgWait": 88.8,
+   "vitWait": 4.8,
+   "urgInTime": 95.1,
+   "late": 69.8,
+   "overMin": 26.6,
+   "bedBlock": 0.4,
+   "deprog": 3.7
+  },
+  "brancards": {
+   "urgWait": 74.7,
+   "vitWait": 3.1,
+   "urgInTime": 97.2,
+   "late": 58.4,
+   "overMin": 30.7,
+   "bedBlock": 0.5,
+   "deprog": 3.3
+  },
+  "surcharge": {
+   "urgWait": 75,
+   "vitWait": 3.4,
+   "urgInTime": 95.4,
+   "late": 28.4,
+   "overMin": 26.4,
+   "bedBlock": 0.1,
+   "deprog": 4.3
+  }
+ },
+ "effectifsIsoles": {
+  "3 bran / 3 bio": {
+   "retardMoyenProgramme": 27,
+   "attenteBrancardMinParJour": 0.4,
+   "attenteBionettoyageMinParJour": 3.4
+  },
+  "1 bran seul": {
+   "retardMoyenProgramme": 68.4,
+   "attenteBrancardMinParJour": 1,
+   "attenteBionettoyageMinParJour": 3.7
+  },
+  "1 bio seul": {
+   "retardMoyenProgramme": 40.8,
+   "attenteBrancardMinParJour": 0.2,
+   "attenteBionettoyageMinParJour": 268
+  }
+ },
+ "attenteLitSSPIparSalle": {
+  "OP 2": 1.6,
+  "OP 3": 1.7,
+  "OP 4": 1.9,
+  "OP 5": 1.7,
+  "OP 7": 2,
+  "OP 9": 2.3,
+  "OP 10": 3.1
+ },
+ "urgencesImmediatesAfflux14h": {
+  "cas": 205,
+  "dansLeDelai": "74 %",
+  "attenteMoyenne": "14.7 min",
+  "attenteMax": "89 min"
+ },
+ "passageDeMinuit": {
+  "6 urgences en moyenne": "70 % des journées",
+  "14 urgences en moyenne": "95 % des journées",
+  "22 urgences en moyenne": "100 % des journées"
+ },
+ "patientsPerdusParScenario": {
+  "type": {
+   "journeesAvecPatientPerdu": "3 %",
+   "patientsPerdusParJournee": 0.03
+  },
+  "jeudi": {
+   "journeesAvecPatientPerdu": "3 %",
+   "patientsPerdusParJournee": 0.03
+  },
+  "afflux": {
+   "journeesAvecPatientPerdu": "0 %",
+   "patientsPerdusParJournee": 0
+  },
+  "epidemie": {
+   "journeesAvecPatientPerdu": "3 %",
+   "patientsPerdusParJournee": 0.03
+  },
+  "aout": {
+   "journeesAvecPatientPerdu": "3 %",
+   "patientsPerdusParJournee": 0.03
+  },
+  "weekend": {
+   "journeesAvecPatientPerdu": "5 %",
+   "patientsPerdusParJournee": 0.05
+  },
+  "panne": {
+   "journeesAvecPatientPerdu": "3 %",
+   "patientsPerdusParJournee": 0.03
+  },
+  "sspi": {
+   "journeesAvecPatientPerdu": "3 %",
+   "patientsPerdusParJournee": 0.03
+  },
+  "effectif": {
+   "journeesAvecPatientPerdu": "3 %",
+   "patientsPerdusParJournee": 0.03
+  },
+  "brancards": {
+   "journeesAvecPatientPerdu": "3 %",
+   "patientsPerdusParJournee": 0.03
+  },
+  "surcharge": {
+   "journeesAvecPatientPerdu": "3 %",
+   "patientsPerdusParJournee": 0.03
+  }
+ }
+}
