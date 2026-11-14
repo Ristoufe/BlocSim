@@ -107,6 +107,14 @@ C'est le cœur de Blocapta (cahier des charges v2, objectifs 2 à 5). Le bouton 
 
 Le rapport donne une conclusion en une phrase, les signaux de risque (retard, déprogrammations, surcharge, adoption faible, perte de confiance, erreurs de saisie), la confiance jour après jour et par métier, le retard ajouté semaine par semaine, un tableau comparatif et la liste des hypothèses. Le bouton « Rejouer cette journée » envoie un jour de la campagne sur le plan animé, avec les pannes et les contournements de l'outil dans le fil des événements.
 
+### Premier test sur un logiciel réel
+
+`data/fiches/reel-scandm-sources-publiques.json` décrit un vrai logiciel de traçabilité des dispositifs médicaux (scanDM, Ehtrace). La fiche est remplie uniquement avec des sources publiques : un article de presse, une étude de cas commerciale et l'enquête de l'OMEDIT. Aucune durée n'y est publiée, et ni le mode dégradé, ni le support, ni la formation ne sont décrits. La fiche est donc refusée, avec 12 champs obligatoires sur 25 et la liste des questions à poser à l'éditeur. C'est le comportement attendu par le cahier des charges : une notice commerciale ne suffit pas. Ce test a aussi révélé un trou dans les règles : une réponse qui commence par « Inconnu (…) » était comptée comme complète. Le trou est corrigé.
+
+### Fiche technique réelle de l'équipe (scribe IA)
+
+`data/fiches/reel-scribe-ia-blocapelo.json` convertit au template la fiche d'audit BLOCAPELO d'un scribe médical IA. C'est une vraie fiche technique, anonymisée, rangée dans le Drive de l'équipe. Tous les champs obligatoires sont remplis. La fiche est analysable avec réserves, en confiance faible : ses gains de temps (80 % sur le compte rendu) viennent d'estimations et d'une étude de l'éditeur. L'outil sert en consultation : il ne change ni les retards ni l'occupation du bloc, mais il allège la charge des praticiens (19 journées de surcharge en moins sur 4 semaines simulées). Ce cas a fait corriger deux points du modèle : le temps gagné allège maintenant la charge ressentie, et une étude de l'éditeur compte comme une déclaration de l'éditeur.
+
 ### Le modèle humain (`js/human.js`)
 
 Chaque chirurgien, anesthésiste, IADE et IBODE est un agent qui garde son état d'un jour à l'autre :
@@ -124,19 +132,25 @@ Chaque chirurgien, anesthésiste, IADE et IBODE est un agent qui garde son état
 
 Chaque paramètre affiche sa source ou l'étiquette « à calibrer », dans le rapport comme dans `HUMAN_PARAMS_DOC`.
 
+### Solidité de la conclusion (sensibilité)
+
+Les paramètres humains marqués « à calibrer » ne sont pas mesurés au bloc. Le bouton « Tester la sensibilité » (ou `--sensibilite` en ligne de commande) les fait varier un par un, chacun à sa borne basse puis haute : λ, α, κ, mémoire d'une panne, seuil de contournement, pente d'apprentissage, seuil de surcharge. On voit alors si la conclusion (vert, orange ou rouge) change, et quel paramètre pèse le plus sur le retard, la confiance et l'usage. Si la conclusion change, le rapport nomme les paramètres à calibrer en priorité avec les équipes.
+
 ### En ligne de commande
 
 ```bash
 npm run fiche -- data/fiches/scantrace-incomplete.json            # contrôle de complétude seul
 npm run outil -- --fiche data/fiches/scantrace-v2.json --scenario B
 npm run outil -- --fiche data/fiches/checklist-tablette.json --scenario C --repetitions 50 --lambda 2.25
+npm run outil -- --fiche data/fiches/checklist-tablette.json --scenario B --sensibilite
+npm run outil -- --fiche data/fiches/checklist-tablette.json --scenario B --rapport-ia   # Ollama requis
 ```
 
 ### Contrôles
 
-`npm run check` vérifie les règles physiques, puis 17 contrôles du modèle et des fiches :
+`npm run check` vérifie les règles physiques, puis 19 contrôles du modèle et des fiches :
 - occupation des vacations à moins de 10 % du réel ;
-- refus des fiches incomplètes ;
+- refus des fiches incomplètes, y compris un logiciel réel décrit par ses seules sources publiques, et verdict de la fiche technique réelle du scribe IA ;
 - nombres aléatoires communs entre les deux bras, et reproductibilité ;
 - bornes de la confiance, de la fatigue et de la charge ;
 - rapport λ entre une panne et un succès ;
@@ -161,6 +175,9 @@ LLM_URL=http://autre-machine:11434 npm start     # Ollama sur une autre machine
 - **Agent 2** (« Créer la fiche à partir d'un texte ») : le LLM remplit le template à partir d'une notice ou d'une note de cadre. Ce qui manque reste « Inconnu ». Tout chiffre absent du texte, tel quel ou converti en minutes, est retiré par un garde-fou.
 - Sans Ollama, l'application fonctionne avec les règles seules et l'indique.
 
+- **Agent 5** (bouton « Rédiger le rapport avec l'IA », ou `--rapport-ia` en ligne de commande) : le LLM rédige le rapport pour un cadre ou une direction. Il part d'une liste de faits calculés par la simulation : retards, confiance par métier, panne, signaux de risque, hypothèses, sensibilité. Chaque point cite le fait utilisé entre crochets. Un garde-fou vérifie que chaque chiffre du texte figure dans ces faits. Le rapport se télécharge en Markdown.
+- Vitesse : avec qwen2.5:14b, environ 50 s pour la relecture d'une fiche, 45 s pour créer une fiche depuis un texte, 20 à 30 s pour le rapport. Les réponses sont courtes, le contexte est de 8 000 jetons et le modèle reste chargé 30 min.
+
 Pour comparer des modèles sur des fiches et des textes dont on connaît la bonne réponse (4 fiches, dont une fiche piège remplie mais creuse, et 2 textes libres) :
 
 ```bash
@@ -170,6 +187,8 @@ node tools/llm_eval.js qwen2.5:14b qwen3.6:35b
 ### Fidélité au bloc réel
 
 Le moteur est calibré sur l'export OPROOM et vérifié par `npm test` : salles ouvertes, volume, délai entre deux cas, horaires, occupation. La comparaison avec / sans outil utilise ce moteur tel quel : chaque jour de campagne tire ses salles selon le jour de la semaine et le mois, comme une journée créée dans l'interface. `npm run check` vérifie en plus l'occupation des vacations au sens du classeur *Ratios v2* (heures opérées pendant la vacation de 8 h 30 à 17 h 30, rapportées aux heures offertes) : environ **54 %** simulés sur 120 jours ouvrés, comme dans le réel.
+
+Les durées en salle et le taux d'annulation sont calés sur l'export par `npm run calibrer` (voir « Calibration du moteur ») : le moteur ne compte plus deux fois les attentes, les aléas et les annulations du jour même qu'il simule.
 
 ## Option : lancer des simulations dans le terminal
 
@@ -226,7 +245,7 @@ tools/outil.js        Blocapta : fiche logiciel et comparaison avec / sans outil
 tools/check_humain.js contrôles du modèle humain et des fiches (lancés par npm run check)
 tools/ollama.js       appel au modèle local (Ollama) ; tools/llm_eval.js : comparaison de modèles
 server.js             serveur local sans dépendance (fichiers, enregistrement des logs, relais /api/llm)
-data/fiches/          fiches logiciel d'exemple, fictives (dont une fiche piège)
+data/fiches/          fiches logiciel : exemples fictifs (dont une fiche piège), un logiciel réel décrit par ses sources publiques, la fiche technique réelle du scribe IA
 data/notices/         textes libres d'exemple pour l'agent 2, fictifs
 ```
 
