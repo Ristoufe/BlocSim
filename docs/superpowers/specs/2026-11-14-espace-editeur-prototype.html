@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blocapta, prototype v6</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#161616;--ink2:#525252;--ink3:#6f6f6f;--line:#e0e0e0;--line2:#c6c6c6;--bg:#f4f4f4;--panel:#fff;--hover:#e8e8e8;
+  --accent:#0f62fe;--accent-h:#0050e6;--focus:#0f62fe;
+  --ok:#198038;--ok-bg:#defbe6;--ok-ink:#0e6027;--warn:#f1c21b;--warn-bg:#fcf4d6;--warn-ink:#684e00;--err:#da1e28;--err-bg:#fff1f1;--err-ink:#a2191f;
+  --s1:#6929c4;--s2:#1192e8;--s3:#005d5d;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:15px/1.5 "IBM Plex Sans",system-ui,sans-serif;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:var(--accent);text-decoration:none;cursor:pointer}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+[hidden]{display:none!important}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px}
+.muted{color:var(--ink2)}.small{font-size:13px}
+
+/* shell */
+.shell{height:52px;background:#161616;color:#f4f4f4;display:flex;align-items:stretch;padding:0 16px;position:sticky;top:0;z-index:20}
+.shell .logo{display:flex;align-items:center;font-weight:600;padding-right:24px;margin-right:8px;border-right:1px solid #393939;letter-spacing:.1px;cursor:pointer}
+.shell .logo span{font-weight:400;color:#a8a8a8;margin-left:8px}
+.shell nav{display:flex}
+.shell nav button{background:none;border:0;color:#c6c6c6;padding:0 16px;border-bottom:2px solid transparent;border-top:2px solid transparent}
+.shell nav button:hover{background:#262626;color:#fff}
+.shell nav button.on{color:#fff;border-bottom-color:#4589ff}
+.shell .right{margin-left:auto;display:flex;align-items:center;gap:20px;font-size:13px;color:#c6c6c6}
+.shell .right a{color:#c6c6c6}
+.shell .org{display:flex;align-items:center;gap:8px}
+.shell .av{width:28px;height:28px;border-radius:50%;background:#393939;color:#fff;display:grid;place-items:center;font-size:11px;font-weight:600}
+.tagdemo{background:#262626;color:#c6c6c6;font-size:12px;padding:2px 8px;border-radius:2px}
+
+/* page header */
+.ph{background:var(--panel);border-bottom:1px solid var(--line);padding:20px 32px}.ph>*{max-width:1400px;margin-left:auto;margin-right:auto}
+.crumb{font-size:13px;color:var(--ink3);margin-bottom:6px}
+.crumb a{color:var(--accent)}
+.ph .t{display:flex;align-items:center;gap:12px}
+h1{font-size:28px;font-weight:400;margin:0;letter-spacing:0}
+h2{font-size:20px;font-weight:400;margin:0 0 4px}
+h3{font-size:16px;font-weight:600;margin:0}
+.ph .meta{display:flex;gap:8px;margin-top:10px;font-size:14px;color:var(--ink2);flex-wrap:wrap}
+.ph .meta span+span::before{content:"·";margin-right:8px;color:var(--line2)}
+.acts{margin-left:auto;display:flex;gap:8px}
+
+/* tags + buttons */
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:13px;line-height:1;padding:6px 10px;border-radius:12px;white-space:nowrap}
+.tag::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.tag.ok{background:var(--ok-bg);color:var(--ok-ink)}.tag.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.tag.err{background:var(--err-bg);color:var(--err-ink)}.tag.gray{background:#e8e8e8;color:#393939}.tag.blue{background:#edf5ff;color:#0043ce}
+.tag.plain::before{display:none}
+.btn{height:40px;padding:0 16px;border:1px solid transparent;background:none;display:inline-flex;align-items:center;gap:8px;font-size:15px;white-space:nowrap}
+.btn.p{background:var(--accent);color:#fff}.btn.p:hover{background:var(--accent-h)}
+.btn.s{border-color:var(--line2);background:#fff}.btn.s:hover{background:var(--hover)}
+.btn.g{color:var(--accent);padding:0 10px}.btn.g:hover{background:var(--hover)}
+.btn[disabled]{background:#c6c6c6;color:#8d8d8d;cursor:not-allowed;border-color:transparent}
+.btn.sm{height:32px;font-size:14px;padding:0 10px}
+
+/* layout */
+.page{max-width:1464px;margin:0 auto;padding:24px 32px 64px}
+.ws{display:grid;grid-template-columns:272px minmax(0,1fr);gap:40px;max-width:1464px;margin:0 auto;padding:24px 32px 64px;align-items:start}
+.steps{position:sticky;top:76px;list-style:none;margin:0;padding:0}
+.steps li{display:flex;gap:12px;padding:13px 14px;border-left:2px solid var(--line);cursor:pointer}
+.steps li:hover{background:var(--hover)}
+.steps li.on{border-left-color:var(--accent);background:#fff}
+.steps .ix{width:22px;height:22px;border-radius:50%;border:1px solid var(--ink3);font-size:11px;display:grid;place-items:center;flex:none;margin-top:1px;color:var(--ink2)}
+.steps li.done .ix{background:var(--ink);border-color:var(--ink);color:#fff}
+.steps li.block .ix{background:var(--err);border-color:var(--err);color:#fff}
+.steps b{display:block;font-weight:500}
+.steps small{color:var(--ink2);font-size:13px}.steps li.lab{cursor:default;border-left-color:transparent;padding:22px 14px 6px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--ink3)}.steps li.lab:hover{background:none}
+.panel{background:var(--panel);border:1px solid var(--line)}
+.panel>header{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.panel>header .sub{color:var(--ink2);font-size:14px}
+.panel>header .r{margin-left:auto;display:flex;gap:8px;align-items:center}
+.panel .pad{padding:20px}
+.sec{margin-bottom:28px}
+.sec>.h{display:flex;align-items:baseline;gap:12px;margin-bottom:12px}
+.sec>.h p{margin:0;color:var(--ink2)}
+.foot{display:flex;align-items:center;gap:12px;margin-top:24px;padding-top:16px;border-top:1px solid var(--line)}
+.foot .r{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+/* tables */
+table{width:100%;border-collapse:collapse}
+th{font-size:13px;font-weight:600;text-align:left;padding:12px 20px;background:#f4f4f4;border-bottom:1px solid var(--line);color:var(--ink);white-space:nowrap}
+td{padding:14px 20px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+.r{text-align:right}
+tbody tr.click{cursor:pointer}tbody tr.click:hover{background:#f4f4f4}
+td.num,th.num{text-align:right}th.num{font-family:inherit;font-size:13px}
+.ci{color:var(--ink3);font-family:var(--mono);font-size:13px}
+.pos{color:var(--ok-ink)}.neg{color:var(--err-ink)}
+
+/* notification */
+.note{display:flex;gap:14px;padding:18px 20px;background:#fff;border:1px solid var(--line);border-left:3px solid var(--ok)}
+.note.warn{border-left-color:var(--warn)}.note.err{border-left-color:var(--err)}.note.info{border-left-color:var(--accent)}
+.note svg{flex:none;margin-top:1px}
+.note b{font-weight:600}.note p{margin:2px 0 0;color:var(--ink2)}
+.note .r{margin-left:auto;align-self:center}
+
+/* key-value */
+.kv{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);background:#fff}
+.kv>div{padding:16px 20px}.kv>div+div{border-left:1px solid var(--line)}
+.kv dt{font-size:13px;color:var(--ink2);margin-bottom:4px}.kv dd{margin:0}
+.stat .v{font-size:36px;font-weight:300;line-height:1.15;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+.stat .v small{font-size:16px;font-weight:400;color:var(--ink2);margin-left:2px}
+dl.list{margin:0;display:grid;grid-template-columns:180px 1fr}
+dl.list dt,dl.list dd{margin:0;padding:11px 0;border-bottom:1px solid var(--line)}
+dl.list dt{color:var(--ink2)}
+dl.list>:nth-last-child(-n+2){border-bottom:0}
+
+/* tabs, segmented */
+.tabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:16px}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:12px 18px;color:var(--ink2);margin-bottom:-1px}
+.tabs button:hover{color:var(--ink);background:var(--hover)}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:500}
+.seg{display:inline-flex;border:1px solid var(--line2);background:#fff}
+.seg button{background:none;border:0;padding:9px 16px;font-size:14px;color:var(--ink2);border-right:1px solid var(--line2);text-align:left}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--ink);color:#fff}
+.seg button b{font-weight:600;margin-right:6px}
+
+/* form bits */
+.field label{display:block;font-size:13px;color:var(--ink2);margin-bottom:6px}
+.select{height:40px;background:#f4f4f4;border:0;border-bottom:1px solid var(--ink3);padding:0 40px 0 16px;display:flex;align-items:center;position:relative;min-width:360px}
+.select::after{content:"";position:absolute;right:16px;top:15px;width:7px;height:7px;border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);transform:rotate(45deg)}
+.cb{width:16px;height:16px;border:1px solid var(--ink);display:inline-grid;place-items:center;vertical-align:-3px;background:#fff}
+.cb.on{background:var(--ink)}.cb.on::after{content:"";width:8px;height:4px;border-left:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(-45deg) translateY(-1px)}
+details.adv{border-top:1px solid var(--line)}
+details.adv summary{padding:14px 20px;cursor:pointer;color:var(--accent);font-size:14px;list-style:none}
+details.adv summary::before{content:"+ "}details.adv[open] summary::before{content:"− "}
+.drop{border:1px dashed var(--ink3);background:#fff;padding:28px;text-align:center;color:var(--ink2)}
+.prog{height:4px;background:var(--line);position:relative;overflow:hidden}.prog i{position:absolute;inset:0 auto 0 0;background:var(--accent);width:0;transition:width .2s linear}
+code.id{font-family:var(--mono);font-size:13px}
+
+/* charts */
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font-family:"IBM Plex Sans",sans-serif;font-size:13px;fill:var(--ink2)}
+.tip{position:absolute;pointer-events:none;background:#161616;color:#fff;font-size:13px;padding:8px 10px;white-space:nowrap;z-index:5}
+.tip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--ink2);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:2px;margin-right:6px;vertical-align:middle}
+.g2{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:16px;align-items:start}
+
+/* presentation */
+.present{position:fixed;inset:0;background:#fff;z-index:50;padding:5vh 7vw;display:flex;flex-direction:column;overflow:auto}
+.present .top{display:flex;align-items:center;font-size:16px;color:var(--ink2);gap:12px}
+.present .big{font-size:clamp(28px,3.6vw,56px);font-weight:300;line-height:1.15;margin:4vh 0 4vh;max-width:22em}
+.present .kv .stat .v{font-size:clamp(36px,4.4vw,72px)}
+.present .kv dt{font-size:16px}.present .kv>div{padding:20px 24px}
+.present .ci{font-size:15px}.present .chart text{font-size:14px}.present .legend{font-size:14px}
+.present .src{margin-top:auto;padding-top:3vh;font-size:14px;color:var(--ink3)}
+
+/* public */
+.pub{max-width:1080px;margin:0 auto;padding:40px 32px 64px}
+.search{display:flex;margin:20px 0 24px}
+.search input{flex:1;height:48px;border:0;border-bottom:1px solid var(--ink3);background:#fff;padding:0 16px;font:500 16px var(--mono);letter-spacing:.5px}
+.search .btn{height:48px;padding:0 24px}
+.modal{position:fixed;inset:0;background:rgba(22,22,22,.5);z-index:40;display:grid;place-items:center}
+.modal>div{background:#fff;width:520px;max-width:92vw}
+.modal .mh{padding:16px 16px 0}.modal .mb{padding:8px 16px 24px;color:var(--ink2)}
+.modal .mf{display:grid;grid-template-columns:1fr 1fr}.modal .mf .btn{height:56px;justify-content:flex-start;padding:0 16px}
+.modal .mf .btn.s{background:#393939;color:#fff;border:0}
+.in{height:40px;background:#fff;border:0;border-bottom:1px solid var(--ink3);padding:0 16px;font:inherit;min-width:0;color:var(--ink)}
+.toolbar{display:flex;gap:8px;margin-bottom:12px}.toolbar .select{background:#fff;min-width:0}
+.rd{width:16px;height:16px;border-radius:50%;border:1px solid var(--ink);display:inline-grid;place-items:center;vertical-align:-3px;background:#fff;flex:none}
+.rd.on::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--ink)}
+tr.sel td{background:#edf5ff}
+table.cmp th.opt{cursor:pointer;font-size:16px;font-weight:600;background:#fff;border-bottom:2px solid var(--line);padding:18px 20px;white-space:normal}
+table.cmp th.opt .rd{margin-right:10px}
+table.cmp th.opt.on{border-bottom-color:var(--accent);background:#edf5ff}
+table.cmp td:first-child,table.cmp th:first-child{color:var(--ink2);background:#f4f4f4;width:200px}
+table.cmp td.on{background:#f6f9ff}
+.formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.formgrid .in{width:100%;background:#f4f4f4}
+.cal{display:flex;gap:20px}.cal .wk{flex:1}.cal .wk>div:last-child{display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
+.cal .wl{font-size:13px;color:var(--ink2);margin-bottom:6px}
+.cal button{border:0;height:54px;font-size:13px;line-height:1.3;position:relative}
+.cal button b{font-family:var(--mono);font-weight:500;font-size:14px}
+.cal button.on{outline:2px solid var(--ink);outline-offset:1px;z-index:1}
+.cal button.mk::after{content:"";position:absolute;top:4px;right:4px;width:7px;height:7px;background:var(--err);border-radius:50%}
+.player{display:flex;align-items:center;gap:16px;padding:14px 20px;border-top:1px solid var(--line)}
+.player input[type=range]{flex:1;accent-color:#161616}
+.clock{font:500 24px var(--mono);letter-spacing:.5px}
+#plansvg text,#gantt text{font-family:"IBM Plex Sans",sans-serif;font-size:13px;fill:var(--ink2)}
+#plansvg text.rn{font-weight:600;fill:var(--ink);font-size:14px}#plansvg text.st{fill:var(--ink)}
+#plansvg svg,#gantt svg{display:block;width:100%;height:auto}
+.gp{display:grid;grid-template-columns:minmax(0,2.5fr) minmax(0,1fr);gap:16px;align-items:start}
+.key{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}.key i{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px}
+.l3{position:absolute;transform:translate(-50%,-100%);background:rgba(255,255,255,.94);border:1px solid var(--line2);padding:3px 8px;font-size:12px;line-height:1.35;white-space:nowrap;color:var(--ink2)}
+.l3 b{color:var(--ink);font-weight:600}.l3.sel{border-color:#161616;box-shadow:0 0 0 1px #161616}
+#plansvg canvas{display:block;cursor:grab;outline:0}#plansvg canvas:active{cursor:grabbing}
+tr.grp td{background:#f4f4f4;font-size:13px;font-weight:600;padding:9px 20px;color:var(--ink2)}
+.badge{display:flex;gap:16px;align-items:center;border:1px solid var(--ink);padding:14px 16px;background:#fff}
+.badge svg{display:block}
+.seg{flex-wrap:wrap}
+.panel.full{position:fixed;inset:0;z-index:30;overflow:auto}
+#plansvg{position:relative;background:#eef1f1}
+.l3 i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.l3.low{transform:translate(-50%,6px)}
+.l3.zone{background:none;border:0;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--ink3)}
+.l3.who{background:#161616;color:#fff;border-color:#161616;z-index:3}.l3.who b{color:#fff}
+.tip3{position:absolute;pointer-events:none;background:#161616;color:#fff;font-size:12px;line-height:1.4;padding:6px 9px;white-space:nowrap;z-index:4;transform:translate(12px,12px)}
+.tip3 b{font-weight:600}.tip3 span{color:#c6c6c6}
+.score{display:grid;grid-template-columns:280px 1fr}
+.sc-l{padding:22px 24px;border-right:1px solid var(--line)}
+.sc-v{font-weight:300;font-size:68px;line-height:1;letter-spacing:-1.5px;margin:8px 0 6px;font-variant-numeric:tabular-nums}
+.sc-v small{font-size:17px;font-weight:400;color:var(--ink2);margin-left:8px;letter-spacing:0}
+.sc-g{font-weight:500}
+.sc-r{padding:20px 24px}
+.sc-b{display:grid;grid-template-columns:210px 1fr 36px;gap:14px;align-items:center;padding:6px 0}
+.sc-b>div{height:6px;background:var(--line)}.sc-b i{display:block;height:6px;background:var(--ink)}
+.sc-b b{font-weight:500;text-align:right}
+.jr{display:grid;grid-template-columns:52px 10px 1fr;gap:10px;padding:10px 20px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px;align-items:baseline}
+.jr:last-child{border-bottom:0}.jr:hover{background:#f4f4f4}
+.jr i{width:8px;height:8px;border-radius:50%;display:block;align-self:center}
+.demo{padding:0;background:#fff}
+.demo .top{padding:18px 4vw;border-bottom:1px solid var(--line);font-size:15px}
+.d-steps{display:flex;margin-left:auto;margin-right:16px}
+.d-steps button{background:none;border:0;border-bottom:2px solid transparent;padding:8px 14px;color:var(--ink3);font-size:14px}
+.d-steps button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:500}
+.d-body{flex:1;padding:4vh 6vw 3vh;display:flex;flex-direction:column;justify-content:center;min-height:0}
+.d-foot{display:flex;align-items:center;gap:24px;padding:18px 4vw;border-top:1px solid var(--line);background:#f4f4f4}
+.d-foot p{margin:0;font-size:17px;color:var(--ink);max-width:70em}
+.d-foot>div{margin-left:auto;display:flex;gap:8px;flex:none}
+.d-eyebrow{font-size:14px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:14px}
+.d-big{font-size:clamp(34px,4.3vw,68px);font-weight:300;line-height:1.1;letter-spacing:-.5px;max-width:18em}
+.d-mid{font-size:clamp(24px,2.6vw,40px);font-weight:300;line-height:1.2;max-width:28em;margin-bottom:3vh}
+.d-lead{font-size:clamp(17px,1.5vw,22px);color:var(--ink2);max-width:44em;margin:3vh 0 5vh}
+.d-kv dt{font-size:14px}.d-kv dd{font-size:clamp(20px,2vw,30px);font-weight:300}
+.d-kv>div{padding:20px 24px}
+.d-3d{background:#eef1f1;position:relative;flex:1;min-height:300px}
+.d-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:5vw;align-items:start}
+.d-score{font-size:clamp(90px,13vw,200px);font-weight:300;line-height:.9;letter-spacing:-4px;font-variant-numeric:tabular-nums}
+.d-score small{font-size:.16em;font-weight:400;color:var(--ink2);letter-spacing:0;margin-left:.4em}
+.demo table td,.demo table th{font-size:16px;padding:16px 20px}
+.demo .chart text{font-size:14px}.demo .legend{font-size:14px}
+.runc{font-weight:300;font-size:30px;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+ul.plain{margin:8px 0 0;padding-left:18px}ul.plain li{margin:4px 0}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+
+<div class="shell">
+  <div class="logo" onclick="go('tests')">Blocapta<span>Éditeurs</span></div>
+  <nav>
+    <button id="nav-tests" class="on" onclick="go('tests')">Tests</button>
+    <button id="nav-hosp" onclick="go('hosp')">Hôpitaux</button>
+  </nav>
+  <div class="right">
+    <button class="btn sm" style="background:#0f62fe;color:#fff" onclick="openTest('scribe');demo()">Démo guidée</button><span class="tagdemo">Prototype, données d'exemple</span>
+    <a onclick="go('verify')">Vérifier un certificat ↗</a>
+    <span class="org"><span class="av">SE</span>Société exemple</span>
+  </div>
+</div>
+
+<!-- ============ LISTE DES TESTS ============ -->
+<section id="v-tests">
+  <div class="ph">
+    <div class="t"><h1>Tests</h1><div class="acts"><button class="btn p" onclick="openTest('new')">Nouveau test</button></div></div>
+    <div class="meta"><span>4 tests</span><span>1 certificat émis</span></div>
+  </div>
+  <div class="page">
+    <dl class="kv" style="margin:0 0 24px">
+      <div><dt>Tests</dt><dd class="runc">4</dd></div><div><dt>Certificats émis</dt><dd class="runc">1</dd></div>
+      <div><dt>Indice d’adoption moyen</dt><dd class="runc">77 <span class="muted" style="font-size:15px">/ 100</span></dd></div><div><dt>Blocs disponibles</dt><dd class="runc">5</dd></div></dl>
+    <div class="panel">
+      <table>
+        <thead><tr><th>Logiciel</th><th>Bloc</th><th>Offre</th><th>Scénarios</th><th>État</th><th>Conclusion</th><th class="num">Indice</th><th>Certificat</th><th class="r">Modifié</th></tr></thead>
+        <tbody>
+          <tr class="click" onclick="openTest('scribe')"><td><b style="font-weight:500">Scribe IA</b> <span class="muted">2.3</span></td><td>Bloc pilote, 10 salles</td><td>Certification</td><td>A, B</td><td>Terminé</td><td><span class="tag warn">Conforme avec réserves</span></td><td class="num">83</td><td class="muted">Prêt à émettre</td><td class="r muted">14/11/2026</td></tr>
+          <tr class="click" onclick="openTest('scribe')"><td><b style="font-weight:500">Checklist tablette</b> <span class="muted">1.8</span></td><td>Bloc pilote, 10 salles</td><td>Certification</td><td>A, B, C</td><td>Terminé</td><td><span class="tag warn">Réserves</span></td><td class="num">71</td><td><code class="id">BLC-2026-7QD2-38</code></td><td class="r muted">12/11/2026</td></tr>
+          <tr class="click" onclick="openTest('gen')"><td><b style="font-weight:500">Checklist tablette</b> <span class="muted">1.7</span></td><td>Bloc générique</td><td>Test</td><td>A, B</td><td>Terminé</td><td><span class="tag warn">Conforme avec réserves</span></td><td class="num">76</td><td class="muted">Sans certificat</td><td class="r muted">05/11/2026</td></tr>
+          <tr class="click" onclick="openTest('new')"><td><b style="font-weight:500">ScanTrace</b> <span class="muted">4.0</span></td><td class="muted">Non choisi</td><td class="muted">Non choisie</td><td class="muted">Aucun</td><td>Brouillon</td><td><span class="tag err">Fiche incomplète</span></td><td class="num muted">n. a.</td><td class="muted">Aucun</td><td class="r muted">10/11/2026</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small muted" style="margin-top:12px">Un test simule l'adoption d'un logiciel dans un bloc, sur les mêmes semaines jouées sans puis avec l'outil.</p>
+  </div>
+</section>
+
+<!-- ============ UN TEST ============ -->
+<section id="v-test" hidden>
+  <div class="ph">
+    <div class="crumb"><a onclick="go('tests')">Tests</a> / <span id="t-crumb"></span></div>
+    <div class="t"><h1 id="t-title"></h1><span id="t-tag"></span>
+      <div class="acts" id="t-acts"></div></div>
+    <div class="meta" id="t-meta"></div>
+  </div>
+  <div class="ws">
+    <ol class="steps" id="steps"></ol>
+    <div id="pane"></div>
+  </div>
+</section>
+
+<!-- ============ HÔPITAUX ============ -->
+<section id="v-hosp" hidden>
+  <div class="ph">
+    <div class="t"><h1>Hôpitaux</h1><div class="acts"><button class="btn p" onclick="go('req')">Demander un jumeau numérique</button></div></div>
+    <div class="meta"><span>1 bloc générique</span><span>4 jumeaux d’hôpitaux</span><span>1 demande en cours</span></div>
+  </div>
+  <div class="page" id="hosp"></div>
+</section>
+<section id="v-req" hidden>
+  <div class="ph">
+    <div class="crumb"><a onclick="go('hosp')">Hôpitaux</a> / Nouvelle demande</div>
+    <div class="t"><h1>Demander un jumeau numérique</h1></div>
+    <div class="meta"><span>Pour un hôpital absent de la liste</span></div>
+  </div>
+  <div class="page" id="req" style="max-width:1200px"></div>
+</section>
+
+<!-- ============ PAGE PUBLIQUE ============ -->
+<section id="v-verify" hidden>
+  <div class="pub">
+    <h1>Vérifier un certificat Blocapta</h1>
+    <p class="muted" style="margin:8px 0 0">Saisissez le numéro figurant dans la proposition de l'éditeur. Aucun compte n'est nécessaire.</p>
+    <div class="search"><input id="q" value="BLC-2026-4F7K-91" aria-label="Numéro de certification"><button class="btn p" onclick="verify()">Vérifier</button></div>
+    <div id="vres"></div>
+  </div>
+</section>
+
+<div id="overlay"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const ICON={
+  ok:'<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#198038"/><path d="M6 10.4l2.6 2.6L14 7.6" stroke="#fff" stroke-width="1.8" fill="none"/></svg>',
+  warn:'<svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 1.5l9 16.5H1z" fill="#f1c21b"/><path d="M10 7.5v5M10 14.3v1.4" stroke="#161616" stroke-width="1.6"/></svg>',
+  err:'<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#da1e28"/><path d="M6.5 6.5l7 7M13.5 6.5l-7 7" stroke="#fff" stroke-width="1.8"/></svg>',
+  info:'<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#0f62fe"/><path d="M10 9v5M10 5.6v1.6" stroke="#fff" stroke-width="1.8"/></svg>',
+  lock:'<svg width="14" height="14" viewBox="0 0 16 16" style="vertical-align:-2px"><rect x="3" y="7" width="10" height="7" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>'
+};
+const S={view:'tests',test:'scribe',pane:'res',sc:'A',tab:'syn',issued:false,ficheOk:true,ran:true,hosp:'pilote',hv:'pilote',reqMode:'blocapta',reqChecked:false,reqSent:false,day:1,arm:'avec',T:630,room:3,timer:null,sel:['A','B'],ranSc:['A','B'],psc:null,selP:null,playing:false,speed:6,full:false};
+let Z=1;function fit(){Z=Math.min(1.2,Math.max(1,innerWidth/1640));document.body.style.zoom=Z;}
+addEventListener('resize',()=>{fit();if(S.view==='test'&&S.pane!=='run'&&S.slide==null)renderTest();});
+const INCL=3;
+const SCEN=[['A','Déploiement','Déploiement un lundi à 8 h','Adoption sans incident, semaine par semaine'],
+ ['B','Incident','Panne le mardi de la semaine 1','Avec et sans support sur place'],
+ ['C','Équipe','Chirurgien senior réticent','Comparé à une salle menée par une IBODE championne'],
+ ['D','Déploiement','Déploiement progressif, deux salles d’abord','Comparé à un déploiement dans tout le bloc le même jour'],
+ ['E','Équipe','Arrivée de soignants non formés en semaine 3','Intérimaires et nouveaux arrivants, avec ou sans tutorat'],
+ ['F','Activité','Semaine de forte activité','Programme chargé et urgences nombreuses dès la semaine 1'],
+ ['G','Incident','Mise à jour de l’outil en semaine 3','Changement d’écran, avec ou sans information préalable'],
+ ['H','Incident','Panne d’une journée entière','Retour au papier, puis reprise des données']];
+function toggleSc(k){const i=S.sel.indexOf(k);if(i>=0){if(S.sel.length>1)S.sel.splice(i,1);}else S.sel.push(k);renderTest();}
+const hosp=()=>HOSP.find(h=>h.id===S.hosp);
+const jz=h=>h.id==='gen'?'<span class="tag gray plain">Modèle type</span>':`<span class="tag ok">Calibré</span> <span class="small muted">v${h.ver}</span>`;
+const of=h=>h.id==='gen'?'Test, sans certificat':'Test et certification';
+const HOSP=[
+ {id:'gen',n:'Bloc générique',reg:'Aucun établissement',type:'Bloc type, valeurs moyennes',salles:10,spec:'Répartition moyenne des spécialités',data:'Moyennes des jumeaux existants',ver:'1.0'},
+ {id:'pilote',n:'Bloc pilote',reg:'Établissement anonymisé',type:'Centre hospitalier',salles:10,spec:'Orthopédie, viscéral, gynécologie, ophtalmologie',data:'9 182 interventions, janvier à octobre 2026',ver:'1.4'},
+ {id:'a',n:'CHU exemple A',reg:'Auvergne-Rhône-Alpes',type:'CHU',salles:24,spec:'Cardiaque, neurochirurgie, orthopédie',data:'21 340 interventions, année 2025',ver:'1.2'},
+ {id:'b',n:'CH exemple B',reg:'Bretagne',type:'Centre hospitalier',salles:8,spec:'Viscéral, urologie, gynécologie',data:'6 105 interventions, année 2025',ver:'1.1'},
+ {id:'c',n:'Clinique exemple C',reg:'Occitanie',type:'Clinique privée',salles:12,spec:'Orthopédie, ophtalmologie, ORL',data:'11 870 interventions, 2025 à mi-2026',ver:'1.0'}];
+const FID=[['Interventions par jour ouvré','34','28',1],['Taux d’annulation','16 %','15 %',0],['Durée en salle, par spécialité','référence','écart proche de 0 %',0],['Occupation des vacations','54 %','54 %',0],['Part de l’orthopédie','14 %','14 %',0],['Part de la gynécologie','11 %','16 %',1],['Part de l’ophtalmologie','24 %','17 %',1],['Urgences de nuit','18 %','27 %',1]];
+
+/* ---------- données d'exemple ---------- */
+const ser=(a,b,k,dip,end)=>{const r=Array.from({length:20},(_,d)=>{let v=b-(b-a)*Math.exp(-k*d); if(dip&&d>=1){v-=dip[0]*Math.exp(-dip[1]*(d-1));} return Math.max(.05,Math.min(.98,v+Math.sin(d*2.1+a*9)*.008));});const e=end-r[19];return r.map((v,d)=>v+e*d/19);};
+const SC={
+ A:{name:'Déploiement un lundi à 8 h',tag:['ok','Conforme'],icon:'ok',
+    verdict:'Déployable sans perturbation mesurable du bloc.',
+    detail:'L’outil n’ajoute pas de retard et réduit les jours de surcharge. Aucun signal de risque patient sur 20 répétitions.',
+    stats:[['Retard ajouté par semaine','+0,0','min','[−0,4 ; +0,5]'],['Jours de surcharge','−19','','[−24 ; −14]'],['Erreurs de traçabilité','−2,9','/sem.','[−3,6 ; −2,1]'],['Confiance finale','0,85','/ 1','[0,81 ; 0,88]']],
+    series:[['IBODE',ser(.5,.9,.16,null,.90),'--s1'],['IADE et MAR',ser(.48,.86,.13,null,.86),'--s2'],['Chirurgiens',ser(.42,.8,.1,null,.79),'--s3']],
+    chartTitle:'Confiance dans l’outil, par rôle',
+    risks:[],cond:[['Formation de 30 minutes par soignant avant le lundi','Hypothèse de départ de la courbe d’apprentissage',0]],
+    rows:[['Retard ajouté par semaine (min)','n. a.','0,0','+0,0','[−0,4 ; +0,5]',0,-.04,.05,0],['Jours de surcharge, 4 semaines','31','12','−19','[−24 ; −14]',-.6,-.76,-.44,1],['Erreurs de traçabilité par semaine','6,1','3,2','−2,9','[−3,6 ; −2,1]',-.47,-.59,-.34,1],['Interventions déprogrammées','14,0','14,0','0,0','[−1,0 ; +1,0]',0,-.07,.07,0],['Débordements après 17 h 30','9','9','0','[−1 ; +1]',0,-.1,.1,0]],
+    sens:['14 sur 14','La conclusion ne change dans aucune des 14 variations testées.','ok'],
+    torn:[['Aversion à la perte λ',.83,.86],['Vitesse d’apprentissage α',.80,.88],['Sensibilité aux collègues κ',.83,.87],['Courbe d’apprentissage',.82,.87],['Seuil de contournement',.84,.86],['Mémoire d’une panne',.85,.85]],base:.85},
+ B:{name:'Panne le mardi de la semaine 1',tag:['warn','Réserves'],icon:'warn',
+    verdict:'Déployable, à condition de prévoir un support sur place la première semaine.',
+    detail:'Après la panne, la confiance remonte à 0,80 avec support, contre 0,66 sans. Sans support, une partie de l’équipe contourne encore l’outil en semaine 4.',
+    stats:[['Retard ajouté, semaine 1','+3,1','min','[+1,8 ; +4,6]'],['Jours de surcharge','−11','','[−17 ; −6]'],['Confiance finale, avec support','0,80','/ 1','[0,74 ; 0,84]'],['Confiance finale, sans support','0,66','/ 1','[0,57 ; 0,73]']],
+    series:[['Sans panne (témoin)',ser(.48,.86,.13,null,.84),'--s3'],['Panne, avec support',ser(.48,.85,.13,[.3,.22],.80),'--s2'],['Panne, sans support',ser(.48,.84,.13,[.36,.045],.66),'--s1']],
+    chartTitle:'Confiance des soignants exposés à la panne',
+    cond:[['Support sur place toute la semaine 1','Confiance finale 0,80 au lieu de 0,66',1],['Procédure papier connue de l’équipe avant le déploiement','Retard du mardi limité à +7 min par salle',1],['Formation de 30 minutes par soignant avant le lundi','Hypothèse de départ de la courbe d’apprentissage',0]],
+    risks:[['Modéré','Contournement de l’outil par une partie des chirurgiens, semaines 1 et 2','Retour au papier, double saisie possible.'],['Modéré','Double saisie le jour de la panne','Charge de travail en hausse en salle le mardi.']],
+    rows:[['Retard ajouté, semaine 1 (min)','n. a.','3,1','+3,1','[+1,8 ; +4,6]',.52,.3,.77,-1],['Retard ajouté, semaine 4 (min)','n. a.','0,6','+0,6','[−0,1 ; +1,4]',.1,-.02,.23,0],['Jours de surcharge, 4 semaines','31','20','−11','[−17 ; −6]',-.35,-.55,-.19,1],['Erreurs de traçabilité par semaine','6,1','4,9','−1,2','[−2,0 ; −0,3]',-.2,-.33,-.05,1],['Usage de l’outil en semaine 4, sans support','n. a.','71 %','','[62 ; 80]',null]],
+    sens:['9 sur 14','La conclusion change dans 5 variations. Elle dépend de λ, α, κ et de la courbe d’apprentissage, dont trois sont à calibrer.','warn'],
+    torn:[['Aversion à la perte λ',.58,.74],['Vitesse d’apprentissage α',.52,.76],['Sensibilité aux collègues κ',.59,.72],['Courbe d’apprentissage',.60,.71],['Mémoire d’une panne',.62,.70],['Seuil de contournement',.64,.68]],base:.66}
+};
+SC.A.short='Déploiement';SC.B.short='Panne';SC.B.mark=[1,'Panne'];
+const T6=(base,sp)=>['Aversion à la perte λ','Vitesse d’apprentissage α','Sensibilité aux collègues κ','Courbe d’apprentissage','Mémoire d’une panne','Seuil de contournement'].map((n,i)=>[n,+(base-sp[i]).toFixed(2),+(base+sp[i]*.8).toFixed(2)]);
+Object.assign(SC,{
+ C:{name:'Chirurgien senior réticent',short:'Senior réticent',tag:['warn','Réserves'],icon:'warn',
+   verdict:'Déployable, à condition de s’appuyer sur une IBODE référente dans chaque salle.',
+   detail:'Dans la salle du chirurgien réticent, la confiance de l’équipe plafonne à 0,49. Elle atteint 0,73 dans la salle menée par une IBODE championne.',
+   stats:[['Retard ajouté, semaine 1','+1,8','min','[+0,9 ; +2,9]'],['Confiance, salle du senior','0,49','/ 1','[0,41 ; 0,58]'],['Confiance, salle championne','0,73','/ 1','[0,67 ; 0,78]'],['Usage, salle du senior','58',' %','[47 ; 69]']],
+   series:[['Salle IBODE championne',ser(.5,.75,.14,null,.73),'--s3'],['Moyenne du bloc',ser(.48,.68,.12,null,.66),'--s2'],['Salle du senior réticent',ser(.42,.5,.1,null,.49),'--s1']],
+   chartTitle:'Confiance de l’équipe, par salle',
+   cond:[['Une IBODE référente dans chaque salle','Confiance 0,73 au lieu de 0,49',1],['Entretien avec le chirurgien senior avant le lundi','Réduit la réticence de départ',0]],
+   risks:[['Modéré','Contournement durable dans la salle du senior','42 % des saisies restent sur papier en semaine 4.']],
+   rows:[['Retard ajouté, semaine 1 (min)','n. a.','1,8','+1,8','[+0,9 ; +2,9]',.3,.15,.48,-1],['Jours de surcharge, 4 semaines','31','22','−9','[−14 ; −4]',-.29,-.45,-.13,1],['Erreurs de traçabilité par semaine','6,1','4,4','−1,7','[−2,5 ; −0,8]',-.28,-.41,-.13,1]],
+   sens:['10 sur 14','La conclusion change dans 4 variations. Elle dépend surtout de la sensibilité aux collègues κ, à calibrer.','warn'],torn:T6(.49,[.07,.08,.13,.05,.01,.06]),base:.49},
+ D:{name:'Déploiement progressif, deux salles d’abord',short:'Progressif',tag:['ok','Conforme'],icon:'ok',
+   verdict:'Déployable. Commencer par deux salles réduit le retard de la première semaine.',
+   detail:'Le déploiement progressif ajoute 0,6 minute en semaine 1, contre 2,4 pour tout le bloc le même jour. La confiance finale est la même.',
+   stats:[['Retard semaine 1, progressif','+0,6','min','[+0,1 ; +1,2]'],['Retard semaine 1, tout le bloc','+2,4','min','[+1,5 ; +3,4]'],['Confiance finale','0,84','/ 1','[0,80 ; 0,87]'],['Jours de surcharge','−16','','[−21 ; −11]']],
+   series:[['Deux salles d’abord',ser(.5,.86,.12,null,.84),'--s3'],['Tout le bloc le même jour',ser(.46,.86,.15,null,.84),'--s1']],
+   chartTitle:'Confiance des équipes, selon le mode de déploiement',
+   cond:[['Deux salles pilotes pendant la semaine 1','Retard +0,6 min au lieu de +2,4',1]],risks:[],
+   rows:[['Retard ajouté, semaine 1 (min)','2,4','0,6','−1,8','[−2,6 ; −0,9]',-.3,-.43,-.15,1],['Jours de surcharge, 4 semaines','31','15','−16','[−21 ; −11]',-.52,-.68,-.35,1],['Confiance finale','0,84','0,84','0,00','[−0,03 ; +0,03]',0,-.04,.04,0]],
+   sens:['14 sur 14','La conclusion ne change dans aucune des 14 variations testées.','ok'],torn:T6(.84,[.02,.04,.02,.03,0,.01]),base:.84},
+ E:{name:'Arrivée de soignants non formés en semaine 3',short:'Nouveaux arrivants',tag:['warn','Réserves'],icon:'warn',mark:[10,'Arrivées'],
+   verdict:'Déployable, à condition de prévoir un tutorat pour les nouveaux arrivants.',
+   detail:'Sans tutorat, la confiance des nouveaux arrivants reste à 0,52 et les erreurs remontent en semaine 3. Avec tutorat, elle atteint 0,71.',
+   stats:[['Confiance des arrivants, avec tutorat','0,71','/ 1','[0,64 ; 0,77]'],['Confiance des arrivants, sans tutorat','0,52','/ 1','[0,43 ; 0,60]'],['Erreurs en semaine 3, sans tutorat','+1,4','/sem.','[+0,5 ; +2,3]'],['Retard ajouté, semaine 3','+1,1','min','[+0,4 ; +1,9]']],
+   series:[['Équipe en place',ser(.5,.86,.14,null,.85),'--s3'],['Arrivants, avec tutorat',ser(.5,.86,.14,[.42,.12],.71).map((v,d)=>d<10?null:v),'--s2'],['Arrivants, sans tutorat',ser(.5,.86,.14,[.5,.04],.52).map((v,d)=>d<10?null:v),'--s1']],
+   chartTitle:'Confiance : équipe en place et nouveaux arrivants',
+   cond:[['Tutorat d’une semaine pour chaque arrivant','Confiance 0,71 au lieu de 0,52',1]],
+   risks:[['Modéré','Erreurs de saisie en hausse en semaine 3 sans tutorat','Les arrivants découvrent l’outil pendant le programme.']],
+   rows:[['Erreurs de traçabilité, semaine 3','6,1','7,5','+1,4','[+0,5 ; +2,3]',.23,.08,.38,-1],['Retard ajouté, semaine 3 (min)','n. a.','1,1','+1,1','[+0,4 ; +1,9]',.18,.07,.32,-1],['Jours de surcharge, 4 semaines','31','19','−12','[−17 ; −7]',-.39,-.55,-.23,1]],
+   sens:['11 sur 14','La conclusion change dans 3 variations, toutes liées à la courbe d’apprentissage.','warn'],torn:T6(.52,[.05,.09,.07,.11,0,.05]),base:.52},
+ F:{name:'Semaine de forte activité',short:'Forte activité',tag:['ok','Conforme'],icon:'ok',
+   verdict:'Déployable. L’outil tient une première semaine chargée.',
+   detail:'Avec un programme chargé et des urgences nombreuses, le retard ajouté reste sous 2 minutes en semaine 1 et disparaît en semaine 3.',
+   stats:[['Retard ajouté, semaine 1','+1,9','min','[+1,0 ; +2,9]'],['Jours de surcharge','−6','','[−11 ; −1]'],['Débordements après 17 h 30','+1','','[0 ; +2]'],['Confiance finale','0,81','/ 1','[0,76 ; 0,85]']],
+   series:[['IBODE',ser(.5,.88,.13,null,.86),'--s1'],['IADE et MAR',ser(.48,.84,.11,null,.82),'--s2'],['Chirurgiens',ser(.42,.78,.09,null,.75),'--s3']],
+   chartTitle:'Confiance dans l’outil, par rôle',
+   cond:[['Formation de 30 minutes par soignant avant le lundi','Hypothèse de départ de la courbe d’apprentissage',0]],risks:[],
+   rows:[['Retard ajouté, semaine 1 (min)','n. a.','1,9','+1,9','[+1,0 ; +2,9]',.32,.17,.48,-1],['Jours de surcharge, 4 semaines','44','38','−6','[−11 ; −1]',-.14,-.25,-.02,1],['Débordements après 17 h 30','17','18','+1','[0 ; +2]',.06,0,.12,0]],
+   sens:['13 sur 14','La conclusion change dans une variation, avec la vitesse d’apprentissage α au plus bas.','ok'],torn:T6(.81,[.03,.06,.03,.04,0,.02]),base:.81},
+ G:{name:'Mise à jour de l’outil en semaine 3',short:'Mise à jour',tag:['ok','Conforme'],icon:'ok',mark:[10,'Mise à jour'],
+   verdict:'Déployable. Une mise à jour annoncée ne fait pas baisser la confiance.',
+   detail:'Annoncée une semaine avant, la mise à jour laisse la confiance à 0,84. Sans annonce, elle descend à 0,76 puis remonte.',
+   stats:[['Confiance finale, mise à jour annoncée','0,84','/ 1','[0,80 ; 0,87]'],['Confiance finale, sans annonce','0,76','/ 1','[0,70 ; 0,81]'],['Retard ajouté, semaine 3','+0,7','min','[+0,1 ; +1,4]'],['Erreurs en semaine 3','+0,4','/sem.','[−0,2 ; +1,0]']],
+   series:[['Mise à jour annoncée',ser(.5,.86,.14,null,.84),'--s3'],['Sans annonce',ser(.5,.86,.14,null,.84).map((v,d)=>d<10?v:v-.2*Math.exp(-.1*(d-10))-.016),'--s1']],
+   chartTitle:'Confiance des équipes, avant et après la mise à jour',
+   cond:[['Annoncer la mise à jour une semaine avant','Confiance 0,84 au lieu de 0,76',1]],risks:[],
+   rows:[['Retard ajouté, semaine 3 (min)','n. a.','0,7','+0,7','[+0,1 ; +1,4]',.12,.02,.23,0],['Erreurs de traçabilité, semaine 3','3,2','3,6','+0,4','[−0,2 ; +1,0]',.07,-.03,.17,0],['Confiance finale','0,84','0,84','0,00','[−0,03 ; +0,03]',0,-.04,.04,0]],
+   sens:['14 sur 14','La conclusion ne change dans aucune des 14 variations testées.','ok'],torn:T6(.84,[.02,.03,.02,.02,.01,.01]),base:.84},
+ H:{name:'Panne d’une journée entière',short:'Panne longue',tag:['err','Non conforme'],icon:'err',mark:[6,'Panne'],
+   verdict:'Non déployable en l’état : après une journée de panne sans reprise des données, la confiance ne remonte pas.',
+   detail:'La journée de panne oblige à tout ressaisir. En semaine 4, 56 % des saisies passent encore par le papier et les erreurs dépassent le niveau sans outil.',
+   stats:[['Confiance finale','0,41','/ 1','[0,32 ; 0,50]'],['Usage de l’outil, semaine 4','44',' %','[35 ; 54]'],['Erreurs de traçabilité','+2,1','/sem.','[+1,0 ; +3,3]'],['Retard ajouté, semaine 2','+6,8','min','[+4,9 ; +8,9]']],
+   series:[['Sans panne (témoin)',ser(.48,.86,.13,null,.84),'--s3'],['Panne, avec reprise des données',ser(.48,.84,.13,[.38,.12],.74).map((v,d)=>d<6?ser(.48,.86,.13,null,.84)[d]:v),'--s2'],['Panne, sans reprise',ser(.48,.84,.13,[.5,.02],.41).map((v,d)=>d<6?ser(.48,.86,.13,null,.84)[d]:v),'--s1']],
+   chartTitle:'Confiance des soignants après une journée de panne',
+   cond:[['Reprise automatique des données après une panne','Confiance finale 0,74 au lieu de 0,41',1],['Procédure papier connue de l’équipe','Limite le retard le jour de la panne',1]],
+   risks:[['Élevé','Double saisie de toute une journée','Les données notées sur papier sont ressaisies le lendemain.'],['Élevé','Abandon de l’outil par une partie de l’équipe','56 % des saisies sur papier en semaine 4.']],
+   rows:[['Retard ajouté, semaine 2 (min)','n. a.','6,8','+6,8','[+4,9 ; +8,9]',.68,.49,.89,-1],['Erreurs de traçabilité par semaine','6,1','8,2','+2,1','[+1,0 ; +3,3]',.34,.16,.54,-1],['Jours de surcharge, 4 semaines','31','36','+5','[+1 ; +10]',.16,.03,.32,-1]],
+   sens:['13 sur 14','La conclusion reste défavorable dans 13 variations sur 14.','err'],torn:T6(.41,[.08,.07,.06,.05,.09,.04]),base:.41}});
+const tagOf=k=>SC[k].tag[0];
+const COMP=['Confiance des équipes','Fluidité du bloc','Charge de travail','Robustesse du résultat'];
+const SCO={A:[91,[88,97,92,86]],B:[74,[78,70,76,64]],C:[68,[62,78,74,58]],D:[89,[86,94,90,86]],E:[71,[66,80,76,62]],F:[84,[82,80,84,90]],G:[88,[85,90,90,86]],H:[38,[36,30,42,52]]};
+const grade=v=>v>=85?'Adoption solide':v>=70?'Adoption sous conditions':v>=50?'Adoption fragile':'Adoption à risque';
+function scoreOf(k){if(SCO[k])return SCO[k];const L=S.ranSc,avg=f=>Math.round(L.reduce((a,x)=>a+f(SCO[x]),0)/L.length);return [avg(x=>x[0]),COMP.map((_,i)=>avg(x=>x[1][i]))];}
+function scorePanel(k){const [v,c]=scoreOf(k);return `<div class="panel score"><div class="sc-l"><div class="small muted">Indice d’adoption${SCO[k]?'':', moyenne des scénarios'}</div><div class="sc-v">${v}<small>/ 100</small></div><div class="sc-g">${grade(v)}</div></div><div class="sc-r">${COMP.map((n,i)=>`<div class="sc-b"><span>${n}</span><div><i style="width:${c[i]}%"></i></div><b class="num">${c[i]}</b></div>`).join('')}<p class="small muted" style="margin:10px 0 0">Indice composite : 40 % confiance, 25 % fluidité, 20 % charge, 15 % robustesse.</p></div></div>`;}
+function overall(){const t=S.ranSc.map(tagOf);return t.includes('err')?['err','Non conforme']:t.includes('warn')?['warn','Conforme avec réserves']:['ok','Conforme'];}
+function resSummary(){const n=S.ranSc.length;if(n<=3)return S.ranSc.map(k=>k+' '+SC[k].tag[1].toLowerCase()).join(' · ');const e=S.ranSc.filter(k=>tagOf(k)==='err').length,w=S.ranSc.filter(k=>tagOf(k)==='warn').length;return `${n} scénarios`+(e?`, ${e} non conforme${e>1?'s':''}`:w?`, ${w} avec réserves`:', tous conformes');}
+const scList=()=>S.ranSc.length>1?S.ranSc.slice(0,-1).join(', ')+' et '+S.ranSc[S.ranSc.length-1]:S.ranSc[0];
+const HYP=[['Aversion à la perte λ','1,955','Méta-analyse Brown, Imai, Vieider, Camerer 2024 (IC 1,82 à 2,10)',0],['Vitesse d’apprentissage α','0,08','Aucune mesure au bloc',1],['Sensibilité aux collègues κ','× 1','Profils de Rogers (1962), valeurs à calibrer',1],['Courbe d’apprentissage','0,5','Loi puissance de la pratique, Newell et Rosenbloom 1981',1],['Seuil de contournement','0,20','TAM (Davis 1989), UTAUT (Venkatesh 2003)',1],['Mémoire d’une panne, demi-vie','15 j','Lee et See 2004',1],['Durées, annulations, urgences','réel','Export OPROOM pseudonymisé, janvier à octobre 2026',0]];
+const FICHE=[['Identité et périmètre',6,6],['Usage en salle',8,8],['Temps ajouté ou gagné',5,5,1],['Pannes et continuité',5,5,2],['Formation et support',6,6,1],['Interopérabilité et sécurité',6,6],['Preuves et études',4,4]];
+
+/* ---------- navigation ---------- */
+function stopPlay(){S.playing=false;}
+function go(v){stopPlay();S.view=v;['tests','test','hosp','req','verify'].forEach(x=>$('#v-'+x).hidden=x!==v);$('#nav-tests').classList.toggle('on',v==='tests'||v==='test');$('#nav-hosp').classList.toggle('on',v==='hosp'||v==='req');if(v==='test')renderTest();if(v==='hosp')renderHosp();if(v==='req')renderReq();if(v==='verify'){$('#vres').innerHTML='';}window.scrollTo(0,0);}
+function openTest(id){S.test=id;S.hosp=id==='gen'?'gen':'pilote';if(id==='new'){S.ficheOk=false;S.ran=false;S.issued=false;S.pane='fiche';}else{if(id==='gen')S.issued=false;S.sel=['A','B'];S.ranSc=['A','B'];S.sc='*';S.ficheOk=true;S.ran=true;S.pane='res';S.tab='syn';}go('test');}
+function pane(p){if((p==='config'&&!S.ficheOk)||((p==='res'||p==='cert'||p==='plan')&&!S.ran))return;S.pane=p;renderTest();window.scrollTo(0,0);}
+
+function renderTest(){
+  const nm=S.test==='new'?'ScanTrace':S.test==='gen'?'Checklist tablette':'Scribe IA', ver=S.test==='new'?'4.0':S.test==='gen'?'1.7':'2.3';const H=hosp(),gen=S.hosp==='gen';
+  $('#t-crumb').textContent=nm; $('#t-title').textContent=nm+' '+ver;
+  const st=!S.ficheOk?['err','Fiche incomplète']:!S.ran?['gray','À simuler']:S.issued&&!gen?['blue','Certifié']:overall();if(S.sc!=='*'&&!S.ranSc.includes(S.sc))S.sc='*';
+  $('#t-tag').innerHTML=`<span class="tag ${st[0]}">${st[1]}</span>`+(gen&&S.ran?' <span class="tag gray plain">Offre Test, sans certificat</span>':'');
+  $('#t-meta').innerHTML=S.ran?`<span>${H.n}, ${H.salles} salles</span>`+`<span>Scénario${S.ranSc.length>1?'s':''} ${scList()}</span>`+'<span>4 semaines × 20 répétitions</span><span>Modèle BlocSim 1.4</span><span>Simulé le 14/11/2026 à 10 h 42</span>':'<span>Brouillon</span><span>Modifié le 10/11/2026</span>';
+  $('#t-acts').innerHTML=S.ran?`<button class="btn p" onclick="demo()">Présenter</button><button class="btn s">Exporter</button>`:'';
+  const steps=[['fiche','Fiche logiciel',S.ficheOk?'40 champs sur 40':'2 champs critiques manquants',S.ficheOk?'done':'block'],
+    ['config','Configuration',S.ran?H.n+' · '+S.ranSc.join(', '):S.ficheOk?'À définir':'En attente de la fiche',S.ran?'done':''],
+    ['res','Résultats',S.ran?resSummary():'Aucun résultat',S.ran?'done':''],
+    ['cert','Certificat',gen?'Indisponible, bloc générique':S.issued?'BLC-2026-4F7K-91':S.ran?'Prêt à émettre':'Non disponible',S.issued&&!gen?'done':'']];
+  stopPlay();
+  $('#steps').innerHTML=steps.map((s,i)=>`<li class="${s[3]} ${S.pane===s[0]?'on':''}" onclick="pane('${s[0]}')" style="${(i===1&&!S.ficheOk)||(i>1&&!S.ran)?'opacity:.5;cursor:not-allowed':''}"><span class="ix">${s[3]==='done'?'✓':s[3]==='block'?'!':i+1}</span><span><b>${s[1]}</b><small>${s[2]}</small></span></li>`).join('')
+   +`<li class="lab">Explorer</li><li class="${S.pane==='plan'?'on':''}" onclick="pane('plan')" style="${S.ran?'':'opacity:.5;cursor:not-allowed'}"><span class="ix"><svg width="8" height="10" viewBox="0 0 8 10"><path d="M0 0l8 5-8 5z" fill="currentColor"/></svg></span><span><b>Plan du bloc</b><small>La simulation, heure par heure</small></span></li>`;
+  $('#pane').innerHTML=({fiche:pFiche,config:pConfig,res:pRes,cert:pCert,plan:pPlan,run:pRun})[S.pane]();
+  if(S.pane==='res'&&SC[S.sc])afterRes();
+  document.body.style.overflow=S.pane==='plan'&&S.full?'hidden':'';
+  if(S.pane==='plan')drawPlan();
+}
+
+/* ---------- 1. fiche ---------- */
+function pFiche(){
+  const ok=S.ficheOk;
+  const banner=ok
+   ?`<div class="note">${ICON.ok}<div><b>Fiche analysable. Niveau de confiance : élevé.</b><p>40 champs sur 40 renseignés, dont les 4 champs critiques. Vérifiée par les règles et par l’IA locale (qwen2.5:14b).</p></div></div>`
+   :`<div class="note err">${ICON.err}<div><b>La fiche ne peut pas être simulée.</b><p>2 champs critiques sur 4 ne sont pas renseignés. Blocapta ne produit aucun chiffre pour une fiche incomplète.</p></div><div class="r"><button class="btn s sm">Importer une nouvelle version</button></div></div>`;
+  const miss=ok?'':`<div class="sec"><div class="h"><h3>À compléter pour continuer</h3><p>2 champs critiques</p></div><div class="panel"><table>
+    <thead><tr><th>Champ</th><th>Constat</th><th>Question à poser à l’auteur</th><th></th></tr></thead><tbody>
+    <tr><td><b style="font-weight:500">Temps de saisie par intervention</b><br><span class="small muted">Temps ajouté ou gagné</span></td><td><span class="tag err">Vide</span></td><td class="muted">Combien de secondes la saisie ajoute-t-elle par intervention, et pour quel rôle ?</td><td class="r"><button class="btn g sm">Renseigner</button></td></tr>
+    <tr><td><b style="font-weight:500">Fonctionnement en cas de panne</b><br><span class="small muted">Pannes et continuité</span></td><td><span class="tag err">Inconnu</span></td><td class="muted">Que fait l’équipe si l’outil est indisponible : procédure papier, reprise des données ?</td><td class="r"><button class="btn g sm">Renseigner</button></td></tr>
+    </tbody></table></div><p class="small" style="margin-top:8px"><a>Copier les 2 questions</a> · <a>Voir aussi 3 champs facultatifs incomplets</a></p></div>`;
+  return `<div class="sec">${banner}</div>${miss}
+  <div class="sec"><div class="h"><h3>Contenu de la fiche</h3><p>${ok?'Version 2 importée le 14/11/2026':'Version 1 importée le 10/11/2026'}</p><span style="margin-left:auto"><a>Ouvrir la fiche complète</a></span></div>
+   <div class="panel"><table><thead><tr><th>Rubrique</th><th class="r">Champs</th><th class="r">Critiques</th><th>État</th></tr></thead><tbody>
+   ${FICHE.map(f=>{const bad=!ok&&(f[0].startsWith('Temps')||f[0].startsWith('Pannes'));return `<tr><td>${f[0]}</td><td class="num">${bad?f[1]-1:f[1]} / ${f[2]}</td><td class="num">${f[3]?(bad?(f[3]-1):f[3])+' / '+f[3]:'<span class="muted">0</span>'}</td><td>${bad?'<span class="tag err">Champ critique manquant</span>':'<span class="tag ok">Complet</span>'}</td></tr>`}).join('')}
+   </tbody></table></div></div>
+  <div class="foot"><span class="small muted">${ok?'':'Vous pourrez continuer dès que les champs critiques seront renseignés.'}</span><div class="r">${ok?'':'<button class="btn g" onclick="S.ficheOk=true;renderTest()">Simuler la correction (prototype)</button>'}<button class="btn p" ${ok?'':'disabled'} onclick="pane('config')">Continuer vers la configuration</button></div></div>`;
+}
+
+/* ---------- 2. configuration ---------- */
+function pConfig(){
+  return `<div class="sec"><div class="h"><h3>Bloc simulé</h3><p>1 bloc générique, ${HOSP.length-1} jumeaux d’hôpitaux</p><span style="margin-left:auto"><a onclick="go('hosp')">Voir la fiche de chaque hôpital</a></span></div>
+   <div class="panel"><div class="pad" style="padding-bottom:12px"><input class="in" style="width:100%;background:#f4f4f4" placeholder="Rechercher un établissement, une ville ou un numéro FINESS" aria-label="Rechercher un hôpital"></div>
+   <table><thead><tr><th style="width:44px"></th><th>Bloc</th><th>Région</th><th class="num">Salles</th><th>Données de calibration</th><th>Jumeau</th><th>Offre</th></tr></thead><tbody>
+   ${HOSP.map((h,i)=>`${i===0?'<tr class="grp"><td colspan="7">Pour tester, sans hôpital précis</td></tr>':i===1?'<tr class="grp"><td colspan="7">Jumeaux d’hôpitaux, pour tester et certifier</td></tr>':''}<tr class="click ${S.hosp===h.id?'sel':''}" onclick="S.hosp='${h.id}';renderTest()"><td><span class="rd ${S.hosp===h.id?'on':''}"></span></td><td><b style="font-weight:500">${h.n}</b><br><span class="small muted">${h.type}</span></td><td class="muted">${h.reg}</td><td class="num">${h.salles}</td><td class="muted">${h.data}</td><td>${jz(h)}</td><td class="muted">${of(h)}</td></tr>`).join('')}
+   </tbody></table></div>
+   ${S.hosp==='gen'?`<div class="note info" style="margin-top:12px">${ICON.info}<div><b>Bloc générique : offre Test.</b><p>Le test confronte l’outil aux situations courantes d’un bloc : retards, urgences, annulations, pannes, changements d’équipe. Les résultats ne décrivent aucun hôpital en particulier et ne donnent pas droit à un certificat.</p></div></div>`:''}
+   <p class="small muted" style="margin-top:10px">${ICON.lock} Les paramètres de chaque bloc sont réglés par Blocapta : les résultats ne dépendent que de la fiche et des scénarios. &nbsp;Votre hôpital n’est pas dans la liste ? <a onclick="go('req')">Demander un jumeau numérique</a></p></div>
+  <div class="sec"><div class="h"><h3>Scénarios</h3><p>${S.sel.length} sélectionné${S.sel.length>1?'s':''} sur ${SCEN.length} · ${INCL} inclus dans l’offre${S.sel.length>INCL?', '+(S.sel.length-INCL)+' en supplément':''}</p></div>
+   <div class="panel"><table><thead><tr><th style="width:44px"></th><th>Scénario</th><th>Famille</th><th>Ce qui est comparé</th><th style="width:150px">Facturation</th></tr></thead><tbody>
+   ${SCEN.map(x=>{const i=S.sel.indexOf(x[0]),on=i>=0,extra=on?i>=INCL:S.sel.length>=INCL;return `<tr class="click" onclick="toggleSc('${x[0]}')"><td><span class="cb ${on?'on':''}"></span></td><td><b style="font-weight:500">${x[0]}.</b> ${x[2]}</td><td class="muted">${x[1]}</td><td class="muted">${x[3]}</td><td>${on?(extra?'<span class="tag warn plain">Supplément</span>':'<span class="tag gray plain">Inclus</span>'):`<span class="small muted">${extra?'Supplément':'Inclus'}</span>`}</td></tr>`}).join('')}
+   </tbody></table></div>
+   <p class="small muted" style="margin-top:10px">${INCL} scénarios au choix sont inclus dans chaque test. Chaque scénario en plus est facturé en supplément ; le montant est indiqué avant le lancement.</p>${S.ran&&[...S.sel].sort().join()!==S.ranSc.join()?`<div class="note warn" style="margin-top:12px">${ICON.warn}<div><b>La sélection a changé depuis la dernière simulation.</b><p>Les résultats affichés portent encore sur ${S.ranSc.length>1?'les scénarios':'le scénario'} ${scList()}. Relancez la simulation pour les mettre à jour.</p></div></div>`:''}</div>
+  <div class="sec"><div class="h"><h3>Campagne</h3></div>
+   <div class="panel"><div class="kv" style="border:0;grid-template-columns:repeat(3,1fr)"><div><dt>Durée simulée</dt><dd>4 semaines</dd></div><div><dt>Répétitions</dt><dd>20</dd></div><div><dt>Durée de calcul estimée</dt><dd>environ 40 secondes</dd></div></div>
+   <details class="adv"><summary>Paramètres avancés</summary><div class="pad muted" style="padding-top:0">Durée (1 à 12 semaines), répétitions (5 à 50). Les paramètres humains (λ, α, κ) gardent leurs valeurs de référence ; leur effet est mesuré dans l’onglet Sensibilité.</div></details></div></div>
+  <div id="runbox"></div>
+  <div class="foot"><button class="btn g" onclick="pane('fiche')">Retour à la fiche</button><div class="r"><span class="small muted">Les mêmes semaines sont jouées sans puis avec l’outil.</span><button class="btn p" id="runbtn" onclick="run()">${S.ran?'Relancer la simulation':'Lancer la simulation'}</button></div></div>`;
+}
+let RUNT=null;
+function pRun(){
+  const L=[...S.sel].sort();
+  return `<div class="sec"><div class="g2" style="grid-template-columns:minmax(0,1fr) minmax(0,1.9fr)">
+   <div><div class="panel"><header><h3>Simulation en cours</h3><span class="sub" id="runtxt"></span></header><div class="pad"><div class="prog"><i id="runbar"></i></div></div>
+     <table><tbody>${L.map(k=>`<tr><td><b style="font-weight:500">${k}.</b> ${SC[k].name}</td><td class="r" id="rs-${k}"><span class="small muted">En attente</span></td></tr>`).join('')}</tbody></table></div>
+    <dl class="kv" style="margin:16px 0 0;grid-template-columns:1fr 1fr"><div><dt>Journées de bloc simulées</dt><dd class="runc" id="c1">0</dd></div><div><dt>Interventions simulées</dt><dd class="runc" id="c2">0</dd></div></dl>
+    <dl class="kv" style="margin:0;border-top:0;grid-template-columns:1fr 1fr"><div><dt>Soignants simulés</dt><dd class="runc" id="c3">0</dd></div><div><dt>Saisies décidées une à une</dt><dd class="runc" id="c4">0</dd></div></dl>
+    <p class="small muted" style="margin-top:10px">Chaque scénario est joué 20 fois, sans puis avec l’outil, sur les mêmes patients.</p></div>
+   <div class="panel"><header><h3>Extrait en direct</h3><span class="sub">une journée du scénario ${L[0]}, avec outil</span><div class="r"><span id="pannetag"></span><span class="clock" id="clock"></span></div></header><div id="plansvg" data-fill="1" style="height:${Math.round(innerHeight/Z)-330}px;min-height:340px"></div></div>
+  </div></div>`;
+}
+function run(){
+  const L=[...S.sel].sort(),N=L.length*20,nf=v=>Math.round(v).toLocaleString('fr-FR');
+  S.pane='run';renderTest();window.scrollTo(0,0);
+  let staff=54;
+  if(typeof THREE!=='undefined'&&THREE.OrbitControls){if(!P3)P3=build3D();const pn=PANNE[L[0]];S.day=pn?pn[0]:0;S.arm='avec';S.psc=L[0];S.selP=null;S.T=470;
+    P3.attach($('#plansvg'));const w=buildWorld(S.day,'avec',L[0]);staff=w.actors.filter(a=>a.role!=='PAT').length;P3.setWorld(w);P3.overview();S.speed=26;S.playing=true;P3.cine(true);P3.start();}
+  let i=0;clearInterval(RUNT);RUNT=setInterval(()=>{i++;const k=Math.min(L.length-1,Math.floor((i-1)/20)),f=i/N;
+    if(!$('#runbar')){clearInterval(RUNT);return;}
+    const ph=$('#plansvg');if(P3&&ph&&!ph.firstChild){P3.attach(ph);S.playing=true;P3.cine(true);P3.start();}
+    $('#runbar').style.width=(f*100)+'%';$('#runtxt').textContent=`Scénario ${L[k]}, répétition ${((i-1)%20)+1} sur 20`;
+    L.forEach((x,j)=>{$('#rs-'+x).innerHTML=j<k||i>=N?`<span class="tag ${SC[x].tag[0]}">${SC[x].tag[1]}</span>`:j===k?'<span class="small">En cours</span>':'<span class="small muted">En attente</span>';});
+    $('#c1').textContent=nf(f*L.length*800);$('#c2').textContent=nf(f*L.length*800*28);$('#c3').textContent=staff;$('#c4').textContent=nf(f*L.length*800*212);
+    if(i>=N){clearInterval(RUNT);setTimeout(()=>{S.playing=false;S.speed=6;if(P3)P3.cine(false);S.ran=true;S.ranSc=L;S.issued=false;S.pane='res';S.sc=L.length>1?'*':L[0];S.tab='syn';S.T=630;renderTest();window.scrollTo(0,0);},700);}
+  },Math.max(40,7000/N));
+}
+
+/* ---------- 3. résultats ---------- */
+function pRes(){
+  const d=SC[S.sc],ov=overall();
+  const seg=`<div class="seg" role="tablist" aria-label="Scénario">${S.ranSc.length>1?`<button class="${S.sc==='*'?'on':''}" onclick="S.sc='*';renderTest()">Vue d’ensemble</button>`:''}${S.ranSc.map(k=>`<button class="${S.sc===k?'on':''}" onclick="S.sc='${k}';S.tab='syn';renderTest()"><b>${k}</b>${SC[k].short}</button>`).join('')}</div>`;
+  const foot=`<div class="foot"><span class="small muted">Résultat d’un modèle, pas d’une mesure sur site.</span><div class="r"><button class="btn g" onclick="S.psc='${d?S.sc:S.ranSc[0]}';S.day=${d&&d.mark?d.mark[0]:0};pane('plan')">Voir dans le plan du bloc</button><button class="btn p" onclick="pane('cert')">${S.hosp==='gen'?'Certifier sur un hôpital':S.issued?'Voir le certificat':'Passer au certificat'}</button></div></div>`;
+  if(!d){const n=k=>S.ranSc.filter(x=>tagOf(x)===k).length,P=(c,t)=>c?`${c} ${t}`:'';
+    return `<div class="sec">${seg}</div>
+    <div class="sec"><div class="note ${ov[0]==='ok'?'':ov[0]}">${ICON[ov[0]]}<div><b style="font-size:16px">Conclusion du test : ${ov[1].toLowerCase()}.</b><p>${S.ranSc.length} scénarios simulés sur ${hosp().n} : ${[P(n('ok'),'conforme'+(n('ok')>1?'s':'')),P(n('warn'),'avec réserves'),P(n('err'),'non conforme'+(n('err')>1?'s':''))].filter(Boolean).join(', ')}.</p></div><div class="r"><span class="tag ${ov[0]}">${ov[1]}</span></div></div></div>
+    <div class="sec">${scorePanel('*')}</div>
+    <div class="sec"><div class="panel"><table><thead><tr><th>Scénario</th><th>Conclusion</th><th class="num">Indice</th><th>Chiffre clé</th><th>Condition principale</th><th></th></tr></thead><tbody>
+    ${S.ranSc.map(k=>{const x=SC[k],c=x.cond.find(c=>c[2]);return `<tr class="click" onclick="S.sc='${k}';S.tab='syn';renderTest()"><td><b style="font-weight:500">${k}.</b> ${x.name}</td><td><span class="tag ${x.tag[0]}">${x.tag[1]}</span></td><td class="num">${SCO[k][0]}</td><td>${x.stats[0][0]} <span class="num">${x.stats[0][1]}${x.stats[0][2].trim()?' '+x.stats[0][2].trim():''}</span><br><span class="ci">${x.stats[0][3]}</span></td><td class="${c?'':'muted'}">${c?c[0]:'Aucune'}</td><td class="r"><a>Détail</a></td></tr>`}).join('')}
+    </tbody></table></div><p class="small muted" style="margin-top:10px">Le statut du test est celui de son scénario le moins favorable. Tous les scénarios simulés figurent dans le certificat.</p></div>${foot}`;}
+  const tabs=[['syn','Synthèse'],['cmp','Comparaison'],['sens','Sensibilité'],['hyp','Hypothèses'],['ver','Versions de la fiche']];
+  return `<div class="sec" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">${seg}</div>
+  <div class="sec"><div class="note ${d.icon==='ok'?'':d.icon}">${ICON[d.icon]}<div><div class="small muted" style="margin-bottom:2px">Scénario ${S.sc} · ${d.name}</div><b style="font-size:16px">${d.verdict}</b><p>${d.detail}</p></div><div class="r" style="text-align:right;white-space:nowrap"><div class="small muted">Indice d’adoption</div><div style="font-size:30px;font-weight:300;line-height:1.2;font-variant-numeric:tabular-nums">${SCO[S.sc][0]}<span class="muted" style="font-size:14px"> / 100</span></div><span class="tag ${d.tag[0]}">${d.tag[1]}</span></div></div></div>
+  <div class="sec"><dl class="kv" style="margin:0">${d.stats.map(s=>`<div class="stat"><dt>${s[0]}</dt><dd><span class="v">${s[1]}<small>${s[2]}</small></span><div class="ci">${s[3]}</div></dd></div>`).join('')}</dl>
+  <p class="small muted" style="margin:8px 0 0">Médiane de 20 répétitions, intervalle P10 à P90. Les écarts se lisent « avec outil moins sans outil ».</p></div>
+  <div class="tabs">${tabs.map(t=>`<button class="${S.tab===t[0]?'on':''}" onclick="S.tab='${t[0]}';renderTest()">${t[1]}</button>`).join('')}</div>
+  <div id="tab">${({syn:tSyn,cmp:tCmp,sens:tSens,hyp:tHyp,ver:tVer})[S.tab](d)}</div>${foot}`;
+}
+function tSyn(d){
+  const risks=d.risks.length?`<table><tbody>${d.risks.map(r=>`<tr><td style="width:90px;vertical-align:top"><span class="tag ${r[0]==='Élevé'?'err':'warn'}">${r[0]}</span></td><td><b style="font-weight:500">${r[1]}</b><br><span class="muted small">${r[2]}</span></td></tr>`).join('')}</tbody></table>`:`<div class="pad muted">Aucun signal de risque détecté dans ce scénario.</div>`;
+  return `<div class="g2"><div class="panel"><header><h3>${d.chartTitle}</h3><span class="sub">20 jours ouvrés, moyenne des répétitions</span></header><div class="pad"><div class="chart" id="chart"></div></div></div>
+  <div class="panel"><header><h3>Signaux de risque</h3><span class="sub">${d.risks.length}</span></header>${risks}</div></div>
+  <div class="panel" style="margin-top:16px"><header><h3>Conditions de déploiement</h3><span class="sub">ce que l’hôpital doit prévoir pour obtenir ce résultat</span></header>${d.cond.length?`<table><thead><tr><th>Condition</th><th>Effet dans la simulation</th><th>Origine</th></tr></thead><tbody>${d.cond.map(c=>`<tr><td><b style="font-weight:500">${c[0]}</b></td><td class="muted">${c[1]}</td><td>${c[2]?'<span class="tag blue plain">Simulé</span>':'<span class="tag gray plain">Déclaré dans la fiche</span>'}</td></tr>`).join('')}</tbody></table>`:`<div class="pad muted">Aucune condition particulière au-delà de la formation prévue dans la fiche.</div>`}</div>`;
+}
+function tCmp(d){
+  const fp=r=>{if(r[5]==null)return '';const x=v=>80+v*80;const c=r[8]>0?'#0e6027':r[8]<0?'#a2191f':'#161616';return `<svg width="160" height="16" role="img" aria-label="écart ${r[3]}"><line x1="80" y1="0" x2="80" y2="16" stroke="#8d8d8d"/><line x1="${x(r[6])}" y1="8" x2="${x(r[7])}" y2="8" stroke="${c}" stroke-width="2"/><circle cx="${x(r[5])}" cy="8" r="4" fill="${c}" stroke="#fff" stroke-width="2"/></svg>`};
+  return `<div class="panel"><table><thead><tr><th>Indicateur</th><th class="num">Sans outil</th><th class="num">Avec outil</th><th class="num">Écart</th><th class="num">P10 à P90</th><th style="width:192px">Effet relatif</th></tr></thead><tbody>
+  ${d.rows.map(r=>`<tr><td>${r[0]}</td><td class="num ${r[1]==='n. a.'?'muted':''}">${r[1]}</td><td class="num">${r[2]}</td><td class="num"><b style="font-weight:500" class="${r[8]>0?'pos':r[8]<0?'neg':''}">${r[3]}</b></td><td class="num ci">${r[4]}</td><td>${fp(r)}</td></tr>`).join('')}
+  </tbody></table></div><p class="small muted" style="margin-top:8px">Trait vertical : aucun effet. Les deux bras jouent les mêmes patients, les mêmes durées et les mêmes urgences. n. a. : sans objet sans l’outil. <a>Exporter en CSV</a></p>`;
+}
+function tSens(d){
+  const x=v=>(v-.4)/.6*100;
+  return `<div class="sec"><div class="note ${d.sens[2]==='ok'?'':d.sens[2]}">${ICON[d.sens[2]]}<div><b>La conclusion tient dans ${d.sens[0]} variations.</b><p>${d.sens[1]}</p></div></div></div>
+  <div class="panel"><header><h3>Effet de chaque paramètre sur la confiance finale</h3><span class="sub">paramètre à sa valeur basse puis haute</span></header><table><tbody>
+  ${d.torn.map(t=>`<tr><td style="width:260px">${t[0]}</td><td><div style="position:relative;height:14px;background:linear-gradient(#e0e0e0,#e0e0e0) center/100% 1px no-repeat"><div title="${t[1].toFixed(2).replace('.',',')} à ${t[2].toFixed(2).replace('.',',')}" style="position:absolute;top:2px;height:10px;left:${x(t[1])}%;width:${Math.max(.6,x(t[2])-x(t[1]))}%;background:#1192e8"></div><div style="position:absolute;top:-3px;bottom:-3px;left:${x(d.base)}%;border-left:1.5px solid #161616"></div></div></td><td class="num ci" style="width:130px">${t[1].toFixed(2).replace('.',',')} à ${t[2].toFixed(2).replace('.',',')}</td></tr>`).join('')}
+  </tbody></table></div><p class="small muted" style="margin-top:8px">Trait noir : valeur de référence (${String(d.base).replace('.',',')}). Échelle de 0,40 à 1,00.</p>`;
+}
+function tHyp(){
+  return `<div class="panel"><table><thead><tr><th>Paramètre</th><th class="num">Valeur</th><th>Source</th><th>Statut</th></tr></thead><tbody>
+  ${HYP.map(h=>`<tr><td>${h[0]}</td><td class="num">${h[1]}</td><td class="muted">${h[2]}</td><td>${h[3]?'<span class="tag warn plain">À calibrer</span>':'<span class="tag gray plain">Sourcé</span>'}</td></tr>`).join('')}
+  </tbody></table></div><p class="small muted" style="margin-top:8px">Un paramètre « à calibrer » n’a pas été mesuré au bloc. Son effet sur la conclusion est donné dans l’onglet Sensibilité.</p><p class="small muted">Indice d’adoption : 40 % confiance finale des équipes, 25 % fluidité du bloc (retard ajouté, débordements), 20 % charge de travail (jours de surcharge, erreurs), 15 % robustesse (part des variations de sensibilité où la conclusion tient). Chaque composante va de 0 à 100.</p>`;
+}
+function tVer(){
+  const V=({A:[['Conclusion','<span class="tag warn">Réserves</span>','<span class="tag ok">Conforme</span>',''],['Retard ajouté par semaine (min)','+1,2','+0,0','−1,2'],['Jours de surcharge','−12','−19','−7'],['Erreurs de traçabilité par semaine','−2,1','−2,9','−0,8'],['Confiance finale','0,78','0,85','+0,07']],
+   B:[['Conclusion','<span class="tag err">Non conforme</span>','<span class="tag warn">Réserves</span>',''],['Retard ajouté, semaine 1 (min)','+5,4','+3,1','−2,3'],['Jours de surcharge','−4','−11','−7'],['Confiance finale, avec support','0,69','0,80','+0,11'],['Confiance finale, sans support','0,48','0,66','+0,18']]})[S.sc]||SC[S.sc].stats.map(x=>[x[0],'<span class="muted">non simulé</span>',x[1]+(x[2].trim()?' '+x[2].trim():''),'']);
+  const C=[['Temps de saisie par intervention','45 s','20 s'],['Fonctionnement hors ligne','Non','Oui, reprise automatique'],['Formation prévue par soignant','15 min','30 min']];
+  return `<div class="sec" style="display:flex;gap:12px;align-items:center"><div class="select" style="min-width:300px">Version 1, importée le 12/11/2026</div><span class="muted">comparée à</span><div class="select" style="min-width:300px">Version 2, importée le 14/11/2026</div></div>
+  <div class="g2" style="grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)"><div class="panel"><header><h3>Résultats, scénario ${S.sc}</h3><span class="sub">même bloc, mêmes semaines</span></header><table><thead><tr><th>Indicateur</th><th class="num">Version 1</th><th class="num">Version 2</th><th class="num">Écart</th></tr></thead><tbody>${V.map(r=>`<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td class="num"><b style="font-weight:500">${r[3]}</b></td></tr>`).join('')}</tbody></table></div>
+  <div class="panel"><header><h3>Ce qui a changé dans la fiche</h3><span class="sub">${C.length} champs</span></header><table><thead><tr><th>Champ</th><th>Version 1</th><th>Version 2</th></tr></thead><tbody>${C.map(r=>`<tr><td>${r[0]}</td><td class="muted">${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div></div>
+  <p class="small muted" style="margin-top:10px">Chaque version de la fiche garde ses résultats. Un certificat porte sur une seule version.</p>`;
+}
+function afterRes(){ if(S.tab==='syn') lineChart($('#chart'),SC[S.sc].series,SC[S.sc].mark||null); }
+
+function lineChart(el,series,mark){
+  const W=Math.max(420,el.clientWidth),H=+el.dataset.h||260,m={l:38,r:190,t:10,b:26},iw=W-m.l-m.r,ih=H-m.t-m.b;
+  const x=d=>m.l+d/19*iw,y=v=>m.t+(1-v)*ih,cs=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  let g='';
+  [0,.25,.5,.75,1].forEach(v=>g+=`<line x1="${m.l}" x2="${m.l+iw}" y1="${y(v)}" y2="${y(v)}" stroke="#e0e0e0"/><text x="${m.l-8}" y="${y(v)+4}" text-anchor="end">${String(v).replace('.',',')}</text>`);
+  [0,5,10,15].forEach((d,i)=>g+=`<text x="${x(d)}" y="${H-6}">Semaine ${i+1}</text>`+(i?`<line x1="${x(d)}" x2="${x(d)}" y1="${m.t}" y2="${m.t+ih}" stroke="#e0e0e0" stroke-dasharray="2 3"/>`:''));
+  if(mark!=null) g+=`<line x1="${x(mark[0])}" x2="${x(mark[0])}" y1="${m.t}" y2="${m.t+ih}" stroke="#161616" stroke-width="1"/><text x="${x(mark[0])+6}" y="${m.t+10}" style="fill:#161616">${mark[1]}</text>`;
+  // étiquettes directes, sans chevauchement
+  const ends=series.map((s,i)=>({i,y:y(s[1][19])})).sort((a,b)=>a.y-b.y);
+  for(let k=1;k<ends.length;k++) if(ends[k].y-ends[k-1].y<18) ends[k].y=ends[k-1].y+18;
+  series.forEach((s,i)=>{const c=cs(s[2]);g+=`<polyline fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" points="${s[1].map((v,d)=>v==null?'':x(d)+','+y(v)).join(' ')}"/><circle cx="${x(19)}" cy="${y(s[1][19])}" r="4" fill="${c}" stroke="#fff" stroke-width="2"/>`;
+    const e=ends.find(e=>e.i===i);g+=`<text x="${x(19)+10}" y="${e.y+4}" style="fill:#161616">${s[0]} <tspan style="font-family:var(--mono)">${s[1][19].toFixed(2).replace('.',',')}</tspan></text>`;});
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Courbes de confiance sur 20 jours">${g}<line id="xh" y1="${m.t}" y2="${m.t+ih}" stroke="#161616" stroke-width="1" visibility="hidden"/><rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" id="hit"/></svg><div class="tip" hidden></div>
+   <div class="legend">${series.map(s=>`<span><i style="background:${cs(s[2])}"></i>${s[0]}</span>`).join('')}</div>`;
+  const svg=el.querySelector('svg'),tip=el.querySelector('.tip'),xh=el.querySelector('#xh');
+  svg.addEventListener('mousemove',ev=>{const r=svg.getBoundingClientRect(),px=(ev.clientX-r.left)/r.width*W;const d=Math.max(0,Math.min(19,Math.round((px-m.l)/iw*19)));
+    xh.setAttribute('x1',x(d));xh.setAttribute('x2',x(d));xh.setAttribute('visibility','visible');
+    tip.hidden=false;tip.innerHTML=`<div style="color:#c6c6c6;margin-bottom:4px">Semaine ${Math.floor(d/5)+1}, jour ${d%5+1}</div>`+series.filter(s=>s[1][d]!=null).map(s=>`<div><i style="background:${cs(s[2])}"></i>${s[0]} <b style="font-family:var(--mono);font-weight:500;margin-left:8px">${s[1][d].toFixed(2).replace('.',',')}</b></div>`).join('');
+    const left=x(d)/W*r.width/Z;tip.style.left=(left>r.width/Z*.6?left-tip.offsetWidth-12:left+12)+'px';tip.style.top='12px';});
+  svg.addEventListener('mouseleave',()=>{tip.hidden=true;xh.setAttribute('visibility','hidden');});
+}
+
+/* ---------- hôpitaux ---------- */
+function renderHosp(){
+  const h=HOSP.find(x=>x.id===S.hv);
+  const det=h.id==='gen'?`<div class="pad muted">Le bloc générique n’est calibré sur aucun établissement. Il reprend les valeurs moyennes des jumeaux existants : aujourd’hui, celles du bloc pilote, arrondies. Il sert à tester un logiciel, pas à le certifier.</div>`:h.id==='pilote'
+   ?`<table><thead><tr><th>Indicateur</th><th class="num">Réel</th><th class="num">Simulé</th><th>Lecture</th></tr></thead><tbody>${FID.map(f=>`<tr><td>${f[0]}</td><td class="num">${f[1]}</td><td class="num">${f[2]}</td><td>${f[3]?'<span class="tag warn plain">Écart à réduire</span>':'<span class="tag ok plain">Fidèle</span>'}</td></tr>`).join('')}</tbody></table>`
+   :`<div class="pad muted">Entrée d’exemple, pour montrer la liste. Seul le bloc pilote existe aujourd’hui.</div>`;
+  $('#hosp').innerHTML=`<div class="sec"><div class="toolbar"><input class="in" style="flex:1" placeholder="Rechercher un établissement, une ville ou un numéro FINESS" aria-label="Rechercher"><div class="select" style="width:220px">Toutes les régions</div><div class="select" style="width:200px">Tous les types</div></div>
+  <div class="panel"><table><thead><tr><th>Établissement</th><th>Région</th><th class="num">Salles</th><th>Spécialités principales</th><th>Données de calibration</th><th>Jumeau</th><th>Offre</th></tr></thead><tbody>
+  ${HOSP.map(x=>`<tr class="click ${S.hv===x.id?'sel':''}" onclick="S.hv='${x.id}';renderHosp()"><td><b style="font-weight:500">${x.n}</b><br><span class="small muted">${x.type}</span></td><td class="muted">${x.reg}</td><td class="num">${x.salles}</td><td class="muted">${x.spec}</td><td class="muted">${x.data}</td><td>${jz(x)}</td><td class="muted">${of(x)}</td></tr>`).join('')}
+  </tbody></table></div>
+  <p class="small muted" style="margin-top:10px">Votre hôpital n’est pas dans la liste ? <a onclick="go('req')">Demander un jumeau numérique</a></p></div>
+  <div class="sec"><div class="panel"><header><h3>${h.n} : ${h.id==='gen'?'origine des valeurs':'fidélité du jumeau'}</h3><span class="sub">simulation comparée aux données réelles du bloc, sur 80 jours ouvrés</span></header>${det}</div>
+  <p class="small muted" style="margin-top:10px">Blocapta publie les écarts de chaque jumeau, y compris ceux qui restent à réduire.</p></div>
+  <div class="sec"><div class="h"><h3>Vos demandes</h3><p>1 en cours</p></div><div class="panel"><table><thead><tr><th>Hôpital demandé</th><th>Collecte des données</th><th>État</th><th>Prochaine étape</th><th class="r">Mise à jour</th></tr></thead><tbody>
+  <tr class="click" onclick="S.reqMode='self';S.reqChecked=true;go('req')"><td><b style="font-weight:500">CH exemple D</b><br><span class="small muted">Bloc central, 14 salles</span></td><td>Par vous, gratuit</td><td><span class="tag err">Données insuffisantes</span></td><td class="muted">2 éléments à corriger</td><td class="r muted">13/11/2026</td></tr>
+  </tbody></table></div></div>`;
+}
+function renderReq(){
+  const m=S.reqMode,on=k=>m===k?'on':'';
+  const rows=[['Qui récupère les données','Blocapta, auprès de votre contact à l’hôpital','Vous, auprès de l’hôpital'],
+   ['Ce que vous fournissez','Un contact à l’hôpital : nom, fonction, e-mail','L’export du bloc, les effectifs et le plan, au format demandé'],
+   ['Tarif','Payant, sur devis. Traitement prioritaire en option','Gratuit'],
+   ['Délai','Selon la réponse de l’hôpital. En tête de file avec l’option prioritaire','Dès que les données sont jugées suffisantes'],
+   ['Contrôle','Blocapta vérifie, pseudonymise et calibre','Contrôle automatique de suffisance, puis calibration par Blocapta']];
+  const need=[['Export des interventions','Au moins 6 mois consécutifs, une ligne par intervention','ok','10 mois, 8 420 lignes'],
+   ['Colonnes obligatoires','Salle, spécialité, programmé ou urgence, heures d’entrée et de sortie de salle, annulations','err','Colonne « annulations » absente'],
+   ['Effectifs','Nombre de soignants par rôle et par vacation','ok','Fourni'],
+   ['Plan du bloc','Nombre de salles, SSPI, circulation','err','Non fourni'],
+   ['Pseudonymisation','Aucun nom de patient ni de soignant, des codes uniquement','ok','Aucun nom détecté'],
+   ['Accord de l’hôpital','Autorisation écrite de l’établissement pour cet usage','ok','Fourni']];
+  const st=n=>!S.reqChecked?'<span class="tag gray plain">À fournir</span>':n[2]==='ok'?`<span class="tag ok">Suffisant</span> <span class="small muted">${n[3]}</span>`:`<span class="tag err">Insuffisant</span> <span class="small muted">${n[3]}</span>`;
+  const part3=m==='blocapta'
+   ?`<div class="sec"><div class="h"><h3>3. Contact à l’hôpital</h3><p>la personne qui peut autoriser l’accès aux données du bloc</p></div><div class="panel"><div class="pad formgrid">
+      <div class="field"><label>Nom</label><input class="in" placeholder="Prénom Nom"></div><div class="field"><label>Fonction</label><input class="in" placeholder="Cadre de bloc, DSI, direction"></div><div class="field"><label>E-mail professionnel</label><input class="in" placeholder="prenom.nom@hopital.fr"></div><div class="field"><label>Téléphone</label><input class="in" placeholder="Facultatif"></div></div>
+      <div class="pad" style="border-top:1px solid var(--line)"><span class="cb"></span> &nbsp;Traitement prioritaire <span class="muted">· supplément, indiqué sur le devis</span></div></div>
+      <p class="small muted" style="margin-top:10px">Blocapta contacte l’hôpital, signe la convention de données, récupère l’export et le pseudonymise. Vous recevez un devis avant tout démarrage.</p></div>`
+   :`<div class="sec"><div class="h"><h3>3. Données à fournir</h3><p>le jumeau n’est créé que si tout est suffisant</p><span style="margin-left:auto"><a>Télécharger le format attendu</a></span></div>
+      ${S.reqChecked?`<div class="note err" style="margin-bottom:12px">${ICON.err}<div><b>Données insuffisantes : 2 éléments à corriger.</b><p>Le jumeau n’est pas créé tant qu’un élément manque. Vous pouvez compléter, ou passer à la collecte par Blocapta.</p></div></div>`:''}
+      <div class="panel"><table><thead><tr><th>Élément</th><th>Exigence</th><th style="width:300px">État</th></tr></thead><tbody>${need.map(n=>`<tr><td><b style="font-weight:500">${n[0]}</b></td><td class="muted">${n[1]}</td><td>${st(n)}</td></tr>`).join('')}</tbody></table>
+      <div class="pad" style="border-top:1px solid var(--line)"><div class="drop" style="padding:20px">Déposez les fichiers ici (CSV, Excel, PDF du plan) ou <a>parcourir</a></div></div></div>
+      <p class="small muted" style="margin-top:10px">Les données restent la propriété de l’hôpital. Elles doivent être pseudonymisées avant l’envoi.</p></div>`;
+  $('#req').innerHTML=`<div class="sec"><div class="h"><h3>1. Hôpital concerné</h3></div><div class="panel"><div class="pad formgrid" style="grid-template-columns:2fr 1.2fr .8fr">
+     <div class="field"><label>Établissement (nom ou numéro FINESS)</label><input class="in" value="CH exemple D"></div><div class="field"><label>Nom du bloc</label><input class="in" value="Bloc central"></div><div class="field"><label>Nombre de salles</label><input class="in" value="14"></div></div></div></div>
+   <div class="sec"><div class="h"><h3>2. Collecte des données</h3><p>deux possibilités</p></div><div class="panel"><table class="cmp"><thead><tr><th></th>
+     <th class="opt ${on('blocapta')}" onclick="S.reqMode='blocapta';renderReq()"><span class="rd ${on('blocapta')}"></span>Blocapta s’en charge</th>
+     <th class="opt ${on('self')}" onclick="S.reqMode='self';renderReq()"><span class="rd ${on('self')}"></span>Vous fournissez les données</th></tr></thead><tbody>
+     ${rows.map(r=>`<tr><td>${r[0]}</td><td class="${on('blocapta')}">${r[1]}</td><td class="${on('self')}">${r[2]}</td></tr>`).join('')}</tbody></table></div></div>
+   ${part3}
+   <div class="foot"><button class="btn g" onclick="go('hosp')">Annuler</button><div class="r">${m==='blocapta'?'<button class="btn p">Demander un devis</button>':`<button class="btn s" onclick="S.reqChecked=true;renderReq()">Vérifier les données</button><button class="btn p" disabled>Créer le jumeau</button>`}</div></div>`;
+}
+
+/* ---------- plan du bloc : géométrie reprise de l'ancien plan 2D ---------- */
+const calGen=(base,day,spike,dec)=>Array.from({length:20},(_,d)=>+(base+(day!=null&&d>=day?spike*Math.exp(-dec*(d-day)):0)+Math.sin(d*1.7)*.12).toFixed(1));
+const CALV={A:[.2,.4,.1,-.2,.3,0,.2,-.1,.1,0,-.2,.1,0,.2,-.1,0,.1,-.1,0,.1],B:[.3,7.4,3.8,2.4,1.6,1.4,1.2,1.1,.9,.9,.8,.8,.7,.7,.6,.7,.6,.6,.5,.6],
+  C:calGen(.4,0,1.9,.25),D:calGen(.2,0,.6,.3),E:calGen(.2,10,1.6,.5),F:calGen(.5,0,2.2,.35),G:calGen(.2,10,1.1,.6),H:calGen(.4,6,9.4,.18)};
+const PANNE={B:[1,540,780],H:[6,480,1050]};
+const DN=['Lun','Mar','Mer','Jeu','Ven'],DNL=['lundi','mardi','mercredi','jeudi','vendredi'];
+const SPECS=['Orthopédie','Viscéral','Gynécologie','Ophtalmologie','ORL','Urologie','Endoscopie','Stomatologie','Orthopédie','Viscéral'];
+const hm=t=>{t=Math.floor(t);return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');};
+const fr=v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1).replace('.',',');
+const f2=v=>v.toFixed(2).replace('.',',');
+function rng(seed){let s=(seed*2654435761)%4294967296;return()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296;};}
+function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return ((h>>>0)%1000)/1000;}
+function daySched(day,arm,sc){
+  const pn=PANNE[sc];
+  return Array.from({length:10},(_,r)=>{const R=rng(day*31+r*7+11);let t=480+Math.floor(R()*20);const spec=SPECS[r],closed=R()<.1,cs=[];
+    while(!closed&&t<945){let d=spec==='Ophtalmologie'||spec==='Endoscopie'?22+Math.floor(R()*30):45+Math.floor(R()*105);const gap=18+Math.floor(R()*14);
+      let add=0;if(arm==='avec'&&pn){if(day===pn[0]&&t>=pn[1]-10&&t<pn[2])add=8;else if(day>pn[0]&&day<pn[0]+4)add=2;}
+      cs.push({s:t,e:t+d+add,add});t+=d+add+gap;}
+    return {room:'OP '+(r+2),spec,closed,cs};});
+}
+const PXU=40,GXu=x=>(x-920)/PXU,GZu=y=>(y-485)/PXU;
+const RM=Array.from({length:10},(_,i)=>{const col=i%5,top=i<5,x=270+col*254,y=top?40:530,w=238,h=400;return {i,name:'OP '+(i+2),x,y,w,h,top,sign:top?1:-1,cx:x+w/2,cy:top?y+h*.44:y+h*.56,door:{x:x+w/2,y:top?y+h:y}};});
+const ZN={ACC:{x:20,y:40,w:230,h:400,door:{x:135,y:440},label:'Accueil patients'},OFF:{x:20,y:530,w:230,h:400,door:{x:135,y:530},label:'Office'},REC:{x:1550,y:40,w:270,h:400,door:{x:1615,y:440},label:'SSPI'},ARS:{x:1550,y:530,w:270,h:400,door:{x:1685,y:530},label:'Arsenal et régulation'}};
+const isRoom=z=>/^R\d/.test(z);
+const zname=z=>!z?'':z==='COR'?'Couloir':isRoom(z)?RM[+z.slice(1)].name:ZN[z].label;
+const doorOf=z=>isRoom(z)?RM[+z.slice(1)].door:ZN[z].door;
+function spot(i,k){const R=RM[i],P=(dx,dy)=>({x:R.cx+dx,y:R.cy+dy*R.sign,z:'R'+i});
+  return ({TABLE:P(0,0),MAR:P(-24,-72),IADE:P(24,-68),CHIR:P(40,6),IBODE:P(-40,18),CIRC:P(-78,-30),POSTE:P(74,-22),PAPIER:P(-66,54),ASH:P(-60,60),BRAN:P(30,96),PREP:P(-70,30),SAS:P(-50,150)})[k];}
+const offSlot=k=>({x:44+(k%5)*42,y:584+Math.floor(k/5)*42,z:'OFF'}),arsSlot=k=>({x:1610+(k%3)*70,y:640+Math.floor(k/3)*58,z:'ARS'});
+const accSlot=k=>({x:70+(k%2)*95,y:95+Math.floor(k/2)*68,z:'ACC'}),recBed=k=>({x:1596+(k%3)*88,y:92+Math.floor(k/3)*84,z:'REC'});
+const EXITP={x:30,y:250,z:'ACC'};
+const RC={CHIR:[0x2f6b4f,0x1d4532,'Chirurgien'],MAR:[0x2952a3,0x17336e,'Anesthésiste (MAR)'],IADE:[0x5b9be0,0x2f6fb8,'IADE'],IBODE:[0x139c8b,0x0b6b5f,'IBODE instrumentiste'],CIRC:[0x8bbd3c,0x5f8a1f,'IBODE circulante'],ASH:[0xe3a21a,0xa8740a,'Agent de bionettoyage'],BRAN:[0x9a7259,0x6b4b37,'Brancardier'],IDESSPI:[0xc2386f,0x8a1f4b,'IDE de SSPI'],IDEPRE:[0x7a5cc0,0x4d3790,'IDE d’accueil'],PAT:[0xb9cfe0,0x9fb4c4,'Patient']};
+const hex=n=>'#'+n.toString(16).padStart(6,'0');
+const STL={ferme:'Fermée ce jour',accueil:'Accueil du patient',induc:'Induction',instal:'Installation',chir:'Opératoire',ferm:'Fermeture',reveil:'Réveil en salle',bio:'Bionettoyage',prepa:'Préparation',libre:'Libre',done:'Programme terminé'};
+const STS={ferme:'Fermée',accueil:'Accueil',induc:'Induction',instal:'Installation',chir:'Opératoire',ferm:'Fermeture',reveil:'Réveil',bio:'Bionettoyage',prepa:'Préparation',libre:'Libre',done:'Terminé'};
+const ACTIVE=['accueil','induc','instal','chir','ferm','reveil'];
+const PIPC={outil:0x0f62fe,papier:0xf1c21b,panne:0xda1e28};
+
+/* ---------- monde : qui est où, et fait quoi, à l'instant T ---------- */
+function buildWorld(day,arm,sc){
+  const sch=daySched(day,arm,sc),cases=[];sch.forEach((r,i)=>r.cs.forEach((c,j)=>cases.push({i,j,c,id:'P'+i+'-'+j})));
+  const alloc=(n,iv)=>{const busy=Array(n).fill(-1e9);return p=>{const v=iv(p);let k=busy.findIndex(b=>b<=v[0]);if(k<0)k=(p.i*3+p.j)%n;busy[k]=v[1];return k;};};
+  const aA=alloc(10,p=>[p.c.s-28,p.c.s]);[...cases].sort((a,b)=>a.c.s-b.c.s).forEach(p=>p.acc=aA(p));
+  const aR=alloc(12,p=>[p.c.e,p.c.e+56]);[...cases].sort((a,b)=>a.c.e-b.c.e).forEach(p=>p.rec=aR(p));
+  const actors=[],byId={};
+  const add=(id,role,code,room)=>{const a={id,role,code,room,pos:{x:0,y:0},zone:null,path:[],key:'',act:'',vis:true,wasVis:false,ph:hash(id)*6,dir:0};actors.push(a);byId[id]=a;return a;};
+  sch.forEach((r,i)=>{if(r.closed)return;['CHIR','IADE','IBODE','CIRC'].forEach((ro,k)=>add(ro+i,ro,(ro==='CIRC'?'IBODE':ro)+'-'+String(i*2+k+3).padStart(2,'0'),i));});
+  for(let j=0;j<5;j++)add('MAR'+j,'MAR','MAR-0'+(j+1),null);
+  for(let k=0;k<3;k++){add('ASH'+k,'ASH','ASH-0'+(k+1),null);add('BRAN'+k,'BRAN','BRAN-0'+(k+1),null);}
+  add('IDESSPI0','IDESSPI','IDE-21',null);add('IDESSPI1','IDESSPI','IDE-22',null);add('IDEPRE0','IDEPRE','IDE-11',null);
+  cases.forEach(p=>{const a=add(p.id,'PAT','Patient '+(p.i+2)+'.'+(p.j+1),p.i);a.p=p;});
+  const W={sch,cases,actors,byId,day,arm,sc,sts:[],panne:false,ev:[]},pn=PANNE[sc],avec=arm==='avec',pday=avec&&pn&&day===pn[0];
+  const starts=sch.filter(r=>r.cs.length).map(r=>r.cs[0].s);if(starts.length)W.ev.push({t:Math.min(...starts),k:'info',x:'Début du programme opératoire'});
+  if(pday){W.ev.push({t:pn[1],k:'err',x:'Panne de l’outil : toutes les saisies repassent sur papier'});if(pn[2]<1050)W.ev.push({t:pn[2],k:'ok',x:'Outil rétabli, reprise des saisies'});}
+  sch.forEach((r,i)=>r.cs.forEach(c=>{if(c.add>=5)W.ev.push({t:c.e,k:'warn',x:`${r.room} : intervention terminée avec ${c.add} min de plus`,room:i});if(c.e>1050)W.ev.push({t:Math.max(1050,c.s),k:'warn',x:`${r.room} : encore en intervention après 17 h 30`,room:i});}));
+  if(avec&&!pday)actors.forEach(a=>{if((a.role==='CIRC'||a.role==='IADE')&&sch[a.room].cs.length){const t=trust(a,W);if(t<.4)W.ev.push({t:sch[a.room].cs[0].s+(a.role==='IADE'?12:3),k:'warn',x:`${a.code} contourne l’outil et note sur papier (confiance ${f2(t)})`,room:a.room,who:a.id});}});
+  W.ev.sort((a,b)=>a.t-b.t);return W;
+}
+function rst(W,i,T){const r=W.sch[i];if(r.closed)return {st:'ferme'};const c=r.cs.find(c=>c.s<=T&&T<c.e);
+  if(c){const f=(T-c.s)/(c.e-c.s);return {st:f<.08?'accueil':f<.18?'induc':f<.26?'instal':f<.82?'chir':f<.92?'ferm':'reveil',c,late:T>=1050};}
+  const prev=r.cs.filter(c=>c.e<=T).pop(),next=r.cs.find(c=>c.s>T);
+  if(prev&&T<prev.e+15)return {st:'bio'};if(next&&next.s-T<=12)return {st:'prepa'};if(next)return {st:'libre'};return {st:'done'};}
+function trust(a,W){const s=SC[W.sc].series,row=s[Math.min(1,s.length-1)][1],m=row[W.day]==null?row.find(v=>v!=null):row[W.day];return Math.max(.05,Math.min(.98,m+(hash(a.id)-.5)*.34));}
+function planWorld(W,T){
+  const sts=W.sch.map((_,i)=>rst(W,i,T)),avec=W.arm==='avec',pn=PANNE[W.sc],panne=!!(avec&&pn&&W.day===pn[0]&&T>=pn[1]&&T<pn[2]);
+  W.sts=sts;W.panne=panne;
+  const bio=sts.map((s,i)=>s.st==='bio'?i:-1).filter(i=>i>=0),recOcc=[],accOcc=[],moves=[];
+  const tool=a=>!avec?'sans':panne?'panne':trust(a,W)>=.4?'outil':'papier';
+  // patients d'abord : les brancardiers et les IDE dépendent d'eux
+  W.actors.forEach(a=>{if(a.role!=='PAT')return;const c=a.p.c,i=a.room;a.onTable=false;a.inBed=false;a.vis=true;a.pip=null;
+    if(T<c.s-28||T>=c.e+56){a.vis=false;a.tg=EXITP;return;}
+    if(T<c.s-5){a.tg=accSlot(a.p.acc);a.act='Attend en accueil';accOcc.push(a);}
+    else if(T<c.s){a.tg=spot(i,'TABLE');a.act='Brancardé vers '+RM[i].name;moves.push(a);}
+    else if(T<c.e){a.tg=spot(i,'TABLE');a.onTable=true;a.act='En salle : '+STL[sts[i].st].toLowerCase();}
+    else if(T<c.e+50){a.tg=recBed(a.p.rec);a.inBed=true;a.act='En SSPI, surveillance du réveil';recOcc.push(a);if(T<c.e+5)moves.push(a);}
+    else{a.tg=EXITP;a.act='Retour en chambre';moves.push(a);}});
+  W.actors.forEach(a=>{if(a.role==='PAT')return;const i=a.room,s=i!=null?sts[i]:null,act=s&&ACTIVE.includes(s.st);a.pip=null;a.vis=true;a.follow=null;
+    switch(a.role){
+    case 'CHIR': if(s.st==='instal'||s.st==='chir'||s.st==='ferm'){a.tg=spot(i,'CHIR');a.act=s.st==='chir'?'Opère':s.st==='instal'?'S’installe':'Referme';}
+      else{a.tg=offSlot(i);a.act=s.st==='done'?'Programme terminé':'Hors salle, entre deux interventions';} break;
+    case 'IADE': if(act||s.st==='prepa'){a.tg=spot(i,'IADE');const u=tool(a);
+        a.act=s.st==='prepa'?'Prépare l’anesthésie':s.st==='induc'?'Induction':s.st==='reveil'?'Réveil du patient':'Surveille l’anesthésie'+(u==='outil'?', trace dans l’outil':u==='sans'?'':', trace sur papier');if(act&&avec)a.pip=u;}
+      else{a.tg=offSlot(10+i);a.act='En pause';} break;
+    case 'IBODE': if(s.st==='instal'||s.st==='chir'||s.st==='ferm'){a.tg=spot(i,'IBODE');a.act='Instrumente';}
+      else if(act||s.st==='prepa'){a.tg=spot(i,'PREP');a.act='Prépare les instruments';}else{a.tg=offSlot(20+i);a.act='En pause';} break;
+    case 'CIRC': if(act){const u=tool(a),post=s.st==='accueil'||s.st==='ferm'||(s.st==='chir'&&(Math.floor(T/7)+i)%3===0);
+        if(post){a.tg=u==='outil'?spot(i,'POSTE'):spot(i,'PAPIER');a.act=u==='outil'?'Saisit dans l’outil':u==='papier'?'Contourne l’outil, note sur papier':u==='panne'?'Note sur papier, outil en panne':'Note sur papier';}
+        else{a.tg=spot(i,'CIRC');a.act='Circule en salle';}
+        if(avec)a.pip=u;}
+      else if(s.st==='prepa'||s.st==='bio'){a.tg=spot(i,'SAS');a.act='Attend le patient suivant';}else{a.tg=offSlot(30+i);a.act='En pause';} break;
+    case 'MAR': {const j=+a.id.slice(3),rs=[j,j+5].filter(r=>!W.sch[r].closed),pick=st=>rs.find(r=>sts[r].st===st),r=pick('induc')??pick('reveil')??pick('accueil');
+      if(r!=null){a.tg=spot(r,'MAR');a.act=(sts[r].st==='induc'?'Induction':sts[r].st==='reveil'?'Réveil du patient':'Accueille le patient')+', '+RM[r].name;}
+      else if(rs.some(r=>['instal','chir','ferm'].includes(sts[r].st))){a.tg={x:RM[j].door.x,y:485,z:'COR'};a.act='Supervise '+rs.map(r=>RM[r].name).join(' et ');}
+      else{a.tg=arsSlot(j);a.act='Régulation';} break;}
+    case 'ASH': {const k=+a.id.slice(3),r=bio[k];if(r!=null){a.tg=[spot(r,'ASH'),spot(r,'CIRC'),spot(r,'BRAN')][(Math.floor(T/2)+k)%3];a.act='Bionettoyage, '+RM[r].name;}else{a.tg=arsSlot(6+k);a.act='En attente';} break;}
+    case 'BRAN': {const k=+a.id.slice(4),m=moves[k];if(m){a.follow=m;a.tg={x:m.pos.x,y:m.pos.y,z:m.zone||m.tg.z};a.act='Brancarde un patient';}else{a.tg=arsSlot(9+k);a.act='En attente';} break;}
+    case 'IDESSPI': {const k=+a.id.slice(7);if(recOcc.length){const b=recOcc[(Math.floor(T/5)+k*2)%recOcc.length].tg;a.tg={x:b.x-26,y:b.y+(k?12:-12),z:'REC'};a.act='Surveille le réveil';}else{a.tg={x:1786,y:392-k*30,z:'REC'};a.act='Poste de soins';} break;}
+    case 'IDEPRE': if(accOcc.length){const b=accOcc[Math.floor(T/4)%accOcc.length].tg;a.tg={x:b.x+28,y:b.y,z:'ACC'};a.act='Prépare les patients';}else{a.tg={x:206,y:64,z:'ACC'};a.act='Bureau d’accueil';} break;
+    }});
+}
+function route(a,tg){const P=[],za=a.zone,zb=tg.z;if(za===zb){P.push(tg);return P;}
+  if(za!=='COR'){const d=doorOf(za);P.push({x:d.x,y:d.y,z:za},{x:d.x,y:485,z:'COR'});}
+  if(zb==='COR'){P.push(tg);return P;}
+  const d=doorOf(zb);P.push({x:d.x,y:485,z:'COR'},{x:d.x,y:d.y,z:zb},tg);return P;}
+function stepWorld(W,dt,speed,jump){
+  W.actors.forEach(a=>{
+    if(!a.vis){a.wasVis=false;a.moving=false;return;}
+    if(!a.wasVis||a.zone==null){if(a.role==='PAT'&&!jump){a.pos={x:EXITP.x,y:EXITP.y};a.zone='ACC';}else{a.pos={x:a.tg.x,y:a.tg.y};a.zone=a.tg.z;}a.path=[];a.key='';a.wasVis=true;}
+    if(jump){a.pos={x:a.tg.x,y:a.tg.y};a.zone=a.tg.z;a.path=[];a.key=Math.round(a.tg.x)+','+Math.round(a.tg.y)+a.tg.z;a.moving=false;return;}
+    if(a.follow){const d=Math.hypot(a.follow.pos.x-a.pos.x,a.follow.pos.y-a.pos.y);if(d<28){a.moving=a.follow.moving;a.dir=a.follow.dir;a.path=[];a.key='';return;}}
+    const k=Math.round(a.tg.x)+','+Math.round(a.tg.y)+a.tg.z;if(k!==a.key){a.key=k;a.path=route(a,a.tg);}
+    let rem=speed*dt*(a.role==='BRAN'?1.4:1);a.moving=false;
+    while(rem>0&&a.path.length){const w=a.path[0],dx=w.x-a.pos.x,dy=w.y-a.pos.y,d=Math.hypot(dx,dy);
+      if(d<=rem){a.pos.x=w.x;a.pos.y=w.y;a.zone=w.z;a.path.shift();rem-=d;}else{a.pos.x+=dx/d*rem;a.pos.y+=dy/d*rem;a.dir=Math.atan2(dx,dy);rem=0;}
+      a.moving=true;}
+  });
+}
+
+/* ---------- écran ---------- */
+function planSc(){return S.ranSc.includes(S.psc)?S.psc:S.ranSc.includes(S.sc)?S.sc:S.ranSc[0];}
+function pPlan(){
+  const sc=planSc(),cv=CALV[sc],pn=PANNE[sc];
+  const col=v=>{const k=v/8;return k<.04?'#f4f4f4':k<.15?'#d0e2ff':k<.3?'#a6c8ff':k<.5?'#78a9ff':k<.75?'#4589ff':'#0043ce';};
+  const moments=[['Début du programme',488],['Milieu de matinée',630],['Fin de vacation',1045]];
+  if(pn&&S.day===pn[0]&&S.arm==='avec')moments.splice(1,0,['Début de la panne',pn[1]+6]);
+  const dot=(c,t)=>`<span><i style="background:${c};border-radius:50%"></i>${t}</span>`;
+  return `<div class="sec" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+    <div class="seg">${S.ranSc.map(k=>`<button class="${sc===k?'on':''}" onclick="S.psc='${k}';renderTest()"><b>${k}</b>${SC[k].short}</button>`).join('')}</div>
+    <div class="seg">${[['sans','Sans outil'],['avec','Avec outil']].map(k=>`<button class="${S.arm===k[0]?'on':''}" onclick="S.arm='${k[0]}';renderTest()">${k[1]}</button>`).join('')}</div>
+    <span class="muted small">Mêmes patients, mêmes durées et mêmes urgences dans les deux bras.</span></div>
+  <div class="sec"><div class="h"><h3>Journée</h3><p>retard ajouté par l’outil ce jour-là, en minutes par salle</p></div>
+   <div class="panel"><div class="pad"><div class="cal">${[0,1,2,3].map(w=>`<div class="wk"><div class="wl">Semaine ${w+1}</div><div>${[0,1,2,3,4].map(i=>{const d=w*5+i,v=cv[d];return `<button class="${S.day===d?'on':''} ${pn&&d===pn[0]?'mk':''}" style="background:${col(v)};color:${v/8>=.5?'#fff':'#161616'}" onclick="S.day=${d};renderTest()" aria-label="Semaine ${w+1}, ${DNL[i]}, ${fr(v)} minutes">${DN[i]}<br><b>${fr(v)}</b></button>`}).join('')}</div></div>`).join('')}</div>
+   ${pn?`<p class="small muted" style="margin:12px 0 0"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--err);margin-right:6px"></span>Panne de l’outil le ${DNL[pn[0]%5]} de la semaine ${Math.floor(pn[0]/5)+1}, de ${hm(pn[1])} à ${hm(pn[2])}.</p>`:''}</div></div></div>
+  <div class="sec"><div class="panel ${S.full?'full':''}"><header><h3>Plan du bloc en 3D</h3><span class="sub" id="plansub"></span><div class="r"><span id="pannetag"></span><span class="clock" id="clock"></span><button class="btn s sm" onclick="P3&&P3.overview()">Vue d’ensemble</button><button class="btn s sm" onclick="S.full=!S.full;renderTest()">${S.full?'Réduire':'Agrandir'}</button></div></header>
+      <div id="plansvg"></div>
+      <div class="player"><button class="btn s" id="playbtn" style="min-width:96px;justify-content:center" onclick="togglePlay()">Lecture</button>
+        <div class="seg">${[['Lent',1.5],['Normal',6],['Rapide',20]].map(v=>`<button class="${S.speed===v[1]?'on':''}" onclick="S.speed=${v[1]};this.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on'));this.classList.add('on')">${v[0]}</button>`).join('')}</div>
+        <input type="range" min="420" max="1200" step="1" value="${Math.round(S.T)}" oninput="S.T=+this.value;P3&&P3.jump()" id="tslider" aria-label="Heure de la journée"><span class="small muted">7 h à 20 h</span></div>
+      <div class="pad" style="border-top:1px solid var(--line);padding-top:14px;padding-bottom:16px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="small muted">Aller à</span>${moments.map(m=>`<button class="btn s sm" onclick="S.T=${m[1]};P3&&P3.jump()">${m[0]}</button>`).join('')}<span class="small" id="live" style="margin-left:auto"></span></div>
+        <div class="key" style="margin-top:14px">${['CHIR','MAR','IADE','IBODE','CIRC','ASH','BRAN','IDESSPI','IDEPRE','PAT'].map(r=>dot(hex(RC[r][0]),RC[r][2])).join('')}</div>
+        ${S.arm==='avec'?`<div class="key" style="margin-top:8px"><span class="muted">Point au-dessus d’un soignant :</span>${dot('#0f62fe','saisit dans l’outil')}${dot('#f1c21b','contourne l’outil, papier')}${dot('#da1e28','outil en panne, papier')}</div>`:''}
+        <p class="small muted" style="margin:10px 0 0">Survolez une personne pour voir ce qu’elle fait. Cliquez sur une personne ou une salle pour le détail. Glisser pour tourner, molette pour zoomer.</p>
+      </div></div></div>
+  <div class="sec"><div class="gp"><div class="panel"><header><h3>Frise de la journée</h3><span class="sub">une ligne par salle</span><div class="r key" style="gap:12px"><span><i style="background:#78a9ff"></i>Intervention</span><span><i style="background:#da1e28"></i>Temps ajouté</span><span><i style="background:#f1c21b"></i>Fin après 17 h 30</span></div></header><div class="pad"><div id="gantt"></div></div></div><div><div class="panel" id="roomdet"></div><div class="panel" id="journal" style="margin-top:16px"></div></div></div></div>`;
+}
+let P3=null,GXT=null,DETAIL='',JOURNAL='';
+const EVC={err:'#da1e28',warn:'#f1c21b',ok:'#198038',info:'#0f62fe'};
+function goEv(t,room,who){S.T=t;if(who)S.selP=who;else if(room!=null){S.room=room;S.selP=null;}if(P3)P3.jump();drawGantt();}
+function drawPlan(){
+  const host=$('#plansvg');if(!host)return;
+  if(typeof THREE==='undefined'||!THREE.OrbitControls){host.innerHTML='<div class="pad muted">Vue 3D indisponible sur ce navigateur.</div>';return;}
+  if(!P3)P3=build3D();
+  P3.attach(host);P3.cine(false);P3.setWorld(buildWorld(S.day,S.arm,planSc()));drawGantt();DETAIL='';JOURNAL='';uiMinute();P3.start();
+}
+function drawGantt(){
+  const W=P3&&P3.world(),ge=$('#gantt');if(!W||!ge)return;
+  const GW=Math.max(520,ge.clientWidth),lh=24,X=t=>64+(t-420)/780*(GW-76);GXT=X;let q='';
+  [7,9,11,13,15,17,19].forEach(h=>q+=`<text x="${X(h*60)}" y="12" text-anchor="middle">${h} h</text><line x1="${X(h*60)}" x2="${X(h*60)}" y1="20" y2="${20+10*lh}" stroke="#e0e0e0"/>`);
+  q+=`<line x1="${X(1050)}" x2="${X(1050)}" y1="20" y2="${20+10*lh}" stroke="#6f6f6f" stroke-dasharray="3 3"/><text x="${X(1050)}" y="${36+10*lh}" text-anchor="middle">Fin de vacation, 17 h 30</text>`;
+  W.sch.forEach((r,i)=>{const y=22+i*lh;q+=`<g onclick="selRoom(${i})" style="cursor:pointer"><rect x="0" y="${y}" width="${GW}" height="${lh-2}" fill="transparent"/><text x="0" y="${y+15}" style="fill:#161616">${r.room}</text>`;
+    if(r.closed)q+=`<text x="${X(480)}" y="${y+15}" style="fill:#8d8d8d">Salle fermée ce jour</text>`;
+    r.cs.forEach(c=>{q+=`<rect x="${X(c.s)}" y="${y+3}" width="${Math.max(2,X(c.e-c.add)-X(c.s)-2)}" height="${lh-8}" fill="${c.e>1050?'#f1c21b':'#78a9ff'}"/>`;if(c.add)q+=`<rect x="${X(c.e-c.add)-2}" y="${y+3}" width="${X(c.e)-X(c.e-c.add)}" height="${lh-8}" fill="#da1e28"/>`;});
+    if(i===S.room&&!S.selP)q+=`<rect x="0" y="${y}" width="${GW}" height="${lh-2}" fill="none" stroke="#161616"/>`;q+='</g>';});
+  q+=`<line id="gcur" x1="${X(S.T)}" x2="${X(S.T)}" y1="14" y2="${22+10*lh}" stroke="#161616" stroke-width="2"/>`;
+  ge.innerHTML=`<svg viewBox="0 0 ${GW} ${44+10*lh}" role="img" aria-label="Frise horaire des salles">${q}</svg>`;
+}
+function detailHTML(W){
+  const dot=r=>`<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${hex(RC[r][0])};margin-right:8px"></span>`;
+  const sais={outil:'<span class="tag blue">Dans l’outil</span>',papier:'<span class="tag warn">Contourne l’outil, papier</span>',panne:'<span class="tag err">Papier, outil en panne</span>'};
+  const a=S.selP&&W.byId[S.selP];
+  if(a){const staff=['CHIR','MAR','IADE','IBODE','CIRC'].includes(a.role),t=W.arm==='avec'&&staff?trust(a,W):null,h=hash(a.id);
+    const fat=Math.round(Math.min(95,12+Math.max(0,S.T-480)/720*55+h*18)),ch=Math.round(36+h*14+(a.pip?16:0)+(W.panne&&a.pip?18:0));
+    return `<header>${dot(a.role)}<h3>${a.code}</h3><span class="sub">${RC[a.role][2]}</span></header><div class="pad" style="padding-top:6px;padding-bottom:6px"><dl class="list" style="grid-template-columns:130px 1fr">
+     <dt>Activité</dt><dd>${a.vis?a.act:'<span class="muted">Hors du bloc</span>'}</dd><dt>Lieu</dt><dd>${a.vis?zname(a.zone):'<span class="muted">Hors du bloc</span>'}</dd>
+     ${a.role==='PAT'?`<dt>Intervention</dt><dd>${hm(a.p.c.s)} à ${hm(a.p.c.e)}, ${RM[a.room].name}</dd>`:`<dt>Confiance</dt><dd>${t==null?'<span class="muted">Sans objet</span>':'<span class="num">'+f2(t)+'</span> <span class="muted">sur 1</span>'}</dd><dt>Saisie</dt><dd>${a.pip?sais[a.pip]:'<span class="muted">Pas de saisie en ce moment</span>'}</dd><dt>Fatigue</dt><dd><span class="num">${fat} %</span></dd><dt>Charge ressentie</dt><dd><span class="num">${ch}</span> <span class="muted">sur 100${ch>=70?', surcharge':''}</span></dd>`}</dl></div>
+     <div class="pad" style="border-top:1px solid var(--line);padding-top:12px;padding-bottom:12px">${a.room!=null?`<a onclick="selRoom(${a.room})">Voir ${RM[a.room].name}</a>`:`<a onclick="selRoom(${S.room})">Revenir à ${RM[S.room].name}</a>`}</div>`;}
+  const i=S.room,r=W.sch[i],s=W.sts[i]||{st:'libre'},team=W.actors.filter(a=>a.room===i&&a.role!=='PAT');
+  return `<header><h3>${r.room}</h3><span class="sub">${r.closed?'':r.spec}</span></header><div class="pad" style="padding-top:6px;padding-bottom:6px"><dl class="list" style="grid-template-columns:130px 1fr">
+   <dt>État</dt><dd>${STL[s.st]}${s.late?', après 17 h 30':''}</dd><dt>En cours</dt><dd>${s.c?hm(s.c.s)+' à '+hm(s.c.e):'<span class="muted">Aucune</span>'}</dd><dt>Programme</dt><dd>${r.closed?'<span class="muted">Salle fermée</span>':r.cs.length+' interventions'}</dd></dl></div>
+   ${team.length?`<table><thead><tr><th>Équipe</th><th>En ce moment</th></tr></thead><tbody>${team.map(a=>`<tr class="click" onclick="selP('${a.id}')"><td style="white-space:nowrap;padding-right:8px">${dot(a.role)}<span class="num">${a.code}</span></td><td class="small">${a.act}</td></tr>`).join('')}</tbody></table>`:''}`;
+}
+function uiMinute(){
+  const W=P3&&P3.world();if(!W)return;const T=Math.floor(S.T),set=(q,f)=>{const e=$(q);if(e)f(e);};
+  set('#clock',e=>e.textContent=hm(T));set('#tslider',e=>{if(document.activeElement!==e)e.value=T;});
+  set('#plansub',e=>e.textContent=`Semaine ${Math.floor(S.day/5)+1}, ${DNL[S.day%5]} · ${W.arm==='avec'?'avec outil':'sans outil'}`);
+  set('#pannetag',e=>e.innerHTML=W.panne?'<span class="tag err">Outil en panne, saisie papier</span>':'');
+  const act=W.sts.filter(s=>ACTIVE.includes(s.st)).length,rec=W.actors.filter(a=>a.role==='PAT'&&a.vis&&a.inBed).length,pips=W.actors.filter(a=>a.pip),o=pips.filter(a=>a.pip==='outil').length;
+  set('#live',e=>e.textContent=`${act} salle${act>1?'s':''} en activité · SSPI ${rec} sur 12`+(W.arm==='avec'?` · saisie : ${o} dans l’outil, ${pips.length-o} sur papier`:''));
+  const cur=$('#gcur');if(cur&&GXT){cur.setAttribute('x1',GXT(S.T));cur.setAttribute('x2',GXT(S.T));}
+  set('#roomdet',e=>{const h=detailHTML(W);if(h!==DETAIL){DETAIL=h;e.innerHTML=h;}});
+  set('#journal',e=>{const L=W.ev.filter(x=>x.t<=S.T).slice(-6).reverse(),h=`<header><h3>Journal de la journée</h3><span class="sub">${W.ev.filter(x=>x.t<=S.T).length} sur ${W.ev.length}</span></header>`+(L.length?L.map(x=>`<div class="jr" onclick="goEv(${x.t},${x.room==null?'null':x.room},${x.who?`'${x.who}'`:'null'})"><span class="num">${hm(x.t)}</span><i style="background:${EVC[x.k]}"></i><span>${x.x}</span></div>`).join(''):'<div class="pad muted">Aucun événement pour l’instant.</div>');if(h!==JOURNAL){JOURNAL=h;e.innerHTML=h;}});
+  set('#playbtn',e=>e.textContent=S.playing?'Pause':'Lecture');
+}
+function selRoom(i){S.room=i;S.selP=null;drawGantt();uiMinute();if(P3)P3.focusRoom(i);}
+function selP(id){S.selP=id;const a=P3&&P3.world().byId[id];if(a&&a.room!=null)S.room=a.room;drawGantt();uiMinute();}
+function togglePlay(){S.playing=!S.playing;if(S.playing&&S.T>=1195){S.T=420;if(P3)P3.jump();}const b=$('#playbtn');if(b)b.textContent=S.playing?'Pause':'Lecture';}
+
+/* ---------- scène three.js ---------- */
+function build3D(){
+  const wrap=document.createElement('div');wrap.style.position='relative';
+  const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(2,devicePixelRatio));renderer.setClearColor(0xeef1f1);
+  const labs=document.createElement('div');labs.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden';
+  const tip=document.createElement('div');tip.className='tip3';tip.hidden=true;
+  wrap.appendChild(renderer.domElement);wrap.appendChild(labs);wrap.appendChild(tip);
+  const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(32,1.8,.1,400);
+  const HOME=[0,50,24],HT=[0,0,.4];cam.position.fromArray(HOME);
+  const ctl=new THREE.OrbitControls(cam,renderer.domElement);ctl.maxPolarAngle=1.32;ctl.minDistance=7;ctl.maxDistance=95;ctl.screenSpacePanning=false;ctl.target.fromArray(HT);ctl.update();
+  scene.add(new THREE.HemisphereLight(0xffffff,0xb4bcbc,.86));const dl=new THREE.DirectionalLight(0xffffff,.34);dl.position.set(14,34,18);scene.add(dl);
+  const mats={},M=c=>mats[c]||(mats[c]=new THREE.MeshLambertMaterial({color:c})),B=c=>new THREE.MeshBasicMaterial({color:c});
+  const box=(w,h,d,mat,x,y,z,p)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);(p||scene).add(m);return m;};
+  const U=v=>v/PXU,WH=.7,WT=.1,wallM=M(0xfbfcfc);
+  box(46.4,.1,24.4,M(0xd5dbdb),0,-.05,0);                                       // dalle et couloir
+  // murs d'un rectangle, avec une porte de 2 unités sur un côté
+  function shell(R,doorX,corridorSide){const x=GXu(R.x+R.w/2),z=GZu(R.y+R.h/2),w=U(R.w),d=U(R.h),zc=GZu(corridorSide==='bottom'?R.y+R.h:R.y),zb=GZu(corridorSide==='bottom'?R.y:R.y+R.h);
+    box(w,WH,WT,wallM,x,WH/2,zb);box(WT,WH,d,wallM,x-w/2,WH/2,z);box(WT,WH,d,wallM,x+w/2,WH/2,z);
+    const dx=GXu(doorX),l=dx-1-(x-w/2),r=(x+w/2)-(dx+1);if(l>0)box(l,WH,WT,wallM,x-w/2+l/2,WH/2,zc);if(r>0)box(r,WH,WT,wallM,x+w/2-r/2,WH/2,zc);
+    return {x,z,w,d,zb};}
+  const mkLab=c=>{const l=document.createElement('div');l.className='l3'+(c?' '+c:'');labs.appendChild(l);return l;};
+  const rooms=RM.map(R=>{const g=shell(R,R.door.x,R.top?'bottom':'top'),slab=box(g.w,.1,g.d,new THREE.MeshLambertMaterial({color:0xf6f8f7}),g.x,.05,g.z);slab.userData.room=R.i;
+    const P=(dx,dy)=>[GXu(R.cx+dx),GZu(R.cy+dy*R.sign)];
+    box(g.w-.3,.02,U(92)-.25,M(0xe6ecef),g.x,.11,GZu(R.top?R.y+R.h-46:R.y+46));           // pré-anesthésie
+    const band=box(g.w,.16,.22,B(0xe0e0e0),g.x,WH+.08,g.zb);
+    const [tx,tz]=P(0,0);box(.5,.8,.7,M(0x56656c),tx,.5,tz);box(.85,.12,2.3,M(0x7b8a91),tx,.96,tz);     // table
+    const lamp=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.06,24),new THREE.MeshBasicMaterial({color:0x9aa6ab,transparent:true,opacity:.35}));lamp.position.set(tx,2.5,tz);scene.add(lamp);
+    const halo=new THREE.Mesh(new THREE.CircleGeometry(1.6,32),new THREE.MeshBasicMaterial({color:0xfff0a0,transparent:true,opacity:.5}));halo.rotation.x=-Math.PI/2;halo.position.set(tx,.125,tz);scene.add(halo);
+    const [ax,az]=P(52,-74);box(.7,1.05,.6,M(0x3a4950),ax,.62,az);const mon=box(.52,.32,.07,B(0x1c2b33),ax,1.36,az);     // poste d'anesthésie
+    const [ix,iz]=P(-92,28);box(.85,.7,.6,M(0xcfd8db),ix,.45,iz);                                                    // table d'instruments
+    const tool=new THREE.Group();scene.add(tool);const [px,pz]=P(100,-22);box(.08,1.1,.08,M(0x3a4950),px,.65,pz,tool);const screen=box(.08,.4,.6,B(0x393939),px,1.32,pz,tool);
+    const sel=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(g.w+.25,WH+.1,g.d+.25)),new THREE.LineBasicMaterial({color:0x161616}));sel.position.set(g.x,WH/2,g.z);scene.add(sel);
+    return {g,slab,band,lamp,halo,mon,tool,screen,sel,lab:mkLab(R.top?'':'low'),txt:''};});
+  const zlabs=Object.keys(ZN).map(k=>{const Z=ZN[k],top=Z.y<485,g=shell(Z,Z.door.x,top?'bottom':'top');box(g.w,.1,g.d,M(0xf1f3f2),g.x,.05,g.z);const l=mkLab('zone');l.textContent=Z.label;return {l,x:g.x,z:g.zb};});
+  for(let k=0;k<12;k++){const b=recBed(k);box(.8,.42,1.95,M(0xfdfefe),GXu(b.x),.31,GZu(b.y));}
+  for(let k=0;k<10;k++){const b=accSlot(k);box(1.1,.02,2.1,M(0xe3e9ec),GXu(b.x),.11,GZu(b.y));}
+  box(2.6,.7,1.2,M(0xcfd8db),GXu(135),.45,GZu(560));                                         // office : plan de travail
+  for(let k=0;k<3;k++)box(.6,1.3,3.2,M(0xb7c2c6),GXu(1575+k*118),.75,GZu(600));               // arsenal : rayonnages
+  // personnes
+  const GEO={sh:new THREE.CircleGeometry(.34,20),legs:new THREE.CylinderGeometry(.17,.15,.5,12),torso:new THREE.CylinderGeometry(.24,.2,.62,14),head:new THREE.SphereGeometry(.17,14,12),cap:new THREE.CylinderGeometry(.176,.176,.1,14),pip:new THREE.SphereGeometry(.13,12,10)};
+  const shM=new THREE.MeshBasicMaterial({color:0x14202a,transparent:true,opacity:.2}),skin=M(0xe2b48f),legsM=M(0x3b4a52);
+  function mkPerson(a){const g=new THREE.Group(),c=RC[a.role];
+    const sh=new THREE.Mesh(GEO.sh,shM);sh.rotation.x=-Math.PI/2;sh.position.y=.112;g.add(sh);
+    const legs=new THREE.Mesh(GEO.legs,legsM);legs.position.y=.36;g.add(legs);
+    const up=new THREE.Group();up.position.y=.6;g.add(up);
+    const torso=new THREE.Mesh(GEO.torso,M(c[0]));torso.position.y=.32;up.add(torso);
+    const head=new THREE.Mesh(GEO.head,skin);head.position.y=.8;up.add(head);
+    const cap=new THREE.Mesh(GEO.cap,M(c[1]));cap.position.y=.92;up.add(cap);
+    const pip=new THREE.Mesh(GEO.pip,B(0xffffff));pip.position.y=2.0;pip.visible=false;g.add(pip);
+    [legs,torso,head,cap].forEach(m=>m.userData.aid=a.id);return {a,g,up,pip};}
+  function mkPatient(a){const g=new THREE.Group();
+    const sh=new THREE.Mesh(new THREE.PlaneGeometry(.95,2.15),shM);sh.rotation.x=-Math.PI/2;sh.position.y=.112;g.add(sh);
+    const str=new THREE.Group();g.add(str);box(.72,.1,1.95,M(0xfdfefe),0,.62,0,str);box(.6,.5,.06,legsM,0,.32,.72,str);box(.6,.5,.06,legsM,0,.32,-.72,str);
+    const body=box(.46,.2,1.22,M(RC.PAT[0]),0,.78,.14,g),head=new THREE.Mesh(GEO.head,skin);head.position.set(0,.8,-.7);g.add(head);
+    [body,head].forEach(m=>m.userData.aid=a.id);str.children.forEach(m=>m.userData.aid=a.id);return {a,g,str,sh};}
+  const ring=new THREE.Mesh(new THREE.RingGeometry(.4,.52,28),B(0x161616));ring.rotation.x=-Math.PI/2;ring.visible=false;scene.add(ring);
+  const who=mkLab('who');who.hidden=true;
+  let cine=false,cineT=0,W=null,AG=null,AM=[],jump=true,Wd=0,Hh=0,running=false,last=0,lastMin=-1,focus=null,mouse=null,clock=0;
+  const v=new THREE.Vector3(),ray=new THREE.Raycaster();
+  const put=(l,x,y,z)=>{v.set(x,y,z).project(cam);l.style.left=((v.x*.5+.5)*Wd)+'px';l.style.top=((-v.y*.5+.5)*Hh)+'px';l.style.display=v.z<1?'':'none';};
+  function pick(e){const r=renderer.domElement.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1),cam);
+    const h=AG?ray.intersectObjects(AG.children,true).find(x=>x.object.userData.aid&&x.object.parent.visible!==false):null;
+    if(h)return {a:W.byId[h.object.userData.aid]};const s=ray.intersectObjects(rooms.map(r=>r.slab))[0];return s?{room:s.object.userData.room}:{};}
+  let down=null;
+  renderer.domElement.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];});
+  renderer.domElement.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)return;const p=pick(e);if(p.a&&p.a.vis)selP(p.a.id);else if(p.room!=null)selRoom(p.room);});
+  renderer.domElement.addEventListener('pointermove',e=>{mouse=e;});
+  renderer.domElement.addEventListener('pointerleave',()=>{mouse=null;tip.hidden=true;});
+  ctl.addEventListener('start',()=>{focus=null;cine=false;});
+  function frame(dt){
+    if(!W)return;clock+=dt;
+    if(S.playing){S.T+=dt*S.speed;if(S.T>=1200){S.T=1200;S.playing=false;lastMin=-1;}}
+    planWorld(W,S.T);stepWorld(W,dt,S.playing?Math.min(1500,Math.max(240,S.speed*130)):260,jump);jump=false;
+    rooms.forEach((o,i)=>{const s=W.sts[i],on=['instal','chir','ferm'].includes(s.st),act=ACTIVE.includes(s.st);
+      o.halo.visible=on;o.lamp.material.color.setHex(on?0xfff0a0:0x9aa6ab);o.mon.material.color.setHex(act?(Math.sin(clock*6+i)>.2?0x42be65:0x198038):0x1c2b33);
+      const bc=s.late&&act?0xf1c21b:act?0x0f62fe:s.st==='bio'?0x3a9ad9:s.st==='prepa'?0x78a9ff:0xd0d6d6;o.band.material.color.setHex(bc);
+      o.slab.material.color.setHex(s.st==='ferme'?0xdfe4e4:0xf6f8f7);
+      o.tool.visible=W.arm==='avec';const c=W.byId['CIRC'+i];o.screen.material.color.setHex(!act?0x393939:W.panne?0xda1e28:c&&c.pip==='outil'?0x4589ff:0x8d8d8d);
+      o.sel.visible=S.room===i&&!S.selP;
+      const el=s.c?Math.floor(S.T-s.c.s):0,t=`<b>${RM[i].name}</b>${Wd>1250&&!W.sch[i].closed?' '+W.sch[i].spec:''}<br><i style="background:${hex(bc)}"></i>${STS[s.st]}${s.c?' '+Math.floor(el/60)+':'+String(el%60).padStart(2,'0'):''}`;
+      if(t!==o.txt){o.txt=t;o.lab.innerHTML=t;}o.lab.classList.toggle('sel',S.room===i&&!S.selP);});
+    let selA=null;
+    AM.forEach(o=>{const a=o.a,g=o.g;g.visible=a.vis;if(!a.vis)return;g.position.x=GXu(a.pos.x);g.position.z=GZu(a.pos.y);if(a.id===S.selP)selA=o;
+      if(a.role==='PAT'){const still=!a.path.length,onT=a.onTable&&still,inB=a.inBed&&still;o.str.visible=!(onT||inB);o.sh.visible=!(onT||inB);g.position.y=onT?.32:inB?-.1:0;g.rotation.y=a.moving?a.dir:0;return;}
+      if(a.moving)a.ph+=dt*11;g.position.y=a.moving?Math.abs(Math.sin(a.ph))*.07:0;
+      let dir=a.dir;if(!a.moving&&a.room!=null&&a.zone==='R'+a.room){const R=RM[a.room],post=a.act.startsWith('Saisit');dir=post?Math.atan2(1,0):Math.atan2(R.cx-a.pos.x,R.cy-a.pos.y);}
+      let d=dir-g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));g.rotation.y+=d*Math.min(1,dt*10);
+      const work=!a.moving&&(a.act==='Opère'||a.act==='Instrumente'||a.act==='Referme'||a.act.startsWith('Saisit')||a.act.startsWith('Bionettoyage'));
+      o.up.rotation.x=work?.2+Math.sin(clock*3.2+a.ph)*.09:a.moving?.08:0;o.up.rotation.z=work?Math.sin(clock*2.1+a.ph)*.05:0;
+      o.pip.visible=!!a.pip;if(a.pip){o.pip.material.color.setHex(PIPC[a.pip]);o.pip.position.y=2.0+Math.sin(clock*3+a.ph)*.04;}});
+    ring.visible=!!selA;who.hidden=!selA;if(selA){ring.position.set(selA.g.position.x,.13,selA.g.position.z);}
+    if(focus){ctl.target.lerp(focus.t,.14);const dir=cam.position.clone().sub(ctl.target),L=dir.length();dir.multiplyScalar((L+(focus.d-L)*.14)/L);cam.position.copy(ctl.target).add(dir);if(ctl.target.distanceTo(focus.t)<.05&&Math.abs(L-focus.d)<.2)focus=null;}
+    if(cine){cineT+=dt;const a=Math.sin(cineT*.16)*.34,k=(.86+Math.cos(cineT*.11)*.06)*Math.max(1,1.7/cam.aspect),ox=HOME[0]-HT[0],oy=HOME[1]-HT[1],oz=HOME[2]-HT[2];cam.position.set(HT[0]+(ox*Math.cos(a)+oz*Math.sin(a))*k,HT[1]+oy*k,HT[2]+(oz*Math.cos(a)-ox*Math.sin(a))*k);}
+    ctl.update();renderer.render(scene,cam);
+    rooms.forEach((o,i)=>put(o.lab,o.g.x,RM[i].top?WH+.3:0,o.g.zb+(RM[i].top?0:.25)));zlabs.forEach(z=>put(z.l,z.x,WH+.3,z.z));
+    if(selA){who.innerHTML=`<b>${selA.a.code}</b> ${selA.a.act}`;put(who,selA.g.position.x,2.4,selA.g.position.z);}
+    if(mouse){const p=pick(mouse);if(p.a&&p.a.vis){const r=renderer.domElement.getBoundingClientRect();tip.hidden=false;tip.innerHTML=`<b>${p.a.code}</b> <span>${RC[p.a.role][2]}</span><br>${p.a.act}`;tip.style.left=((mouse.clientX-r.left)/r.width*Wd)+'px';tip.style.top=((mouse.clientY-r.top)/r.height*Hh)+'px';renderer.domElement.style.cursor='pointer';}else{tip.hidden=true;renderer.domElement.style.cursor=p.room!=null?'pointer':'grab';}}
+    if(Math.floor(S.T)!==lastMin){lastMin=Math.floor(S.T);uiMinute();}
+  }
+  function tick(now){if(!wrap.isConnected){running=false;return;}const dt=Math.min(.05,(now-last)/1000);last=now;try{frame(dt);}catch(e){console.error('plan3d',e);}requestAnimationFrame(tick);}
+  return {world:()=>W,
+    attach(host){if(wrap.parentNode!==host){host.innerHTML='';host.appendChild(wrap);}const w=host.clientWidth,h=host.dataset.fill?Math.max(260,host.clientHeight):S.full?Math.max(320,Math.round(innerHeight/Z)-330):Math.round(w*.53);if(w!==Wd||h!==Hh){Wd=w;Hh=h;renderer.setSize(Wd,Hh);cam.aspect=Wd/Hh;cam.updateProjectionMatrix();}},
+    setWorld(w){if(AG)scene.remove(AG);W=w;AG=new THREE.Group();scene.add(AG);AM=w.actors.map(a=>{const o=a.role==='PAT'?mkPatient(a):mkPerson(a);AG.add(o.g);return o;});if(S.selP&&!w.byId[S.selP])S.selP=null;jump=true;lastMin=-1;rooms.forEach(o=>o.txt='');},
+    jump(){jump=true;lastMin=-1;},
+    focusRoom(i){focus={t:new THREE.Vector3(rooms[i].g.x,0,rooms[i].g.z),d:22};},
+    overview(){focus={t:new THREE.Vector3().fromArray(HT),d:Math.hypot(HOME[0]-HT[0],HOME[1]-HT[1],HOME[2]-HT[2])};},
+    cine(on){cine=!!on;cineT=0;if(!on)return;focus=null;ctl.target.fromArray(HT);cam.position.fromArray(HOME);},
+    start(){if(!running){running=true;last=performance.now();requestAnimationFrame(tick);}}};
+}
+
+/* ---------- 4. certificat ---------- */
+function frozen(){const H=hosp(),cs=[...new Set(S.ranSc.flatMap(k=>SC[k].cond.filter(c=>c[2]).map(c=>c[0])))];
+  return `<dl class="list"><dt>Logiciel</dt><dd>Scribe IA, version déclarée 2.3, fiche version 2</dd><dt>Éditeur</dt><dd>Société exemple</dd><dt>Hôpital simulé</dt><dd><b style="font-weight:600">${H.n}</b>, ${H.type.toLowerCase()}, ${H.salles} salles</dd><dt>Jumeau numérique</dt><dd>Version ${H.ver}, calibré sur ${H.data}</dd><dt>Indice d’adoption</dt><dd><b style="font-weight:600">${scoreOf('*')[0]} / 100</b>, ${grade(scoreOf('*')[0]).toLowerCase()}</dd>${S.ranSc.map(k=>`<dt>Scénario ${k}</dt><dd><span class="tag ${SC[k].tag[0]}">${SC[k].tag[1]}</span> &nbsp;${SC[k].name}. ${SC[k].stats[0][0]} ${SC[k].stats[0][1]}${SC[k].stats[0][2].trim()?' '+SC[k].stats[0][2].trim():''} <span class="ci">${SC[k].stats[0][3]}</span></dd>`).join('')}<dt>Conditions</dt><dd>${cs.length?cs.join('<br>'):'Aucune'}</dd><dt>Méthode</dt><dd>4 semaines × 20 répétitions, modèle BlocSim 1.4, 5 paramètres à calibrer</dd><dt>Validité</dt><dd>12 mois, ou jusqu’à la prochaine version majeure du jumeau</dd></dl>`;}
+function qr(txt,cell){if(typeof qrcode==='undefined')return '<div class="small muted">QR code</div>';const q=qrcode(0,'M');q.addData(txt);q.make();return q.createSvgTag({cellSize:cell||3,margin:0});}
+function pCert(){
+  if(S.hosp==='gen') return `<div class="sec"><div class="note info">${ICON.info}<div><b>Pas de certificat avec le bloc générique.</b><p>Un certificat porte sur un hôpital précis. Ce test reste consultable et exportable, sans numéro de certification.</p></div></div></div>
+   <div class="sec"><div class="h"><h3>Pour obtenir un certificat</h3></div><div class="panel"><table><tbody>
+   <tr><td style="width:44px" class="num">1</td><td><b style="font-weight:500">Choisir un hôpital</b><br><span class="small muted">Parmi les jumeaux existants, ou en demandant un nouveau jumeau.</span></td><td class="r"><button class="btn g sm" onclick="go('hosp')">Voir les hôpitaux</button></td></tr>
+   <tr><td class="num">2</td><td><b style="font-weight:500">Relancer le test sur cet hôpital</b><br><span class="small muted">La fiche et les scénarios sont repris tels quels.</span></td><td class="r"><button class="btn g sm" onclick="pane('config')">Ouvrir la configuration</button></td></tr>
+   <tr><td class="num">3</td><td><b style="font-weight:500">Émettre le certificat</b><br><span class="small muted">Les chiffres sont recalculés par Blocapta, puis figés.</span></td><td></td></tr></tbody></table></div></div>`;
+  if(!S.issued) return `<div class="sec"><div class="note info">${ICON.info}<div><b>Le certificat fige les résultats de ce test, pour cet hôpital.</b><p>À l’émission, Blocapta recalcule les chiffres de son côté. Ensuite, ni vous ni Blocapta ne pouvez les modifier. L’hôpital les consulte avec le numéro, sur une page publique.</p></div></div></div>
+   <div class="sec"><div class="h"><h3>Ce qui sera publié</h3><p>visible par toute personne ayant le numéro</p></div><div class="panel"><div class="pad" style="padding-top:6px;padding-bottom:6px">${frozen()}</div></div>
+   <p class="small muted" style="margin-top:8px">Les réserves, les conditions et les paramètres à calibrer sont publiés avec le certificat.</p></div>
+   <div class="foot"><button class="btn g" onclick="pane('res')">Retour aux résultats</button><div class="r"><button class="btn p" onclick="confirmIssue()">Émettre le certificat</button></div></div>`;
+  const url='https://blocapta.fr/verifier/BLC-2026-4F7K-91',H=hosp();
+  return `<div class="sec"><div class="panel"><div class="pad" style="display:flex;align-items:center;gap:24px"><div><div class="small muted">Numéro de certification</div><div style="font:500 28px var(--mono);letter-spacing:.5px;margin-top:2px">BLC-2026-4F7K-91</div><div class="small muted" style="margin-top:6px">Émis le 14/11/2026 à 10 h 51 · valable jusqu’au 14/11/2027 · empreinte <span class="num" style="font-size:13px">sha256 9f2c…a41e</span></div></div>
+   <div style="margin-left:auto;display:flex;gap:8px"><button class="btn s" onclick="this.textContent='Copié'">Copier le numéro</button><button class="btn s" onclick="go('verify');verify()">Voir la page publique</button></div></div></div></div>
+   <div class="sec"><div class="g2" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)"><div><div class="h"><h3>À joindre à votre proposition</h3></div><div class="panel"><table><tbody>
+   <tr><td style="width:200px">Lien de vérification</td><td><code class="id">blocapta.fr/verifier/BLC-2026-4F7K-91</code></td><td class="r"><button class="btn g sm">Copier</button></td></tr>
+   <tr><td>Badge</td><td class="muted">Numéro, hôpital et QR code vers la page de vérification</td><td class="r"><button class="btn g sm">Télécharger</button></td></tr>
+   <tr><td>Rapport complet</td><td class="muted">PDF : synthèse, comparaison, sensibilité, hypothèses</td><td class="r"><button class="btn g sm">Télécharger</button></td></tr>
+   </tbody></table></div></div>
+   <div><div class="h"><h3>Aperçu du badge</h3></div><div class="badge">${qr(url,3)}<div><div style="font-weight:600">Simulé par Blocapta</div><div class="num" style="margin:2px 0">BLC-2026-4F7K-91</div><div class="small muted">${H.n}, ${H.salles} salles · indice ${scoreOf('*')[0]} / 100<br>Valable jusqu’au 14/11/2027</div></div></div></div></div></div>
+   <div class="sec"><div class="h"><h3>Chiffres figés</h3></div><div class="panel"><div class="pad" style="padding-top:6px;padding-bottom:6px">${frozen()}</div></div></div>`;
+}
+function confirmIssue(){
+  $('#overlay').innerHTML=`<div class="modal" onclick="if(event.target===this)closeO()"><div role="dialog" aria-modal="true"><div class="mh"><div class="small muted">Scribe IA 2.3, bloc pilote</div><h2 style="margin-top:4px">Émettre le certificat ?</h2></div><div class="mb">Les résultats ${S.ranSc.length>1?'des scénarios':'du scénario'} ${scList()} sur ${hosp().n} seront recalculés par Blocapta, figés, puis publiés, réserves comprises. Cette action est définitive. Pour changer les chiffres, il faudra un nouveau test et un nouveau numéro.</div><div class="mf"><button class="btn s" onclick="closeO()">Annuler</button><button class="btn p" onclick="S.issued=true;closeO();renderTest()">Émettre</button></div></div></div>`;
+}
+function closeO(){if($('#overlay .demo')){S.playing=false;if(P3)P3.cine(false);}S.slide=null;$('#overlay').innerHTML='';document.body.style.overflow='';}
+
+/* ---------- démo guidée ---------- */
+function demoSlides(){
+  const gen=S.hosp==='gen',H=hosp(),nm=$('#t-title').textContent,mk=S.ranSc.find(k=>SC[k].mark)||S.ranSc[0],d=SC[mk],ov=overall(),sc=scoreOf('*')[0],n=S.ranSc.length,nf=v=>v.toLocaleString('fr-FR');
+  return [
+   {t:'Le test',c:'Le bloc simulé est un jumeau numérique réglé par Blocapta. L’éditeur ne peut pas en modifier les paramètres.',
+    h:`<div class="d-eyebrow">Test d’adoption · offre ${gen?'Test':'Certification'}</div><div class="d-big">${nm} sera-t-il adopté au ${H.n.toLowerCase()} ?</div>
+     <p class="d-lead">Blocapta rejoue quatre semaines du bloc, sans puis avec le logiciel, sur les mêmes patients, les mêmes durées et les mêmes urgences.</p>
+     <dl class="kv d-kv" style="margin:0"><div><dt>Bloc simulé</dt><dd>${H.salles} salles</dd></div><div><dt>Calibré sur</dt><dd>${H.id==='gen'?'valeurs moyennes':H.data.split(',')[0]}</dd></div><div><dt>Scénarios simulés</dt><dd>${n}</dd></div><div><dt>Journées de bloc simulées</dt><dd>${nf(n*800)}</dd></div></dl>`},
+   {t:'La fiche',c:'Une fiche incomplète ne reçoit aucun chiffre : Blocapta liste ce qui manque et les questions à poser à l’auteur.',
+    h:`<div class="d-eyebrow">Étape 1 · la fiche logiciel est vérifiée avant tout calcul</div><div class="d-split"><div><div class="d-score" style="font-size:clamp(70px,9vw,150px)">40<small>/ 40 champs</small></div><p class="d-lead" style="margin:3vh 0 0">Les 4 champs critiques sont renseignés. Niveau de confiance : élevé.</p></div>
+     <div class="panel"><table><thead><tr><th>Rubrique</th><th class="num">Champs</th><th>État</th></tr></thead><tbody>${FICHE.map(f=>`<tr><td>${f[0]}</td><td class="num">${f[1]} / ${f[2]}</td><td><span class="tag ok">Complet</span></td></tr>`).join('')}</tbody></table></div></div>`},
+   {t:'Le jumeau',c:'Chaque soignant décide, à chaque saisie, d’utiliser l’outil ou de le contourner. Sa confiance évolue avec ce qu’il vit dans le bloc.',on:demo3d,
+    h:`<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px"><div class="d-eyebrow" style="margin:0">Étape 2 · le jumeau numérique du bloc, scénario ${mk}</div><span id="live" class="small muted"></span><span style="margin-left:auto" id="pannetag"></span><span class="clock" id="clock"></span></div><div id="demo3d" class="d-3d" data-fill="1"></div>`},
+   {t:'La comparaison',c:'Les deux bras jouent les mêmes journées. L’écart ne vient que du logiciel et de la façon dont les équipes l’adoptent.',on:()=>lineChart($('#dchart'),d.series,d.mark||null),
+    h:`<div class="d-eyebrow">Étape 3 · scénario ${mk}, ${d.name.toLowerCase()}</div><div class="d-mid">${d.verdict}</div><div class="d-split" style="grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)"><div><div class="small muted" style="margin-bottom:8px">${d.chartTitle}, sur 4 semaines</div><div class="chart" id="dchart" data-h="${Math.max(320,Math.round(innerHeight/Z*.4))}"></div></div>
+     <dl class="kv d-kv" style="margin:0;grid-template-columns:1fr">${d.stats.slice(0,3).map(x=>`<div><dt>${x[0]}</dt><dd>${x[1]}<span class="muted" style="font-size:.55em"> ${x[2].trim()}</span> <span class="ci">${x[3]}</span></dd></div>`).join('')}</dl></div>`},
+   {t:'Le résultat',c:'Le statut du test est celui de son scénario le moins favorable. Les conditions de déploiement sont publiées avec le résultat.',
+    h:`<div class="d-eyebrow">Étape 4 · le résultat</div><div class="d-split"><div><div class="small muted">Indice d’adoption</div><div class="d-score">${sc}<small>/ 100</small></div><div style="font-size:22px;margin:2vh 0 1.5vh">${grade(sc)}</div><span class="tag ${ov[0]}" style="font-size:16px;padding:9px 14px;border-radius:18px">${ov[1]}</span><div style="margin-top:4vh;max-width:520px">${COMP.map((n,i)=>`<div class="sc-b"><span>${n}</span><div><i style="width:${scoreOf('*')[1][i]}%"></i></div><b class="num">${scoreOf('*')[1][i]}</b></div>`).join('')}</div></div>
+     <div class="panel"><table><thead><tr><th>Scénario</th><th>Conclusion</th><th class="num">Indice</th><th>À prévoir</th></tr></thead><tbody>${S.ranSc.map(k=>{const c=SC[k].cond.find(c=>c[2]);return `<tr><td><b style="font-weight:500">${k}.</b> ${SC[k].name}</td><td><span class="tag ${SC[k].tag[0]}">${SC[k].tag[1]}</span></td><td class="num">${SCO[k][0]}</td><td class="${c?'':'muted'}">${c?c[0]:'Rien de particulier'}</td></tr>`}).join('')}</tbody></table></div></div>`},
+   !gen&&{t:'Le certificat',c:'Les chiffres sont recalculés par Blocapta puis figés. L’hôpital les vérifie sans compte, avec le numéro ou le QR code.',
+    h:`<div class="d-eyebrow">Étape 5 · le certificat</div><div class="d-split" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);align-items:center"><div><div class="small muted">Numéro de certification</div><div style="font:500 clamp(34px,4.6vw,72px) var(--mono);letter-spacing:1px;margin:1vh 0 3vh">BLC-2026-4F7K-91</div>
+      <dl class="kv d-kv" style="margin:0;grid-template-columns:repeat(3,1fr)"><div><dt>Logiciel</dt><dd style="font-size:20px">${nm}</dd></div><div><dt>Hôpital simulé</dt><dd style="font-size:20px">${H.n}</dd></div><div><dt>Valable jusqu’au</dt><dd style="font-size:20px">14/11/2027</dd></div></dl></div>
+     <div style="display:flex;flex-direction:column;align-items:center;gap:14px;border:1px solid var(--ink);padding:28px">${qr('https://blocapta.fr/verifier/BLC-2026-4F7K-91',6)}<div style="font-weight:600">Simulé par Blocapta</div><div class="muted">blocapta.fr/verifier</div></div></div>`}
+  ].filter(Boolean);
+}
+function demo(i){
+  if(!S.ran)return;
+  if(i==null){i=0;if(S.pane==='plan'||S.pane==='run'){S.pane='res';renderTest();}}
+  const L=demoSlides();S.slide=Math.max(0,Math.min(L.length-1,i));const sl=L[S.slide];S.playing=false;if(P3)P3.cine(false);
+  document.body.style.overflow='hidden';
+  $('#overlay').innerHTML=`<div class="present demo"><div class="top"><b style="color:#161616;font-weight:600">Blocapta</b><span>${$('#t-title').textContent} · ${hosp().n}</span><span class="d-steps">${L.map((x,j)=>`<button class="${j===S.slide?'on':''}" onclick="demo(${j})">${x.t}</button>`).join('')}</span><button class="btn s sm" onclick="closeO()">Quitter</button></div>
+   <div class="d-body">${sl.h}</div><div class="d-foot"><p>${sl.c}</p><div><button class="btn s" ${S.slide?'':'disabled'} onclick="demo(${S.slide-1})">Précédent</button><button class="btn p" ${S.slide<L.length-1?'':'disabled'} onclick="demo(${S.slide+1})">Suivant</button></div></div></div>`;
+  if(sl.on)sl.on();
+}
+function demo3d(){
+  const host=$('#demo3d');if(typeof THREE==='undefined'||!THREE.OrbitControls){host.innerHTML='<div class="pad muted">Vue 3D indisponible sur ce navigateur.</div>';return;}
+  const mk=S.ranSc.find(k=>PANNE[k])||S.ranSc[0],pn=PANNE[mk];S.psc=mk;S.arm='avec';S.day=pn?pn[0]:0;S.T=pn?pn[1]-22:560;S.selP=null;
+  if(!P3)P3=build3D();P3.attach(host);P3.setWorld(buildWorld(S.day,'avec',mk));P3.overview();S.speed=3;S.playing=true;P3.cine(true);P3.start();
+}
+document.addEventListener('keydown',e=>{
+  if(S.slide!=null&&$('#overlay .demo')){if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();demo(S.slide+1);}else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();demo(S.slide-1);}else if(e.key==='Escape')closeO();return;}
+  if(e.key==='Escape'){if($('#overlay').innerHTML)closeO();else if(S.full){S.full=false;renderTest();}}});
+
+/* ---------- page publique ---------- */
+function verify(){
+  const v=$('#q').value.trim().toUpperCase();
+  if(v!=='BLC-2026-4F7K-91'&&v!=='BLC-2026-7QD2-38'){ $('#vres').innerHTML=`<div class="note err">${ICON.err}<div><b>Aucun certificat ne porte ce numéro.</b><p>Vérifiez la saisie (format BLC-AAAA-XXXX-NN) ou demandez le numéro exact à l’éditeur.</p></div></div>`;return;}
+  const old=v==='BLC-2026-7QD2-38',H=HOSP.find(h=>h.id==='pilote');
+  $('#vres').innerHTML=`<div class="note">${ICON.ok}<div><b style="font-size:17px">Certificat valide</b><p>Émis par Blocapta le ${old?'12/11/2026':'14/11/2026'}, valable jusqu’au ${old?'12/11/2027':'14/11/2027'}. Les chiffres ci-dessous sont figés depuis l’émission et ne peuvent pas être modifiés par l’éditeur.</p></div></div>
+  <dl class="kv" style="margin:16px 0 0;grid-template-columns:1.1fr 1.1fr 1.1fr .8fr">
+   <div><dt>Logiciel testé</dt><dd><b style="font-weight:600;font-size:17px">${old?'Checklist tablette 1.8':'Scribe IA 2.3'}</b><div class="small muted">Société exemple</div></dd></div>
+   <div><dt>Hôpital simulé</dt><dd><b style="font-weight:600;font-size:17px">${H.n}</b><div class="small muted">${H.type}, ${H.salles} salles (OP 2 à OP 11), SSPI</div></dd></div>
+   <div><dt>Jumeau numérique</dt><dd><b style="font-weight:600;font-size:17px">Version ${H.ver}</b><div class="small muted">Calibré sur ${H.data}</div></dd></div>
+   <div><dt>Indice d’adoption</dt><dd><b style="font-weight:300;font-size:34px;line-height:1">${old?71:83}</b> <span class="muted">/ 100</span><div class="small muted">${grade(old?71:83)}</div></dd></div></dl>
+  <p class="small muted" style="margin:8px 0 0">Ce certificat vaut pour cet hôpital uniquement. <a>Voir la fidélité du jumeau</a></p>
+  <div class="panel" style="margin-top:20px"><header><h3>Résultats par scénario</h3><span class="sub">4 semaines × 20 répétitions</span></header><table><thead><tr><th>Scénario</th><th>Conclusion</th><th>Chiffres clés</th><th>Condition</th></tr></thead><tbody>
+   <tr><td><b style="font-weight:500">A.</b> Déploiement un lundi à 8 h</td><td><span class="tag ok">Conforme</span></td><td>Retard +0,0 min par semaine <span class="ci">[−0,4 ; +0,5]</span><br>Confiance finale 0,85</td><td class="muted">Aucune</td></tr>
+   <tr><td><b style="font-weight:500">B.</b> Panne le mardi de la semaine 1</td><td><span class="tag warn">Réserves</span></td><td>Confiance finale 0,80 avec support<br>0,66 sans support</td><td>Support sur place toute la semaine 1</td></tr></tbody></table></div>
+  <div class="panel" style="margin-top:16px"><header><h3>Ce que ce certificat ne dit pas</h3></header><div class="pad muted" style="padding-top:10px"><ul class="plain"><li>C’est le résultat d’une simulation, pas d’une mesure dans le bloc.</li><li>Il ne vaut pas pour un autre hôpital que ${H.n}.</li><li>5 paramètres du modèle humain ne sont pas encore mesurés (« à calibrer »).</li></ul></div></div>
+  <p class="small muted" style="margin-top:12px">Empreinte des chiffres : <span class="num" style="font-size:13px">sha256 9f2c…a41e</span> · <a>Méthode et hypothèses</a> · <a>Rapport complet (PDF)</a></p>`;
+}
+fit();go('tests');
+</script>
+</body>
+</html>
