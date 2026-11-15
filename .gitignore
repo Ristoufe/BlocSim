@@ -22,3 +22,6 @@ BLOCAPTA/
 
 # Environnement Python local
 .venv/
+
+# Maquettes de brainstorming (visual companion)
+.superpowers/
