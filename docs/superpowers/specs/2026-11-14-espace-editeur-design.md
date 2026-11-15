@@ -50,7 +50,7 @@ Navigation : barre d'application sombre, intitulée « Espace hôpital », avec 
 
 ### 4.1 Tests (accueil)
 
-Tableau des tests : logiciel et version, bloc, scénarios, état, conclusion, interopérabilité (sur 100, avec l'étiquette « Bloquant » si un critère bloquant n'est pas couvert), certificat, date. La colonne interopérabilité permet de comparer les logiciels proposés pour le même besoin. Bouton « Nouveau test ». Un clic ouvre le test.
+Tableau des tests : logiciel et version, bloc, scénarios, état, conclusion, certificat, date. L'interopérabilité ne figure pas dans ce tableau : elle se lit dans les résultats du test. Bouton « Nouveau test ». Un clic ouvre le test.
 
 ### 4.2 Un test
 
@@ -74,7 +74,7 @@ Colonne de gauche : quatre étapes avec leur état, puis une rubrique « Explore
    - Par scénario : conclusion en une phrase, avec étiquette (Sans réserve, Avec réserves, À risque), suivie de la conclusion du moteur telle quelle.
    - Quatre chiffres clés avec leur intervalle P10 à P90.
    - Onglets : Synthèse (courbe de confiance, signaux de risque, conditions de déploiement), Indicateurs (flux du bloc, équipes, outil, avec pour chacun la donnée d'où il vient ; les indicateurs pas encore calculés indiquent la donnée qui manque), Interopérabilité (voir 7 bis), Comparaison (tableau sans outil / avec outil, écart, intervalle, effet relatif), Sensibilité, Hypothèses, Versions de la fiche.
-   - Le panneau de l'indice d'adoption affiche, sous les quatre composantes et séparé d'elles, la ligne « Interopérabilité avec votre SI » et la mention « Hors indice : ne dépend pas de la simulation ». La vue d'ensemble reprend le détail par critère.
+   - Le panneau de l'indice d'adoption affiche l'interopérabilité comme cinquième composante. La vue d'ensemble reprend le détail par critère.
    - Un scénario non simulé n'affiche aucun chiffre.
 4. **Certificat**
    - Avant émission : ce qui sera publié, puis confirmation.
@@ -91,7 +91,7 @@ Plein écran, texte agrandi, aucun réglage visible. Une suite d'écrans que l'�
 2. Le jumeau : le plan 3D en lecture, avec deux raccourcis (le jour de la panne, le lendemain) et le choix du bras (avec ou sans support). C'est là que se voit l'effet principal : le lendemain, l'outil fonctionne et une partie de l'équipe continue sur papier.
 3. La comparaison : la courbe du scénario, quatre chiffres, le retard et les déprogrammations sans outil et avec outil.
 4. Les limites : ce qui est mesuré, déclaré, supposé, non fait ; la part des variations de sensibilité où la conclusion tient.
-5. À prévoir : la conclusion du test, les conditions avec qui les porte et leur effet, l'indice d'adoption et le taux d'interopérabilité en petit.
+5. À prévoir : la conclusion du test, les conditions avec qui les porte et leur effet, l'indice d'adoption et ses cinq composantes en petit.
 6. Le certificat : le numéro, le QR code, et la phrase « Ce numéro atteste qu'une simulation a eu lieu. Il n'atteste pas que le logiciel sera adopté. »
 
 Un bouton « Démo guidée » dans la barre d'application ouvre cette suite sur le test principal.
@@ -148,9 +148,10 @@ Adresse : `/verifier/<numéro>`. Aucun compte. Le champ est vide à l'ouverture 
 - Une seule unité de retard : minutes par intervention programmée.
 - Chaque écran de résultat distingue ce qui est simulé de ce qui est déclaré dans la fiche.
 - Un statut est toujours une étiquette avec du texte, jamais une couleur seule.
-- Indice d'adoption, de 0 à 100, par scénario, provisoire. Quatre composantes de 0 à 100 : confiance (100 × confiance finale), fluidité (100 − 10 par minute de retard ajoutée − 2 par déprogrammation ajoutée), charge (100 − 2 par journée-soignant en surcharge ajoutée), robustesse (part des variations de sensibilité où la conclusion tient). Pondérations : 40 %, 25 %, 20 %, 15 %. Calcul sur le bras principal du scénario. L'indice d'un test est calculé sur la moyenne des composantes de ses scénarios.
+- Indice d'adoption, de 0 à 100, par scénario, provisoire. Cinq composantes de 0 à 100 : confiance (100 × confiance finale), fluidité (100 − 10 par minute de retard ajoutée − 2 par déprogrammation ajoutée), charge (100 − 2 par journée-soignant en surcharge ajoutée), robustesse (part des variations de sensibilité où la conclusion tient), interopérabilité avec le SI (taux de 7 bis). Pondérations : 35 %, 20 %, 15 %, 10 %, 20 %. Calcul sur le bras principal du scénario. L'indice d'un test est calculé sur la moyenne des composantes de ses scénarios ; l'interopérabilité ne dépend pas du scénario.
+- Sans SI décrit (bloc générique), la composante interopérabilité est absente : les poids se répartissent sur les quatre autres, et l'écran le dit.
 - L'indice accompagne la conclusion, il ne la remplace pas. Il est toujours affiché avec ses composantes et la mention « provisoire, pondérations à valider ». Il ne figure ni sur le badge, ni dans la liste des tests.
-- Taux d'interopérabilité, de 0 à 100, par logiciel et par bloc (il ne dépend pas du scénario). Indicateur à part : il n'entre pas dans l'indice d'adoption et s'affiche toujours avec la mention « hors indice ». Calcul en 7 bis.
+- Taux d'interopérabilité, de 0 à 100, par logiciel et par bloc (il ne dépend pas du scénario). Il compte pour 20 % de l'indice d'adoption et s'affiche aussi seul, avec son détail par critère. Calcul en 7 bis.
 - Une seule action principale par écran, en bas à droite.
 - Les écarts se lisent « avec outil moins sans outil ».
 - Résultat d'un modèle : la mention figure sur les résultats, le mode Présenter et la page publique.
@@ -228,7 +229,7 @@ Décisions :
 
 ## 7 bis. Interopérabilité
 
-Taux sur 100 qui dit si le logiciel de l'éditeur s'intègre au système d'information de l'hôpital. Il ne sort pas de la simulation : c'est une comparaison entre ce que la fiche déclare et ce que l'hôpital a en place.
+Taux sur 100 qui dit si le logiciel de l'éditeur s'intègre au système d'information de l'hôpital. Il ne sort pas de la simulation : c'est une comparaison entre ce que la fiche déclare et ce que l'hôpital a en place. Il entre dans l'indice d'adoption pour 20 % (voir 5).
 
 Grille Blocapta (poids de 1 à 3 ; un critère bloquant non couvert est signalé quel que soit le taux) :
 
