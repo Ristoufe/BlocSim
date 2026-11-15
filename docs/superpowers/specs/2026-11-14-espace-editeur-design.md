@@ -69,7 +69,7 @@ Colonne de gauche : quatre étapes avec leur état, puis une rubrique « Explore
    - Si la sélection change après une simulation, Configuration l'indique et les résultats restent ceux de la dernière simulation jusqu'à la relance.
    - Par scénario : conclusion en une phrase, avec étiquette (Sans réserve, Avec réserves, À risque), suivie de la conclusion du moteur telle quelle.
    - Quatre chiffres clés avec leur intervalle P10 à P90.
-   - Onglets : Synthèse (courbe de confiance, signaux de risque, conditions de déploiement), Comparaison (tableau sans outil / avec outil, écart, intervalle, effet relatif), Sensibilité, Hypothèses, Versions de la fiche.
+   - Onglets : Synthèse (courbe de confiance, signaux de risque, conditions de déploiement), Indicateurs (flux du bloc, équipes, outil, avec pour chacun la donnée d'où il vient ; les indicateurs pas encore calculés indiquent la donnée qui manque), Comparaison (tableau sans outil / avec outil, écart, intervalle, effet relatif), Sensibilité, Hypothèses, Versions de la fiche.
    - Un scénario non simulé n'affiche aucun chiffre.
 4. **Certificat**
    - Avant émission : ce qui sera publié, puis confirmation.
@@ -240,7 +240,10 @@ But : voir la simulation dans le temps. C'est un bonus de preuve, pas une étape
 - L'usage de l'outil se lit personne par personne : un point au-dessus du soignant (dans l'outil, contourne sur papier, outil en panne), et l'écran du poste de saisie de la salle (bleu, gris, rouge).
 - Survol d'une personne : code, rôle, activité. Clic : fiche de la personne (activité, lieu, confiance, mode de saisie, fatigue, charge ressentie). Clic sur une salle : état, intervention en cours, équipe avec l'activité de chacun, et zoom sur la salle.
 - Curseur horaire de 7 h à 20 h, bouton Lecture, trois vitesses, raccourcis vers les moments clés (début du programme, début de la panne, fin de vacation), mode agrandi.
-- Compteur en direct : salles en activité, lits de SSPI occupés, saisies dans l'outil et sur papier.
+- Six indicateurs de la journée, mis à jour à l'heure affichée : interventions terminées, occupation des salles depuis 8 h, temps ajouté par l'outil, lits de SSPI occupés, part des saisies du jour faites dans l'outil, salles finissant après 17 h 30.
+- Rendu : sol peint (carrelage, numéro de salle, zones), murs bas, portes coulissantes qui s'ouvrent au passage, ombres portées, scialytique et faisceau, moniteur d'anesthésie avec tracé animé, poste de saisie dont l'écran change avec l'usage.
+- Personnages articulés : jambes et bras bougent à la marche, bras tendus pendant un geste. Une icône au-dessus du soignant dit comment il saisit : tablette (dans l'outil), feuille (contournement), croix (panne).
+- Personne sélectionnée : anneau au sol, trajet en pointillé jusqu'à sa destination, bouton « Suivre cette personne » qui fait accompagner la caméra. Vues : d'ensemble, de dessus, zoom sur une salle.
 - Journal de la journée : les événements marquants jusqu'à l'heure affichée (début du programme, panne, outil rétabli, soignant qui contourne l'outil, intervention allongée, intervention en cours après 17 h 30). Un clic sur un événement place le curseur à cette heure et sélectionne la salle ou la personne.
 - Frise de la journée : une ligne par salle, temps ajouté par l'outil en rouge, fin de vacation à 17 h 30.
 
@@ -350,6 +353,10 @@ Chaque lot a son plan d'implémentation et peut être livré seul.
 - Paiement et affichage des prix.
 - Console d'administration Blocapta (les profils se règlent par fichiers et outils en ligne de commande).
 - Calibration automatique d'un jumeau à partir des fichiers déposés.
+
+## 16 bis. Données demandées à l'hôpital
+
+La liste complète (données indispensables, utiles, optionnelles ; ce que le jumeau tire de chacune ; indicateurs calculés, à calculer, à demander) est dans `docs/DONNEES_A_DEMANDER.md`. L'écran « Demander un jumeau numérique » et l'onglet « Indicateurs » en sont la mise en écran.
 
 ## 17. Prototype : d'où viennent les chiffres
 
