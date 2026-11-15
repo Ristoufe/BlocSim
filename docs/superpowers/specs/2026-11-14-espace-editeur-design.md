@@ -5,25 +5,29 @@ Prototype cliquable de référence : `docs/superpowers/specs/2026-11-14-espace-e
 
 ## 1. Objectif
 
-Refaire le frontend pour l'utilisateur principal : l'éditeur de logiciel qui veut montrer à un hôpital que son produit sera adopté sans perturber le bloc.
+Refaire le frontend pour l'utilisateur principal : l'hôpital, client de Blocapta. Il veut savoir, avant d'acheter, si le logiciel proposé par un éditeur sera adopté sans perturber son bloc, et s'il est compatible avec son système d'information.
+
+L'hôpital fournit à Blocapta les données de son bloc, la description de son système d'information (SI) et les fiches des éditeurs. L'éditeur ne fait que remplir sa fiche.
 
 L'écran actuel « Tester un outil » (`js/lab.js`) est une fenêtre unique qui mélange réglages, résultats et paramètres du modèle. Il est remplacé par une application en plusieurs écrans, sobre et dense, lisible projetée en réunion.
 
 Critères de réussite :
 
-- Un éditeur qui découvre l'outil va de la fiche au résultat sans aide.
+- Un hôpital qui découvre l'outil va de la fiche de l'éditeur au résultat sans aide.
 - Une fiche incomplète ne produit aucun chiffre et dit quoi corriger.
-- L'acheteur hôpital vérifie un numéro de certification sans compte, et voit pour quel hôpital le certificat vaut.
+- Toute personne qui a le numéro (direction, commission des achats, éditeur) vérifie le certificat sans compte, et voit pour quel hôpital il vaut.
+- Chaque logiciel testé reçoit un taux d'interopérabilité avec le SI de l'hôpital, sur 100, avec le détail par critère.
 - Chaque chiffre affiché sort du moteur ; chaque paramètre porte sa source ou « à calibrer ».
 
 ## 2. Utilisateurs
 
 | Qui | Ce qu'il fait | Où |
 |---|---|---|
-| Éditeur, seul | Importe la fiche, choisit le bloc et les scénarios, lance, lit, émet le certificat | Application |
-| Éditeur, en réunion | Projette la conclusion et les chiffres clés | Mode Présenter |
-| Acheteur hôpital | Vérifie un numéro reçu dans une proposition | Page publique |
-| Équipe Blocapta | Règle les paramètres de chaque bloc, traite les demandes de jumeau | Hors application (fichiers), voir lot 3 |
+| Hôpital (cadre de bloc, DSI, direction des achats) | Importe la fiche reçue de l'éditeur, choisit les scénarios, lance, lit, compare les logiciels, émet le certificat | Application |
+| Hôpital, en commission | Projette la conclusion, les chiffres clés et l'interopérabilité | Mode Présenter |
+| Hôpital (DSI) | Décrit son système d'information, dépose les données de son bloc | Application, écran Mon bloc |
+| Éditeur | Remplit sa fiche logiciel, y compris la rubrique Interopérabilité ; peut vérifier un certificat qui le concerne | Hors application (fiche), page publique |
+| Équipe Blocapta | Règle les paramètres de chaque jumeau, traite les dépôts de données | Hors application (fichiers), voir lot 3 |
 
 ## 3. Deux offres
 
@@ -42,11 +46,11 @@ Décisions :
 
 ## 4. Écrans
 
-Navigation : barre d'application sombre avec deux entrées, « Tests » et « Hôpitaux », et un lien « Vérifier un certificat ».
+Navigation : barre d'application sombre, intitulée « Espace hôpital », avec deux entrées, « Tests » et « Mon bloc », et un lien « Vérifier un certificat ». L'établissement connecté est affiché à droite.
 
 ### 4.1 Tests (accueil)
 
-Tableau des tests : logiciel et version, bloc, offre, scénarios, état, conclusion, certificat, date. Bouton « Nouveau test ». Un clic ouvre le test.
+Tableau des tests : logiciel et version, bloc, scénarios, état, conclusion, interopérabilité (sur 100, avec l'étiquette « Bloquant » si un critère bloquant n'est pas couvert), certificat, date. La colonne interopérabilité permet de comparer les logiciels proposés pour le même besoin. Bouton « Nouveau test ». Un clic ouvre le test.
 
 ### 4.2 Un test
 
@@ -57,7 +61,7 @@ Colonne de gauche : quatre étapes avec leur état, puis une rubrique « Explore
 1. **Fiche logiciel**
    - Import d'un fichier, formulaire, ou texte libre (agent 2, si le LLM local répond).
    - Fiche analysable : bandeau vert, niveau de confiance, tableau par rubrique (champs renseignés, champs critiques).
-   - Fiche non analysable : bandeau rouge, tableau des champs critiques manquants avec le constat et la question à poser à l'auteur, lien « Copier les questions ». Le bouton « Continuer » est désactivé, les étapes suivantes aussi.
+   - Fiche non analysable : bandeau rouge, tableau des champs critiques manquants avec le constat et la question à poser à l'éditeur, lien « Copier les questions ». Le bouton « Continuer » est désactivé, les étapes suivantes aussi.
 2. **Configuration**
    - Bloc simulé : liste avec recherche (nom, ville, numéro FINESS). Première ligne : bloc générique. Ensuite les jumeaux d'hôpitaux. Lien « Demander un jumeau numérique ».
    - Scénarios : catalogue en tableau (case à cocher, famille, ce qui est comparé, facturation).
@@ -69,12 +73,13 @@ Colonne de gauche : quatre étapes avec leur état, puis une rubrique « Explore
    - Si la sélection change après une simulation, Configuration l'indique et les résultats restent ceux de la dernière simulation jusqu'à la relance.
    - Par scénario : conclusion en une phrase, avec étiquette (Sans réserve, Avec réserves, À risque), suivie de la conclusion du moteur telle quelle.
    - Quatre chiffres clés avec leur intervalle P10 à P90.
-   - Onglets : Synthèse (courbe de confiance, signaux de risque, conditions de déploiement), Indicateurs (flux du bloc, équipes, outil, avec pour chacun la donnée d'où il vient ; les indicateurs pas encore calculés indiquent la donnée qui manque), Comparaison (tableau sans outil / avec outil, écart, intervalle, effet relatif), Sensibilité, Hypothèses, Versions de la fiche.
+   - Onglets : Synthèse (courbe de confiance, signaux de risque, conditions de déploiement), Indicateurs (flux du bloc, équipes, outil, avec pour chacun la donnée d'où il vient ; les indicateurs pas encore calculés indiquent la donnée qui manque), Interopérabilité (voir 7 bis), Comparaison (tableau sans outil / avec outil, écart, intervalle, effet relatif), Sensibilité, Hypothèses, Versions de la fiche.
+   - Le panneau de l'indice d'adoption affiche, sous les quatre composantes et séparé d'elles, la ligne « Interopérabilité avec votre SI » et la mention « Hors indice : ne dépend pas de la simulation ». La vue d'ensemble reprend le détail par critère.
    - Un scénario non simulé n'affiche aucun chiffre.
 4. **Certificat**
    - Avant émission : ce qui sera publié, puis confirmation.
    - Après émission : numéro, lien, badge avec QR code, rapport, chiffres figés.
-   - Bloc générique : pas de certificat, et les trois étapes pour en obtenir un.
+   - Bloc générique : pas de certificat, et les trois étapes pour en obtenir un (fournir les données du bloc, relancer sur le jumeau, émettre).
 
 Explorer : **Plan du bloc** (voir 9).
 
@@ -86,8 +91,8 @@ Plein écran, texte agrandi, aucun réglage visible. Une suite d'écrans que l'�
 2. Le jumeau : le plan 3D en lecture, avec deux raccourcis (le jour de la panne, le lendemain) et le choix du bras (avec ou sans support). C'est là que se voit l'effet principal : le lendemain, l'outil fonctionne et une partie de l'équipe continue sur papier.
 3. La comparaison : la courbe du scénario, quatre chiffres, le retard et les déprogrammations sans outil et avec outil.
 4. Les limites : ce qui est mesuré, déclaré, supposé, non fait ; la part des variations de sensibilité où la conclusion tient.
-5. À prévoir : la conclusion du test, les conditions avec qui les porte et leur effet, l'indice d'adoption en petit.
-6. Côté hôpital : le numéro, le QR code, et la phrase « Ce numéro atteste qu'une simulation a eu lieu. Il n'atteste pas que le logiciel sera adopté. »
+5. À prévoir : la conclusion du test, les conditions avec qui les porte et leur effet, l'indice d'adoption et le taux d'interopérabilité en petit.
+6. Le certificat : le numéro, le QR code, et la phrase « Ce numéro atteste qu'une simulation a eu lieu. Il n'atteste pas que le logiciel sera adopté. »
 
 Un bouton « Démo guidée » dans la barre d'application ouvre cette suite sur le test principal.
 
@@ -95,23 +100,24 @@ Un bouton « Démo guidée » dans la barre d'application ouvre cette suite sur 
 
 Pendant le calcul, l'écran montre : la progression par scénario, quatre compteurs (journées de bloc simulées, interventions, soignants, saisies) et un extrait du plan 3D en lecture rapide. Les compteurs affichent des quantités réellement calculées par la campagne.
 
-### 4.4 Hôpitaux
+### 4.4 Mon bloc
 
-- Catalogue : bloc générique et jumeaux, avec région, salles, spécialités, données de calibration, version du jumeau, offre.
+- Les blocs de l'établissement : son ou ses jumeaux, le bloc générique (en attendant le jumeau) et l'hôpital de démonstration, avec salles, spécialités, données de calibration, version du jumeau.
 - Détail d'un jumeau : tableau de fidélité (réel, simulé, lecture « Fidèle » ou « Écart à réduire »). Les écarts sont publiés, y compris les mauvais.
-- « Vos demandes » : demandes de jumeau en cours et leur état.
+- Système d'information : ce qui est en place pour chaque critère de la grille d'interopérabilité (voir 7 bis). Un critère sans besoin déclaré sort du taux.
+- « Vos dépôts de données » : dépôts en cours et leur état.
 
-### 4.5 Demander un jumeau numérique
+### 4.5 Ajouter un bloc
 
-1. Hôpital concerné : établissement (nom ou FINESS), nom du bloc, nombre de salles.
+1. Bloc concerné : établissement (nom ou FINESS), nom du bloc, nombre de salles.
 2. Collecte des données, deux possibilités présentées dans un tableau comparatif :
 
-| | Blocapta s'en charge | Vous organisez la collecte |
+| | Blocapta s'en charge | Vous déposez vos données |
 |---|---|---|
-| Qui organise la collecte | Blocapta, auprès du contact à l'hôpital | L'éditeur, auprès de l'hôpital |
-| Ce que l'éditeur fournit | Un contact : nom, fonction, e-mail | Tout le dossier : export du bloc, effectifs, plan, accord de l'hôpital |
-| Dépôt des données | Par Blocapta | Par l'hôpital, avec un lien direct. L'éditeur ne voit pas les données |
-| Tarif | Payant, sur devis, option prioritaire | Gratuit |
+| Qui organise la collecte | Blocapta, avec la DSI et le cadre de bloc | Les équipes de l'hôpital |
+| Ce que l'hôpital fournit | Un contact : nom, fonction, e-mail | Les fichiers : export du bloc, effectifs, plan, description du SI |
+| Dépôt des données | Par Blocapta | Par l'hôpital, avec un lien sécurisé. Les éditeurs ne voient jamais les données |
+| Tarif | Sur devis, option prioritaire | Inclus |
 | Contrôle | Blocapta vérifie, pseudonymise, calibre | Contrôle automatique de suffisance, puis calibration |
 
 3. Selon le choix : formulaire de contact et case « Traitement prioritaire », ou liste des données à fournir avec dépôt de fichiers et bouton « Vérifier les données ».
@@ -123,11 +129,12 @@ Adresse : `/verifier/<numéro>`. Aucun compte. Le champ est vide à l'ouverture 
 - Statut : « Numéro authentique. Chiffres inchangés depuis l'émission. », expiré, remplacé, ou inconnu. Le mot « valide » n'est pas employé seul : il se lirait comme « logiciel validé ».
 - Phrase fixe : « Ce numéro atteste qu'une simulation a eu lieu. Il n'atteste pas que le logiciel sera adopté. »
 - Quatre blocs mis en avant : logiciel testé, **hôpital simulé** (nom, type, salles), jumeau numérique (version, données de calibration), conclusion du test.
+- « Interopérabilité avec le SI de l'hôpital » : taux, étiquette et détail par critère.
 - Mention « Ce certificat vaut pour cet hôpital uniquement ».
 - Résultats par scénario : conclusion, chiffres clés avec intervalle, condition principale.
 - « Ce que vous devriez observer si le modèle a raison » : part des saisies dans l'outil et retard ajouté, semaine par semaine. L'hôpital peut comparer après le démarrage.
 - « Déclaré par l'éditeur, non vérifié par Blocapta » : temps par étape, formation, support, rétablissement, avec la fiabilité de l'analyse de la fiche.
-- « Périmètre du test » : scénarios simulés et non simulés, versions de la fiche (y compris une version refusée), et la phrase d'indépendance : « Blocapta est payé par l'éditeur. L'éditeur choisit les scénarios. Il ne peut modifier ni le bloc, ni le modèle, ni les chiffres. »
+- « Périmètre du test » : scénarios simulés et non simulés, versions de la fiche (y compris une version refusée), et la phrase d'indépendance : « Blocapta est payé par l'hôpital. L'éditeur fournit sa fiche ; il ne choisit ni le bloc ni les scénarios, et ne peut modifier ni le modèle ni les chiffres. »
 - « Ce que ce certificat ne dit pas » : mesuré, déclaré, supposé, non fait.
 - Repliés : indice d'adoption avec ses composantes, fidélité du jumeau, paramètres du modèle et sources.
 - Empreinte des chiffres, calculée à l'émission.
@@ -143,6 +150,7 @@ Adresse : `/verifier/<numéro>`. Aucun compte. Le champ est vide à l'ouverture 
 - Un statut est toujours une étiquette avec du texte, jamais une couleur seule.
 - Indice d'adoption, de 0 à 100, par scénario, provisoire. Quatre composantes de 0 à 100 : confiance (100 × confiance finale), fluidité (100 − 10 par minute de retard ajoutée − 2 par déprogrammation ajoutée), charge (100 − 2 par journée-soignant en surcharge ajoutée), robustesse (part des variations de sensibilité où la conclusion tient). Pondérations : 40 %, 25 %, 20 %, 15 %. Calcul sur le bras principal du scénario. L'indice d'un test est calculé sur la moyenne des composantes de ses scénarios.
 - L'indice accompagne la conclusion, il ne la remplace pas. Il est toujours affiché avec ses composantes et la mention « provisoire, pondérations à valider ». Il ne figure ni sur le badge, ni dans la liste des tests.
+- Taux d'interopérabilité, de 0 à 100, par logiciel et par bloc (il ne dépend pas du scénario). Indicateur à part : il n'entre pas dans l'indice d'adoption et s'affiche toujours avec la mention « hors indice ». Calcul en 7 bis.
 - Une seule action principale par écran, en bas à droite.
 - Les écarts se lisent « avec outil moins sans outil ».
 - Résultat d'un modèle : la mention figure sur les résultats, le mode Présenter et la page publique.
@@ -170,6 +178,8 @@ Un fichier par bloc : `data/hopitaux/<id>.json`.
 ```
 
 `stats` reprend le contenu actuel de `data/stats.json`. Le moteur reçoit le profil choisi à la place de la variable globale `STATS`.
+
+Le profil porte aussi `si` : pour chaque critère de la grille d'interopérabilité, ce qui est en place dans l'établissement, ou `null` s'il n'y a pas de besoin (le critère sort alors du taux). Exemple : `"si": { "ins": "Serveur d'identités, INS qualifiée", "api": null }`. Il est rempli à partir du questionnaire SI de la DSI.
 
 ### 6.2 Bloc générique
 
@@ -216,11 +226,35 @@ Décisions :
 - Un scénario « à développer » apparaît dans le catalogue, grisé, avec la mention « Bientôt ». Il n'est pas sélectionnable tant que le moteur ne le calcule pas.
 - Tout scénario simulé dans un test est publié dans son certificat. L'éditeur ne peut pas retirer un scénario défavorable.
 
+## 7 bis. Interopérabilité
+
+Taux sur 100 qui dit si le logiciel de l'éditeur s'intègre au système d'information de l'hôpital. Il ne sort pas de la simulation : c'est une comparaison entre ce que la fiche déclare et ce que l'hôpital a en place.
+
+Grille Blocapta (poids de 1 à 3 ; un critère bloquant non couvert est signalé quel que soit le taux) :
+
+| Id | Critère | Ce qui est attendu | Poids | Bloquant |
+|---|---|---|---|---|
+| ins | Identité patient | INS qualifiée, flux d'identité HL7 v2 ADT (profil IHE PAM) | 3 | Oui |
+| prog | Programme opératoire | Reçoit le programme du logiciel de bloc (HL7 v2 SIU ou ORM, HPRIM) | 3 | Non |
+| dpi | Dossier patient | Renvoie ses saisies au DPI en données structurées (HL7 v2 ORU ou MDM, FHIR) | 3 | Non |
+| auth | Connexion des soignants | Annuaire de l'hôpital (Active Directory), carte CPS ou e-CPS | 2 | Non |
+| heb | Hébergement et sécurité | Hébergeur certifié HDS, règles de la PGSSI-S | 2 | Oui |
+| res | Réseau du bloc | Fonctionne sur le Wi-Fi ou le réseau filaire des salles | 2 | Non |
+| ref | Nomenclatures | CCAM, UCD, LPP et codes UDI utilisés par l'hôpital | 1 | Non |
+| api | API ouverte | API FHIR R4 documentée | 1 | Non |
+
+- Couverture déclarée par la fiche, critère par critère : couvert (1), partiel (0,5), non couvert (0), non renseigné (0). Chaque réponse porte sa preuve : « Déclaré », « Testé chez un autre client » ou « Vérifié par la DSI ».
+- Taux = 100 × Σ (poids × couverture) / Σ poids, sur les seuls critères où l'hôpital a un besoin.
+- Lecture : 85 et plus, « Compatible » ; 60 à 84, « Compatible avec adaptations » ; moins de 60, « Interfaces à développer ». Un critère bloquant non couvert donne « Bloquant à lever », quel que soit le taux.
+- La fiche logiciel gagne une rubrique « Interopérabilité » (une question par critère, avec la preuve). Elle n'existe pas encore dans le template v0.1 : à ajouter, avec ses règles de complétude, dans `js/fiche.js`.
+- Calcul dans `js/interop.js`, fonction `interop(ficheNormalisee, profil.si)`, sans dépendance au moteur ; recalculé et figé par le serveur à l'émission du certificat.
+- Sans SI décrit (bloc générique), pas de taux : l'écran le dit.
+
 ## 8. Certificat
 
 - Numéro : `BLC-AAAA-XXXX-CC`. `XXXX` : 4 caractères tirés d'un alphabet sans 0, O, 1, I. `CC` : clé de contrôle sur deux chiffres (modulo 97).
 - **Les chiffres sont recalculés par le serveur à l'émission.** Le navigateur envoie la fiche, l'identifiant du bloc, les scénarios et les paramètres de campagne. Le serveur rejoue la campagne avec le moteur (chargé par `vm`, comme `tools/outil.js`) et des graines fixes. Les chiffres calculés dans le navigateur ne sont jamais certifiés.
-- Contenu figé : logiciel, version, éditeur, version de la fiche, bloc, version du jumeau, données de calibration, indice d'adoption et ses composantes, scénarios avec conclusion et chiffres clés, conditions de déploiement, hypothèses avec source ou « à calibrer », sensibilité, version du modèle, graines, date.
+- Contenu figé : logiciel, version, éditeur, version de la fiche, bloc, version du jumeau, données de calibration, indice d'adoption et ses composantes, taux d'interopérabilité et son détail par critère, scénarios avec conclusion et chiffres clés, conditions de déploiement, hypothèses avec source ou « à calibrer », sensibilité, version du modèle, graines, date.
 - Stockage : `data/certificats/<numéro>.json`, écrit une fois. Empreinte : SHA-256 du JSON canonique, affichée sur la page publique.
 - Validité : 12 mois. Statuts calculés à la lecture : valide, expiré, remplacé (un certificat plus récent existe pour le même logiciel et le même bloc). Si le jumeau a changé de version majeure, la page l'indique.
 - Émission possible quelle que soit la conclusion, après confirmation. Impossible avec le bloc générique.
@@ -373,11 +407,12 @@ Le prototype n'est pas relié au moteur, mais ses chiffres n'en sont pas moins d
 
 Ce qui reste fabriqué pour la maquette, et qui est signalé à l'écran :
 
+- le taux d'interopérabilité : grille et formule réelles, mais SI de l'hôpital et réponses des fiches d'exemple (la rubrique n'existe pas encore dans les fiches) ;
 - l'« Hôpital de démonstration » et le test qui porte dessus : données et résultats synthétiques, construits à partir des sorties réelles par des règles cohérentes, pour montrer ce qu'on obtient avec toutes les données demandées (voir `docs/DONNEES_A_DEMANDER.md`, section 8). Le bouton « Démo guidée » ouvre ce test ; « Présenter » sur le test du bloc pilote donne la version aux chiffres réels ;
 - les horaires et les déplacements du plan 3D (« animation d'illustration ») ;
 - la progression de l'écran « Simulation en cours » (les totaux, eux, sont ceux de l'exécution réelle) ;
 - le bloc générique, qui reprend les chiffres du bloc pilote ;
-- les trois hôpitaux d'exemple et la demande « CH exemple D » ;
+- le dépôt de données « Bloc ambulatoire » ;
 - les numéros de certification, et l'empreinte, qui n'est pas calculée.
 
 Constats tirés de ces exécutions, utiles pour le pitch :
@@ -390,5 +425,7 @@ Constats tirés de ces exécutions, utiles pour le pitch :
 ## 18. Points ouverts
 
 - Nom public du bloc pilote et des futurs hôpitaux.
+- Grille d'interopérabilité : critères et poids à valider avec la DSI d'un hôpital ; questions de la rubrique Interopérabilité du template de fiche.
+- Modèle commercial côté hôpital (abonnement, nombre de tests inclus) : l'interface écrit « Inclus », « Supplément » et « sur devis », sans montant.
 - Fichier du modèle 3D : format, nommage des salles, qui le fournit.
 - Hébergement de la page publique (elle doit être joignable par l'hôpital).

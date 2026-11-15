@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Blocapta, prototype v10</title>
+<title>Blocapta, prototype v11</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -222,6 +222,7 @@ tr.grp td{background:#f4f4f4;font-size:13px;font-weight:600;padding:9px 20px;col
 .sc-b{display:grid;grid-template-columns:210px 1fr 36px;gap:14px;align-items:center;padding:6px 0}
 .sc-b>div{height:6px;background:var(--line)}.sc-b i{display:block;height:6px;background:var(--ink)}
 .sc-b b{font-weight:500;text-align:right}
+.sc-io{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line2)}.sc-io .sc-b i{background:var(--s2)}
 .jr{display:grid;grid-template-columns:52px 10px 1fr;gap:10px;padding:10px 20px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px;align-items:baseline}
 .jr:last-child{border-bottom:0}.jr:hover{background:#f4f4f4}
 .jr i{width:8px;height:8px;border-radius:50%;display:block;align-self:center}
@@ -270,15 +271,15 @@ ul.plain{margin:8px 0 0;padding-left:18px}ul.plain li{margin:4px 0}
 <body>
 
 <div class="shell">
-  <div class="logo" onclick="go('tests')" aria-label="Blocapta, accueil">Blocapta<span>Éditeurs</span></div>
+  <div class="logo" onclick="go('tests')" aria-label="Blocapta, accueil">Blocapta<span>Espace hôpital</span></div>
   <nav aria-label="Navigation principale">
     <button id="nav-tests" class="on" onclick="go('tests')">Tests</button>
-    <button id="nav-hosp" onclick="go('hosp')">Hôpitaux</button>
+    <button id="nav-hosp" onclick="go('hosp')">Mon bloc</button>
   </nav>
   <div class="right">
     <button class="btn sm" style="border:1px solid #6f6f6f;color:#f4f4f4" onclick="openTest('demo');demo()">Démo guidée</button><span class="tagdemo" id="tagdemo">Prototype. Chiffres copiés du moteur BlocSim</span>
     <a onclick="go('verify')">Vérifier un certificat ↗</a>
-    <span class="org"><span class="av" aria-hidden="true">SE</span>Société exemple</span>
+    <span class="org"><span class="av" aria-hidden="true">HP</span>Hôpital pilote</span>
   </div>
 </div>
 
@@ -286,7 +287,7 @@ ul.plain{margin:8px 0 0;padding-left:18px}ul.plain li{margin:4px 0}
 <section id="v-tests">
   <div class="ph">
     <div class="t"><h1>Tests</h1><div class="acts"><button class="btn p" onclick="openTest('new')">Nouveau test</button></div></div>
-    <div class="meta"><span>Tests d’adoption d’un logiciel dans un bloc opératoire</span></div>
+    <div class="meta"><span>Logiciels proposés par les éditeurs, testés dans le jumeau de votre bloc</span></div>
   </div>
   <div class="page" id="tests"></div>
 </section>
@@ -308,14 +309,14 @@ ul.plain{margin:8px 0 0;padding-left:18px}ul.plain li{margin:4px 0}
 <!-- ============ HÔPITAUX ============ -->
 <section id="v-hosp" hidden>
   <div class="ph">
-    <div class="t"><h1>Hôpitaux</h1><div class="acts"><button class="btn p" onclick="S.reqOpen=false;S.reqSent=false;go('req')">Demander un jumeau numérique</button></div></div>
-    <div class="meta"><span>1 jumeau calibré</span><span>1 bloc générique en construction</span><span>3 entrées d’exemple</span></div>
+    <div class="t"><h1>Mon bloc</h1><div class="acts"><button class="btn p" onclick="S.reqOpen=false;S.reqSent=false;go('req')">Ajouter un bloc</button></div></div>
+    <div class="meta"><span>Votre jumeau numérique</span><span>Votre système d’information</span><span>Les données fournies à Blocapta</span></div>
   </div>
   <div class="page" id="hosp"></div>
 </section>
 <section id="v-req" hidden>
   <div class="ph">
-    <div class="crumb"><a onclick="go('hosp')">Hôpitaux</a> / <span id="req-crumb"></span></div>
+    <div class="crumb"><a onclick="go('hosp')">Mon bloc</a> / <span id="req-crumb"></span></div>
     <div class="t"><h1 id="req-title"></h1></div>
     <div class="meta"><span id="req-meta"></span></div>
   </div>
@@ -326,7 +327,7 @@ ul.plain{margin:8px 0 0;padding-left:18px}ul.plain li{margin:4px 0}
 <section id="v-verify" hidden>
   <div class="pub">
     <h1>Vérifier un certificat de simulation Blocapta</h1>
-    <p class="muted" style="margin:8px 0 0">Saisissez le numéro figurant dans la proposition de l’éditeur. Aucun compte n’est nécessaire.</p>
+    <p class="muted" style="margin:8px 0 0">Saisissez le numéro figurant sur le rapport de simulation. Aucun compte n’est nécessaire.</p>
     <div class="search"><input id="q" value="" placeholder="BLC-2026-XXXX-00" aria-label="Numéro de certification"><button class="btn p" onclick="verify()">Vérifier</button></div>
     <div id="vres"></div>
   </div>
@@ -462,7 +463,44 @@ function scoreOf(k,L,sc){sc=sc||SC;if(sc[k])return [sc[k].score,sc[k].comp];L=L|
 const grade=v=>v>=85?'Adoption solide':v>=70?'Adoption sous conditions':v>=50?'Adoption fragile':'Adoption à risque';
 const scList=L=>{L=L||S.ranSc;return L.length>1?L.slice(0,-1).join(', ')+' et '+L[L.length-1]:L[0];};
 function bars(c){return COMP.map((n,i)=>c[i]==null?'':`<div class="sc-b"><span>${n}</span><div><i style="width:${c[i]}%"></i></div><b class="num">${c[i]}</b></div>`).join('');}
-function scorePanel(k,head,accent){const [v,c]=scoreOf(k);return `<div class="panel score" style="${accent?'border-left:3px solid '+accent:''}"><div class="sc-l"><div class="small muted">Indice d’adoption${SC[k]?'':', moyenne des scénarios'}</div><div class="sc-v">${v}<small>/ 100</small></div><div class="sc-g">${grade(v)}</div><div class="small muted" style="margin-top:6px">Indice provisoire</div></div><div class="sc-r">${head||''}${bars(c)}<p class="small muted" style="margin:10px 0 0">40 % confiance, 25 % fluidité, 20 % charge, 15 % robustesse. Pondérations proposées par Blocapta, à valider.</p></div></div>`;}
+function scorePanel(k,head,accent){const [v,c]=scoreOf(k);return `<div class="panel score" style="${accent?'border-left:3px solid '+accent:''}"><div class="sc-l"><div class="small muted">Indice d’adoption${SC[k]?'':', moyenne des scénarios'}</div><div class="sc-v">${v}<small>/ 100</small></div><div class="sc-g">${grade(v)}</div><div class="small muted" style="margin-top:6px">Indice provisoire</div></div><div class="sc-r">${head||''}${bars(c)}<p class="small muted" style="margin:10px 0 0">40 % confiance, 25 % fluidité, 20 % charge, 15 % robustesse. Pondérations proposées par Blocapta, à valider.</p>${ioMini(curIO())}</div></div>`;}
+
+/* ---------- interopérabilité : grille Blocapta, indicateur à part, hors indice d’adoption ---------- */
+// [id, critère, ce qui est attendu, poids de 1 à 3, bloquant]
+const ICRIT=[
+ ['ins','Identité patient','INS qualifiée, flux d’identité HL7 v2 ADT (profil IHE PAM)',3,1],
+ ['prog','Programme opératoire','Reçoit le programme du logiciel de bloc (HL7 v2 SIU ou ORM, HPRIM)',3,0],
+ ['dpi','Dossier patient','Renvoie ses saisies au DPI en données structurées (HL7 v2 ORU ou MDM, FHIR)',3,0],
+ ['auth','Connexion des soignants','Annuaire de l’hôpital (Active Directory), carte CPS ou e-CPS',2,0],
+ ['heb','Hébergement et sécurité','Hébergeur certifié HDS, règles de la PGSSI-S',2,1],
+ ['res','Réseau du bloc','Fonctionne sur le Wi-Fi ou le réseau filaire des salles',2,0],
+ ['ref','Nomenclatures','CCAM, UCD, LPP et codes UDI utilisés par l’hôpital',1,0],
+ ['api','API ouverte','API FHIR R4 documentée',1,0]];
+// système d’information décrit par l’hôpital ; un critère sans besoin (null) ne compte pas dans le taux
+const SI={
+ pilote:{src:'SI décrit par la DSI de l’hôpital pilote, exemple',ins:'Serveur d’identités, INS qualifiée',prog:'Logiciel de bloc, export OPROOM',dpi:'DPI de l’établissement, moteur d’intégration HL7 v2',auth:'Active Directory, cartes CPS',heb:'Hébergement externe accepté s’il est certifié HDS',res:'Wi-Fi dans les 10 salles',ref:'CCAM au bloc, UCD et LPP à la pharmacie',api:null},
+ demo:{src:'SI décrit par la DSI, données synthétiques',ins:'Serveur d’identités, INS qualifiée',prog:'Logiciel de bloc, flux HL7 v2 SIU',dpi:'DPI avec serveur FHIR R4',auth:'Active Directory, e-CPS',heb:'Hébergement externe accepté s’il est certifié HDS',res:'Wi-Fi et réseau filaire en salle',ref:'CCAM, UCD, LPP et UDI',api:'Serveur FHIR R4 de l’établissement'}};
+// ce que la fiche déclare, critère par critère : [couverture, preuve, précision]
+const IDECL={
+ check:{ins:['oui','Déclaré'],prog:['oui','Testé chez un autre client'],dpi:['partiel','Déclaré','Compte rendu en PDF, pas de données structurées'],auth:['oui','Déclaré'],heb:['oui','Déclaré'],res:['oui','Testé chez un autre client'],ref:['non','Déclaré','Ne lit pas les nomenclatures'],api:['non','Déclaré']},
+ scan:{ins:['oui','Déclaré'],prog:['partiel','Déclaré','Import d’un fichier CSV une fois par jour'],dpi:['oui','Testé chez un autre client'],auth:['non','Déclaré','Comptes propres au logiciel'],heb:['oui','Déclaré','HDS chez l’éditeur'],res:['partiel','Déclaré','Wi-Fi requis à la table, couverture à vérifier'],ref:['oui','Déclaré'],api:['non','Déclaré']},
+ demo:{ins:['oui','Vérifié par la DSI'],prog:['oui','Vérifié par la DSI'],dpi:['oui','Vérifié par la DSI'],auth:['oui','Vérifié par la DSI'],heb:['oui','Déclaré'],res:['oui','Vérifié par la DSI'],ref:['partiel','Déclaré','UDI non lu'],api:['oui','Déclaré']}};
+const COV={oui:[1,'ok','Couvert'],partiel:[.5,'warn','Partiel'],non:[0,'err','Non couvert']};
+function interop(real,hid){const si=SI[hid],dc=IDECL[real];if(!si||!dc)return null;
+  const rows=ICRIT.filter(c=>si[c[0]]).map(c=>{const d=dc[c[0]]||[null,'Non renseigné'];return {c,need:si[c[0]],d,cov:COV[d[0]]};});
+  const w=rows.reduce((a,r)=>a+r.c[3],0),v=Math.round(100*rows.reduce((a,r)=>a+r.c[3]*(r.cov?r.cov[0]:0),0)/w);
+  return {v,rows,block:rows.filter(r=>r.c[4]&&(!r.cov||r.cov[0]<1)),gaps:rows.filter(r=>!r.cov||r.cov[0]<1),src:si.src};}
+const igrade=(v,b)=>b&&b.length?'Bloquant à lever':v>=85?'Compatible':v>=60?'Compatible avec adaptations':'Interfaces à développer';
+const icls=io=>io.block.length?'err':io.v>=85?'ok':io.v>=60?'warn':'err';
+const curIO=()=>TESTS[S.test].incomplete?null:interop(TESTS[S.test].real,S.ranHosp);
+function ioMini(io){if(!io)return '';return `<div class="sc-io"><div class="sc-b"><span>Interopérabilité avec votre SI</span><div><i style="width:${io.v}%"></i></div><b class="num">${io.v}</b></div><p class="small muted" style="margin:2px 0 0">Hors indice : ne dépend pas de la simulation. ${igrade(io.v,io.block)}, ${plur(io.gaps.length,'critère à lever','critères à lever')}.</p></div>`;}
+function ioPanel(io,pub){
+  if(!io)return `<div class="panel"><div class="pad muted">${S.ranHosp==='gen'&&!pub?'Le bloc générique n’a pas de système d’information. Le taux d’interopérabilité se calcule sur votre jumeau, une fois votre SI décrit.':'Système d’information non décrit pour ce bloc.'}</div></div>`;
+  const qui=pub?'l’hôpital':'votre SI';
+  return `<div class="panel score"><div class="sc-l"><div class="small muted">Interopérabilité avec ${pub?'le SI de l’hôpital':'votre SI'}</div><div class="sc-v">${io.v}<small>/ 100</small></div><div class="sc-g"><span class="tag ${icls(io)}">${igrade(io.v,io.block)}</span></div><div class="small muted" style="margin-top:8px">${plur(io.gaps.length,'critère à lever','critères à lever')} sur ${io.rows.length}. Indicateur à part, hors indice d’adoption.</div></div>
+  <div class="sc-r" style="padding:0"><table><thead><tr><th>Critère</th><th>${pub?'Besoin de l’hôpital':'Votre SI'}</th><th>Le logiciel</th><th class="num">Poids</th></tr></thead><tbody>${io.rows.map(r=>`<tr><td><b style="font-weight:500">${r.c[1]}</b>${r.c[4]?' <span class="tag gray plain">Bloquant</span>':''}<br><span class="small muted">${r.c[2]}</span></td><td class="muted">${r.need}</td><td>${r.cov?`<span class="tag ${r.cov[1]}">${r.cov[2]}</span>`:'<span class="tag gray">Non renseigné</span>'}<br><span class="small muted">${r.d[1]}${r.d[2]?'. '+r.d[2]:''}</span></td><td class="num">${r.c[3]}</td></tr>`).join('')}</tbody></table></div></div>
+  <p class="small muted" style="margin-top:8px">Taux : part pondérée des besoins de ${qui} que le logiciel couvre (couvert 1, partiel 0,5, non couvert ou non renseigné 0). Un critère bloquant non couvert est signalé quel que soit le taux. ${io.src}. La couverture est déclarée dans la fiche de l’éditeur, sauf mention « Vérifié par la DSI ». Valeurs d’exemple : la rubrique Interopérabilité n’existe pas encore dans le template de fiche.</p>`;}
+function siPanel(h){const si=SI[h.id];if(!si)return '';return `<div class="panel" style="margin-top:16px"><header><h3>Système d’information</h3><span class="sub">${si.src}</span></header><table><thead><tr><th>Critère</th><th>Ce qui est en place</th><th class="num">Poids</th></tr></thead><tbody>${ICRIT.map(c=>`<tr><td><b style="font-weight:500">${c[1]}</b>${c[4]?' <span class="tag gray plain">Bloquant</span>':''}<br><span class="small muted">${c[2]}</span></td><td class="${si[c[0]]?'':'muted'}">${si[c[0]]||'Pas de besoin déclaré : critère hors du taux'}</td><td class="num">${c[3]}</td></tr>`).join('')}</tbody></table></div><p class="small muted" style="margin-top:8px">Chaque logiciel testé est comparé à ce SI. Le résultat s’affiche dans ses résultats, à côté de l’indice d’adoption.</p>`;}
 
 /* ---------- navigation ---------- */
 function stopPlay(){S.playing=false;}
@@ -489,10 +527,10 @@ function certOf(k){return TESTS[k].cert||(SNAP[k]&&SNAP[k].issued||(k===S.test&&
 function renderTests(){
   if(S.view==='test')snap();
   const rows=Object.keys(TESTS).map(k=>{const t=TESTS[k],sn=SNAP[k];
-    if(t.incomplete&&!(sn&&sn.ran))return `<tr class="click" onclick="openTest('${k}')"><td><b style="font-weight:500">${tname(k)}</b><br><span class="small muted">${t.desc}</span></td><td class="muted">Non choisi</td><td class="muted">—</td><td>Brouillon</td><td><span class="tag err">Fiche non analysable</span></td><td class="muted">—</td><td class="r muted">${t.date}</td></tr>`;
-    const sc=scOf(t.real),L=sn?sn.ranSc:t.sc,ov=overall(L,sc),h=HOSP.find(x=>x.id===(sn?sn.ranHosp:t.hosp)),c=certOf(k);
-    return `<tr class="click" onclick="openTest('${k}')"><td><b style="font-weight:500">${tname(k)}</b>${t.example?' <span class="tag gray plain">Exemple</span>':''}${t.synth?' <span class="tag blue plain">Démonstration</span>':''}<br><span class="small muted">${t.desc}</span></td><td>${h.n}</td><td>${L.join(', ')}</td><td>Simulé</td><td><span class="tag ${ov[0]}">${ov[1]}</span></td><td>${c?`<code class="id">${c}</code>`:h.id==='gen'?'<span class="muted">Sans certificat</span>':'<span class="muted">Prêt à émettre</span>'}</td><td class="r muted">${t.date}</td></tr>`;}).join('');
-  $('#tests').innerHTML=`<div class="panel"><table><thead><tr><th>Logiciel</th><th>Bloc simulé</th><th>Scénarios</th><th>État</th><th>Conclusion</th><th>Certificat</th><th class="r">Date</th></tr></thead><tbody>${rows}</tbody></table></div>
+    if(t.incomplete&&!(sn&&sn.ran))return `<tr class="click" onclick="openTest('${k}')"><td><b style="font-weight:500">${tname(k)}</b><br><span class="small muted">${t.desc}</span></td><td class="muted">Non choisi</td><td class="muted">—</td><td>Brouillon</td><td><span class="tag err">Fiche non analysable</span></td><td class="num muted">—</td><td class="muted">—</td><td class="r muted">${t.date}</td></tr>`;
+    const sc=scOf(t.real),L=sn?sn.ranSc:t.sc,ov=overall(L,sc),h=HOSP.find(x=>x.id===(sn?sn.ranHosp:t.hosp)),c=certOf(k),io=interop(t.real,h.id);
+    return `<tr class="click" onclick="openTest('${k}')"><td><b style="font-weight:500">${tname(k)}</b>${t.example?' <span class="tag gray plain">Exemple</span>':''}${t.synth?' <span class="tag blue plain">Démonstration</span>':''}<br><span class="small muted">${t.desc}</span></td><td>${h.n}</td><td>${L.join(', ')}</td><td>Simulé</td><td><span class="tag ${ov[0]}">${ov[1]}</span></td><td class="num">${io?`${io.v} <span class="muted">/ 100</span>${io.block.length?' <span class="tag err plain">Bloquant</span>':''}`:'<span class="muted">—</span>'}</td><td>${c?`<code class="id">${c}</code>`:h.id==='gen'?'<span class="muted">Sans certificat</span>':'<span class="muted">Prêt à émettre</span>'}</td><td class="r muted">${t.date}</td></tr>`;}).join('');
+  $('#tests').innerHTML=`<div class="panel"><table><thead><tr><th>Logiciel</th><th>Bloc simulé</th><th>Scénarios</th><th>État</th><th>Conclusion</th><th class="num">Interopérabilité</th><th>Certificat</th><th class="r">Date</th></tr></thead><tbody>${rows}</tbody></table></div>
   <p class="small muted" style="margin-top:12px">Un test simule l’adoption d’un logiciel dans un bloc. Les mêmes semaines sont jouées deux fois : sans outil, puis avec outil.</p>
   <div class="note info" style="margin-top:20px">${ICON.info}<div><b>D’où viennent les chiffres de ce prototype</b><p>Les résultats des tests « CheckBloc tablette » et « ScanTrace » sont copiés d’exécutions du moteur BlocSim du ${RUN}, sur le bloc pilote. Les deux logiciels sont fictifs. L’interface n’est pas encore reliée au moteur. Le test marqué « Démonstration » porte sur un hôpital synthétique : il montre ce que Blocapta produirait avec toutes les données demandées.</p></div></div>`;
   polish($('#tests'));
@@ -530,7 +568,7 @@ function pFiche(){
   if(t.incomplete&&!S.ficheOk){const I=REAL.inc,crit=I.champs.filter(c=>c.crit),oth=I.champs.filter(c=>!c.crit),Q=id=>(I.questions.find(q=>q.id===id)||{}).q||'';
     return `<div class="sec"><div class="note err">${ICON.err}<div><b>Fiche non analysable.</b><p>${plur(crit.length,'champ critique est incomplet','champs critiques sont incomplets')}. Blocapta ne produit aucun chiffre pour une fiche non analysable.</p></div></div></div>
     <div class="sec"><dl class="kv" style="margin:0;grid-template-columns:repeat(3,1fr)"><div><dt>Champs obligatoires</dt><dd class="runc">${I.obl.replace('/',' / ')}</dd></div><div><dt>Champs recommandés</dt><dd class="runc">${I.rec.replace('/',' / ')}</dd></div><div><dt>Champs facultatifs</dt><dd class="runc">${I.fac.replace('/',' / ')}</dd></div></dl></div>
-    <div class="sec"><div class="h"><h3>À compléter pour continuer</h3><p>${plur(crit.length,'champ critique','champs critiques')}</p></div><div class="panel"><table><thead><tr><th>Champ</th><th>Constat</th><th>Question à poser à l’auteur</th></tr></thead><tbody>
+    <div class="sec"><div class="h"><h3>À compléter pour continuer</h3><p>${plur(crit.length,'champ critique','champs critiques')}</p></div><div class="panel"><table><thead><tr><th>Champ</th><th>Constat</th><th>Question à poser à l’éditeur</th></tr></thead><tbody>
     ${crit.map(c=>`<tr><td><b style="font-weight:500">${c.label}</b></td><td><span class="tag err">${c.st==='Vide'?'Manquant':c.st}</span><br><span class="small muted">${c.raison.replace(/\(s\)/g,'')}</span></td><td class="muted">${Q(c.id)}</td></tr>`).join('')}
     </tbody></table></div><p class="small muted" style="margin-top:8px">${plur(oth.length,'autre champ obligatoire est incomplet','autres champs obligatoires sont incomplets')} : ${oth.map(c=>c.label.toLowerCase()).join(', ')}.</p></div>
     <div class="foot"><span class="small muted">Contrôle fait par le moteur sur la fiche d’exemple scantrace-incomplete.json.</span><div class="r"><button class="btn p" onclick="openTest('scan')">Ouvrir la version 2 de la fiche</button></div></div>`;}
@@ -549,12 +587,12 @@ function pFiche(){
 function toggleSc(k){const i=S.sel.indexOf(k);if(i>=0){if(S.sel.length>1)S.sel.splice(i,1);}else S.sel.push(k);renderTest();}
 function pConfig(){
   const av=Object.keys(cur().sc),changed=S.ran&&([...S.sel].sort().join()!==S.ranSc.join()||S.hosp!==S.ranHosp);
-  return `<div class="sec"><div class="h"><h3>Bloc simulé</h3><p>1 jumeau réel, 1 jumeau de démonstration</p><span style="margin-left:auto"><a onclick="go('hosp')">Voir le détail de chaque bloc</a></span></div>
+  return `<div class="sec"><div class="h"><h3>Bloc simulé</h3><p>votre jumeau, et un jumeau de démonstration</p><span style="margin-left:auto"><a onclick="go('hosp')">Voir le détail de chaque bloc</a></span></div>
    <div class="panel"><table><thead><tr><th style="width:44px"></th><th>Bloc</th><th class="num">Salles</th><th>Données de calibration</th><th>Jumeau</th><th>Offre</th></tr></thead><tbody>
-   ${HOSP.map((h,i)=>`${i===0?'<tr class="grp"><td colspan="6">Pour tester, sans hôpital précis</td></tr>':i===1?'<tr class="grp"><td colspan="6">Jumeaux d’hôpitaux, pour tester et certifier</td></tr>':''}<tr class="${h.ex?'':'click'} ${S.hosp===h.id?'sel':''}" ${h.ex?'':`onclick="S.hosp='${h.id}';renderTest()"`} ${h.ex?'style="color:var(--ink2)"':''}><td>${h.ex?'':`<span class="rd ${S.hosp===h.id?'on':''}"></span>`}</td><td><b style="font-weight:500">${h.n}</b><br><span class="small muted">${h.type}</span></td><td class="num">${h.salles}</td><td class="muted">${h.data}</td><td>${jz(h)}</td><td class="muted">${h.ex?'—':h.id==='gen'?'Test, sans certificat':'Test et certification'}</td></tr>`).join('')}
+   ${HOSP.filter(h=>!h.ex).map((h,i)=>`${i===0?'<tr class="grp"><td colspan="6">En attendant votre jumeau</td></tr>':i===1?'<tr class="grp"><td colspan="6">Jumeaux numériques, pour tester et certifier</td></tr>':''}<tr class="${h.ex?'':'click'} ${S.hosp===h.id?'sel':''}" ${h.ex?'':`onclick="S.hosp='${h.id}';renderTest()"`} ${h.ex?'style="color:var(--ink2)"':''}><td>${h.ex?'':`<span class="rd ${S.hosp===h.id?'on':''}"></span>`}</td><td><b style="font-weight:500">${h.n}</b><br><span class="small muted">${h.type}</span></td><td class="num">${h.salles}</td><td class="muted">${h.data}</td><td>${jz(h)}</td><td class="muted">${h.ex?'—':h.id==='gen'?'Test, sans certificat':'Test et certification'}</td></tr>`).join('')}
    </tbody></table></div>
-   ${S.hosp==='gen'?`<div class="note info" style="margin-top:12px">${ICON.info}<div><b>Bloc générique : offre Test.</b><p>Le test confronte le logiciel aux situations courantes d’un bloc. Les résultats ne décrivent aucun hôpital et ne donnent pas droit à un certificat. Dans ce prototype, le bloc générique reprend les chiffres du bloc pilote.</p></div></div>`:''}
-   <p class="small muted" style="margin-top:10px">${ICON.lock} Les paramètres de chaque bloc sont réglés par Blocapta. Vous ne pouvez pas les modifier. &nbsp;Votre hôpital n’est pas dans la liste ? <a onclick="S.reqOpen=false;go('req')">Demander un jumeau numérique</a></p></div>
+   ${S.hosp==='gen'?`<div class="note info" style="margin-top:12px">${ICON.info}<div><b>Bloc générique : en attendant votre jumeau.</b><p>Le test confronte le logiciel aux situations courantes d’un bloc. Les résultats ne décrivent pas votre bloc et ne donnent pas droit à un certificat. Dans ce prototype, le bloc générique reprend les chiffres du bloc pilote.</p></div></div>`:''}
+   <p class="small muted" style="margin-top:10px">${ICON.lock} Les paramètres de votre jumeau sont réglés par Blocapta à partir des données que vous avez fournies. Ni vous ni l’éditeur ne pouvez les modifier. &nbsp;<a onclick="S.reqOpen=false;go('req')">Ajouter un bloc ou mettre à jour vos données</a></p></div>
   <div class="sec"><div class="h"><h3>Scénarios</h3><p>${plur(S.sel.length,'sélectionné')} · ${INCL} inclus dans l’offre${S.sel.length>INCL?', '+(S.sel.length-INCL)+' en supplément':''}</p></div>
    <div class="panel"><table><thead><tr><th style="width:44px"></th><th>Scénario</th><th>Ce qui est comparé</th><th style="width:150px"></th></tr></thead><tbody>
    ${SCEN.map((x,j)=>{const ok=av.includes(x[0]),i=S.sel.indexOf(x[0]),on=i>=0;return `${j===0||SCEN[j-1][1]!==x[1]?'':''}<tr class="${ok?'click':''}" ${ok?`onclick="toggleSc('${x[0]}')"`:'style="color:var(--ink2)"'}><td>${ok?`<span class="cb ${on?'on':''}"></span>`:''}</td><td><b style="font-weight:500">${x[0]}.</b> ${x[2]}<br><span class="small muted">${x[1]}</span></td><td class="muted">${x[3]}</td><td>${!ok?`<span class="tag gray plain">${j<3?'Non lancé ici':'Bientôt'}</span>`:on?(i>=INCL?'<span class="tag blue plain">Supplément</span>':'<span class="tag gray plain">Inclus</span>'):''}</td></tr>`}).join('')}
@@ -610,14 +648,15 @@ function pRes(){
     <div class="sec">${scorePanel('*',`<div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">${ICON[ov[0]]}<b style="font-size:17px">Conclusion du test : ${ov[1].toLowerCase()}.</b></div><p class="muted" style="margin:0 0 12px 32px">${plur(S.ranSc.length,'scénario simulé','scénarios simulés')} dans le bloc « ${H.n} » : ${[P(n('ok'),'sans réserve'),P(n('warn'),'avec réserves'),P(n('err'),'à risque')].filter(Boolean).join(', ')}.</p>`,{ok:'var(--ok)',warn:'var(--warn)',err:'var(--err)'}[ov[0]])}</div>
     <div class="sec"><div class="panel"><table><thead><tr><th>Scénario</th><th>Conclusion</th><th>Chiffre clé</th><th>Condition principale</th></tr></thead><tbody>
     ${S.ranSc.map(k=>{const x=SC[k],c=x.cond.find(c=>c[3]);return `<tr class="click" onclick="S.sc='${k}';S.tab='syn';renderTest()"><td><b style="font-weight:500">${k}.</b> ${x.name}</td><td><span class="tag ${x.tag[0]}">${x.tag[1]}</span></td><td>${x.stats[0][0]}<br><span class="num">${x.stats[0][1]}${x.stats[0][2]?' '+x.stats[0][2]:''}</span> <span class="ci">${x.stats[0][3]}</span></td><td class="${c?'':'muted'}">${c?c[0]:'Aucune'}</td></tr>`}).join('')}
-    </tbody></table></div><p class="small muted" style="margin-top:10px">La conclusion du test est celle de son scénario le moins favorable. Tous les scénarios simulés figurent dans le certificat.</p></div>${foot}`;}
-  const tabs=[['syn','Synthèse'],['kpi','Indicateurs'],['cmp','Comparaison'],['sens','Sensibilité'],['hyp','Hypothèses'],['rap','Rapport']];
+    </tbody></table></div><p class="small muted" style="margin-top:10px">La conclusion du test est celle de son scénario le moins favorable. Tous les scénarios simulés figurent dans le certificat.</p></div>
+    <div class="sec"><div class="h"><h3>Interopérabilité avec votre SI</h3><p>vaut pour tout le test, quel que soit le scénario</p></div>${ioPanel(curIO())}</div>${foot}`;}
+  const tabs=[['syn','Synthèse'],['kpi','Indicateurs'],['io','Interopérabilité'],['cmp','Comparaison'],['sens','Sensibilité'],['hyp','Hypothèses'],['rap','Rapport']];
   return `<div class="sec">${seg}</div>${ex}
   <div class="sec"><div class="note ${d.icon==='ok'?'':d.icon}">${ICON[d.icon]}<div><div class="small muted" style="margin-bottom:2px">Scénario ${S.sc} · ${d.name}</div><b style="font-size:16px">${d.verdict}</b><p>${d.detail}</p><p class="small" style="margin-top:6px">${syn?'Conclusion':'Conclusion du moteur'} : ${d.engine}</p></div><div class="r"><span class="tag ${d.tag[0]}">${d.tag[1]}</span></div></div></div>
   <div class="sec"><dl class="kv" style="margin:0">${d.stats.map(s=>`<div class="stat"><dt>${s[0]}</dt><dd><span class="v">${s[1]}<small>${s[2]}</small></span><div class="ci">${s[3]}</div></dd></div>`).join('')}</dl>
   <p class="small muted" style="margin:8px 0 0">Médiane des 20 répétitions. Entre crochets : l’intervalle où tombent 8 répétitions sur 10. Les écarts se lisent « avec outil moins sans outil ».</p></div>
   <div class="tabs" role="tablist">${tabs.map(t=>`<button role="tab" aria-selected="${S.tab===t[0]}" class="${S.tab===t[0]?'on':''}" onclick="S.tab='${t[0]}';renderTest()">${t[1]}</button>`).join('')}</div>
-  <div id="tab">${({syn:tSyn,kpi:tKpi,cmp:tCmp,sens:tSens,hyp:tHyp,rap:tRap})[S.tab](d)}</div>${foot}`;
+  <div id="tab">${({syn:tSyn,kpi:tKpi,io:()=>ioPanel(curIO()),cmp:tCmp,sens:tSens,hyp:tHyp,rap:tRap})[S.tab](d)}</div>${foot}`;
 }
 function tSyn(d){
   const R=d.R,risks=d.risks.length?`<table><tbody>${d.risks.map(r=>`<tr><td style="width:96px;vertical-align:top"><span class="tag ${r[0]}">${r[1]}</span></td><td>${r[2]}</td></tr>`).join('')}</tbody></table>`:`<div class="pad muted">Aucun signal au-dessus des seuils du modèle.</div>`;
@@ -1102,7 +1141,7 @@ function frozen(c){
   const ov=overall(c.L,c.sc),[v,cp]=scoreOf('*',c.L,c.sc),cs=[...new Set(c.L.flatMap(k=>c.sc[k].cond.filter(x=>x[3]).map(x=>x[0])))];
   return `<dl class="list"><dt>Logiciel</dt><dd>${c.Rt.name}</dd><dt>Éditeur</dt><dd>${c.Rt.editor}</dd><dt>Hôpital simulé</dt><dd><b style="font-weight:600">${c.H.n}</b>, ${c.H.type}, ${c.H.salles} salles</dd><dt>Jumeau numérique</dt><dd>Version ${c.H.ver}, calibré sur ${c.H.data}</dd>
   <dt>Conclusion du test</dt><dd><span class="tag ${ov[0]}">${ov[1]}</span></dd>${c.L.map(k=>`<dt>Scénario ${k}</dt><dd><span class="tag ${c.sc[k].tag[0]}">${c.sc[k].tag[1]}</span> &nbsp;${c.sc[k].name}. ${c.sc[k].stats[0][0]} : ${c.sc[k].stats[0][1]}${c.sc[k].stats[0][2]?' '+c.sc[k].stats[0][2]:''} <span class="ci">${c.sc[k].stats[0][3]}</span></dd>`).join('')}
-  <dt>À prévoir</dt><dd>${cs.length?cs.join('<br>'):'Aucune condition simulée'}</dd><dt>Indice d’adoption</dt><dd>${v} / 100, provisoire. ${COMP.map((n,i)=>cp[i]==null?'':n+' '+cp[i]).filter(Boolean).join(' · ')}</dd>
+  <dt>À prévoir</dt><dd>${cs.length?cs.join('<br>'):'Aucune condition simulée'}</dd><dt>Interopérabilité</dt><dd>${(io=>io?`${io.v} / 100, ${igrade(io.v,io.block).toLowerCase()}. Comparée au SI de l’hôpital, hors indice d’adoption`:'Non calculée : SI non décrit')(interop(TESTS[c.k].real,c.H.id))}</dd><dt>Indice d’adoption</dt><dd>${v} / 100, provisoire. ${COMP.map((n,i)=>cp[i]==null?'':n+' '+cp[i]).filter(Boolean).join(' · ')}</dd>
   <dt>Méthode</dt><dd>4 semaines × 20 répétitions, moteur BlocSim, ${c.Rt.synthetic?'paramètres de comportement mesurés dans ce bloc':'6 paramètres de comportement à calibrer'}</dd><dt>Validité</dt><dd>12 mois. Un changement de version majeure du jumeau est signalé sur la page publique.</dd></dl>`;
 }
 function qr(txt,cell){if(typeof qrcode==='undefined')return '<div class="small muted" style="width:96px;height:96px;border:1px solid var(--line2);display:grid;place-items:center">QR code</div>';const q=qrcode(0,'M');q.addData(txt);q.make();return q.createSvgTag({cellSize:cell||3,margin:0});}
@@ -1111,17 +1150,17 @@ function pCert(){
   const c=certData(S.test),num=certOf(S.test);
   if(S.ranHosp==='gen') return `<div class="sec"><div class="note info">${ICON.info}<div><b>Pas de certificat avec le bloc générique.</b><p>Un certificat porte sur un hôpital précis. Ce test reste consultable, sans numéro de certification.</p></div></div></div>
    <div class="sec"><div class="h"><h3>Pour obtenir un certificat</h3></div><div class="panel"><table><tbody>
-   <tr><td style="width:44px" class="num">1</td><td><b style="font-weight:500">Choisir un hôpital</b><br><span class="small muted">Parmi les jumeaux existants, ou en demandant un nouveau jumeau.</span></td><td class="r"><button class="btn g sm" onclick="go('hosp')">Voir les hôpitaux</button></td></tr>
-   <tr><td class="num">2</td><td><b style="font-weight:500">Relancer le test sur cet hôpital</b><br><span class="small muted">La fiche et les scénarios sont repris tels quels.</span></td><td class="r"><button class="btn g sm" onclick="pane('config')">Ouvrir la configuration</button></td></tr>
+   <tr><td style="width:44px" class="num">1</td><td><b style="font-weight:500">Fournir les données de votre bloc</b><br><span class="small muted">Blocapta construit et calibre votre jumeau numérique.</span></td><td class="r"><button class="btn g sm" onclick="S.reqOpen=false;go('req')">Fournir vos données</button></td></tr>
+   <tr><td class="num">2</td><td><b style="font-weight:500">Relancer le test sur votre jumeau</b><br><span class="small muted">La fiche et les scénarios sont repris tels quels.</span></td><td class="r"><button class="btn g sm" onclick="pane('config')">Ouvrir la configuration</button></td></tr>
    <tr><td class="num">3</td><td><b style="font-weight:500">Émettre le certificat</b><br><span class="small muted">Les chiffres sont recalculés par Blocapta, puis figés.</span></td><td></td></tr></tbody></table></div></div>`;
-  if(!S.issued) return `<div class="sec"><div class="note info">${ICON.info}<div><b>Le certificat de simulation fige les résultats de ce test, pour cet hôpital.</b><p>À l’émission, Blocapta recalcule les chiffres de son côté. Ensuite, ni vous ni Blocapta ne pouvez les modifier. L’hôpital les consulte avec le numéro, sur une page publique.</p></div></div></div>
+  if(!S.issued) return `<div class="sec"><div class="note info">${ICON.info}<div><b>Le certificat de simulation fige les résultats de ce test, pour cet hôpital.</b><p>À l’émission, Blocapta recalcule les chiffres de son côté. Ensuite, ni vous ni Blocapta ne pouvez les modifier. Toute personne qui a le numéro (direction, commission des achats, éditeur) les consulte sur une page publique.</p></div></div></div>
    <div class="sec"><div class="h"><h3>Ce qui sera publié</h3><p>visible par toute personne ayant le numéro</p></div><div class="panel"><div class="pad" style="padding-top:6px;padding-bottom:6px">${frozen(c)}</div></div>
    <p class="small muted" style="margin-top:8px">Tous les scénarios simulés, leurs réserves et les valeurs déclarées dans la fiche sont publiés avec le certificat.</p></div>
    <div class="foot"><button class="btn g" onclick="pane('res')">Retour aux résultats</button><div class="r"><button class="btn p" onclick="confirmIssue()">Émettre le certificat</button></div></div>`;
   const ce=CERTS[num];
   return `<div class="sec"><div class="panel"><div class="pad" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap"><div><div class="small muted">Numéro de certification · certificat de simulation</div><div style="font:500 28px var(--mono);letter-spacing:.5px;margin-top:2px">${num}</div><div class="small muted" style="margin-top:6px">Émis le ${ce.date} · valable jusqu’au ${ce.until}</div></div>
    <div style="margin-left:auto;display:flex;gap:8px"><button class="btn s" onclick="copyTxt(this,'${num}')">Copier le numéro</button><button class="btn s" onclick="go('verify');$('#q').value='${num}';verify()">Voir la page publique</button></div></div></div></div>
-   <div class="sec"><div class="g2" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)"><div><div class="h"><h3>À joindre à votre proposition</h3></div><div class="panel"><table><tbody>
+   <div class="sec"><div class="g2" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)"><div><div class="h"><h3>À joindre à votre dossier de décision</h3></div><div class="panel"><table><tbody>
    <tr><td style="width:200px">Lien de vérification</td><td><code class="id">blocapta.fr/verifier/${num}</code></td><td class="r"><button class="btn g sm" aria-label="Copier le lien de vérification" onclick="copyTxt(this,'https://blocapta.fr/verifier/${num}')">Copier</button></td></tr>
    <tr><td>Badge</td><td class="muted" colspan="2">Numéro, hôpital et QR code vers la page de vérification</td></tr>
    </tbody></table></div></div>
@@ -1137,7 +1176,7 @@ function closeO(){if($('#overlay .demo')){S.playing=false;S.speed=6;if(P3)P3.cin
 /* ---------- page publique ---------- */
 function verify(){
   const v=$('#q').value.trim().toUpperCase(),ce=CERTS[v],issued=ce&&(!!TESTS[ce.test].cert||(S.test===ce.test&&S.issued)||(SNAP[ce.test]&&SNAP[ce.test].issued));
-  if(!issued){$('#vres').innerHTML=`<div class="note err">${ICON.err}<div><b>Aucun certificat ne porte ce numéro.</b><p>Vérifiez la saisie (format BLC-AAAA-XXXX-NN) ou demandez le numéro exact à l’éditeur.</p></div></div><p class="small muted" style="margin-top:12px">Numéro d’exemple dans ce prototype : BLC-2026-7QD2-38.</p>`;polish($('#vres'));return;}
+  if(!issued){$('#vres').innerHTML=`<div class="note err">${ICON.err}<div><b>Aucun certificat ne porte ce numéro.</b><p>Vérifiez la saisie (format BLC-AAAA-XXXX-NN) ou demandez le numéro exact à l’établissement qui a commandé le test.</p></div></div><p class="small muted" style="margin-top:12px">Numéro d’exemple dans ce prototype : BLC-2026-7QD2-38.</p>`;polish($('#vres'));return;}
   const c=certData(ce.test),ov=overall(c.L,c.sc),[sv,cp]=scoreOf('*',c.L,c.sc),F=c.Rt.fiche,k0=c.L.includes('B')?'B':c.L[0],d0=c.sc[k0],a0=d0.fore[0],non=['A','B','C'].filter(k=>!c.L.includes(k));
   $('#vres').innerHTML=`${c.Rt.synthetic?`<div class="note info" style="margin-bottom:12px">${ICON.info}<div><b>Démonstration : hôpital et résultats synthétiques.</b><p>Cette page montre ce qu’un hôpital verrait pour un jumeau construit avec toutes les données demandées.</p></div></div>`:''}<div class="note">${ICON.ok}<div><b style="font-size:17px">Numéro authentique. Chiffres inchangés depuis l’émission.</b><p>Certificat de simulation émis par Blocapta le ${ce.date}, valable jusqu’au ${ce.until}. Ce numéro atteste qu’une simulation a eu lieu. Il n’atteste pas que le logiciel sera adopté.</p></div></div>
   <dl class="kv" style="margin:16px 0 0"><div><dt>Logiciel testé</dt><dd><b style="font-weight:600;font-size:17px">${c.Rt.name}</b><div class="small muted">${c.Rt.editor}</div></dd></div>
@@ -1150,11 +1189,12 @@ function verify(){
   <p class="small muted" style="margin-top:8px">Médiane des 20 répétitions. Entre crochets : l’intervalle où tombent 8 répétitions sur 10.</p>
   <div class="panel" style="margin-top:16px"><header><h3>Ce que vous devriez observer si le modèle a raison</h3><span class="sub">scénario ${k0}, ${d0.R.arms[a0].label.toLowerCase()}</span></header><table><thead><tr><th>Semaine</th><th class="num">Saisies dans l’outil</th><th class="num">Retard ajouté par intervention</th></tr></thead><tbody>${[0,1,2,3].map(w=>`<tr><td>Semaine ${w+1}</td><td class="num">${fx(d0.R.weekly[a0][w].use*100)} %</td><td class="num">${sg(d0.R.weekly[a0][w].late[0])} min</td></tr>`).join('')}</tbody></table></div>
   <p class="small muted" style="margin-top:8px">Si les chiffres réels s’écartent, le modèle est à recalibrer pour ce bloc.</p>
+  <div class="sec" style="margin-top:16px"><div class="h"><h3>Interopérabilité avec le SI de l’hôpital</h3></div>${ioPanel(interop(TESTS[ce.test].real,c.H.id),true)}</div>
   <div class="panel" style="margin-top:16px"><header><h3>Déclaré par l’éditeur, non vérifié par Blocapta</h3></header><table><tbody>
    ${F.steps.map(s=>`<tr><td>${s.etape} (${s.qui})</td><td class="num">${fx(s.sans)} min sans outil, ${fx(s.avec)} min avec</td><td class="muted">${s.source}</td></tr>`).join('')}
    <tr><td>Formation</td><td class="num">${fx(F.trainingH,0)} h par soignant</td><td class="muted">Fiche logiciel</td></tr><tr><td>Support</td><td class="num">${F.supportOnSite?'Sur place':'À distance'}</td><td class="muted">Fiche logiciel</td></tr><tr><td>Rétablissement après une panne</td><td class="num">${F.restoreMin} min</td><td class="muted">Fiche logiciel</td></tr></tbody></table></div>
   <p class="small muted" style="margin-top:8px">Fiabilité de l’analyse de la fiche : ${CONFL[F.conf]||F.conf}. ${F.proof}.</p>
-  <div class="panel" style="margin-top:16px"><header><h3>Périmètre du test</h3></header><div class="pad" style="padding-top:8px;padding-bottom:8px"><dl class="list"><dt>Scénarios simulés</dt><dd>${c.L.map(k=>k+'. '+c.sc[k].name).join(' · ')}</dd><dt>Non simulés</dt><dd>${non.length?non.map(k=>k+'. '+SCEN.find(s=>s[0]===k)[2]).join(' · '):'Aucun parmi les scénarios disponibles'}</dd><dt>Versions de la fiche</dt><dd>${ce.test==='scan'?'Version 2. La version 1 a été refusée : fiche non analysable.':'Version 1.'}</dd><dt>Indépendance</dt><dd>Blocapta est payé par l’éditeur. L’éditeur choisit les scénarios. Il ne peut modifier ni le bloc, ni le modèle, ni les chiffres.</dd></dl></div></div>
+  <div class="panel" style="margin-top:16px"><header><h3>Périmètre du test</h3></header><div class="pad" style="padding-top:8px;padding-bottom:8px"><dl class="list"><dt>Scénarios simulés</dt><dd>${c.L.map(k=>k+'. '+c.sc[k].name).join(' · ')}</dd><dt>Non simulés</dt><dd>${non.length?non.map(k=>k+'. '+SCEN.find(s=>s[0]===k)[2]).join(' · '):'Aucun parmi les scénarios disponibles'}</dd><dt>Versions de la fiche</dt><dd>${ce.test==='scan'?'Version 2. La version 1 a été refusée : fiche non analysable.':'Version 1.'}</dd><dt>Indépendance</dt><dd>Blocapta est payé par l’hôpital. L’éditeur fournit sa fiche ; il ne choisit ni le bloc ni les scénarios, et ne peut modifier ni le modèle ni les chiffres.</dd></dl></div></div>
   <div class="sec" style="margin-top:16px"><div class="h"><h3>${c.Rt.synthetic?'Sur quoi repose ce certificat':'Ce que ce certificat ne dit pas'}</h3></div>${limits(c.Rt)}${c.Rt.valid?`<div class="panel" style="margin-top:12px"><header><h3>Vérification sur un déploiement passé</h3><span class="sub">logiciel de programmation opératoire, 2025</span></header>${validTable(c.Rt)}</div>`:''}<p class="small muted" style="margin-top:8px">Il ne vaut pas pour un autre hôpital que ${c.H.n}.</p></div>
   <div class="panel"><details class="adv" style="border:0"><summary>Indice d’adoption (provisoire) : ${sv} / 100</summary><div class="pad" style="padding-top:0;max-width:640px">${bars(cp)}<p class="small muted" style="margin:10px 0 0">40 % confiance, 25 % fluidité, 20 % charge, 15 % robustesse. Pondérations proposées par Blocapta, à valider.</p></div></details>
    <details class="adv"><summary>Fidélité du jumeau : simulation comparée aux données réelles</summary>${fidTable(c.H)}</details>
@@ -1170,14 +1210,15 @@ function renderHosp(){
   const det=h.id==='gen'?`<div class="pad muted">Le bloc générique n’est calibré sur aucun établissement. Il reprendra les valeurs moyennes des jumeaux existants. Il sert à tester un logiciel, pas à le certifier. Il n’est pas encore construit : ce prototype lui donne les chiffres du bloc pilote.</div>`
    :h.id==='pilote'||h.synth?fidTable(h):`<div class="pad muted">Entrée d’exemple, pour montrer la liste. Seul le bloc pilote existe aujourd’hui.</div>`;
   $('#hosp').innerHTML=`<div class="sec"><div class="panel"><table><thead><tr><th>Bloc</th><th>Région</th><th class="num">Salles</th><th>Spécialités principales</th><th>Données de calibration</th><th>Jumeau</th></tr></thead><tbody>
-  ${HOSP.map(x=>`<tr class="click ${S.hv===x.id?'sel':''}" onclick="S.hv='${x.id}';renderHosp()"><td><b style="font-weight:500">${x.n}</b><br><span class="small muted">${x.type}</span></td><td class="muted">${x.reg}</td><td class="num">${x.salles}</td><td class="muted">${x.spec}</td><td class="muted">${x.data}</td><td>${jz(x)}</td></tr>`).join('')}
+  ${HOSP.filter(x=>!x.ex).map(x=>`<tr class="click ${S.hv===x.id?'sel':''}" onclick="S.hv='${x.id}';renderHosp()"><td><b style="font-weight:500">${x.n}</b><br><span class="small muted">${x.type}</span></td><td class="muted">${x.reg}</td><td class="num">${x.salles}</td><td class="muted">${x.spec}</td><td class="muted">${x.data}</td><td>${jz(x)}</td></tr>`).join('')}
   </tbody></table></div>
-  <p class="small muted" style="margin-top:10px">Votre hôpital n’est pas dans la liste ? <a onclick="S.reqOpen=false;go('req')">Demander un jumeau numérique</a></p></div>
+  <p class="small muted" style="margin-top:10px">Un autre bloc dans votre établissement ? <a onclick="S.reqOpen=false;go('req')">Ajouter un bloc</a></p></div>
   <div class="sec"><div class="panel"><header><h3>${h.n}${h.id==='pilote'||h.synth?' : fidélité du jumeau':''}</h3><span class="sub">${h.id==='pilote'?'simulation comparée aux données réelles du bloc, sur 80 jours ouvrés':h.synth?'valeurs synthétiques':''}</span></header>${det}</div>
-  ${h.synth?`<div class="note info" style="margin-top:16px">${ICON.info}<div><b>Hôpital de démonstration : tout est synthétique.</b><p>Il montre ce que Blocapta obtient quand toutes les données demandées sont fournies : plus d’indicateurs, des paramètres mesurés, un modèle vérifié sur un déploiement passé.</p></div></div><div class="panel" style="margin-top:16px"><header><h3>Données reçues</h3><span class="sub">17 sur 17</span></header>${cataTable(false,DEMOVOL)}</div><div class="panel" style="margin-top:16px"><header><h3>Vérification sur un déploiement passé</h3><span class="sub">logiciel de programmation opératoire, 2025</span></header>${validTable(REAL.tests.demo)}</div><div style="margin-top:16px">${limits(REAL.tests.demo)}</div>`:''}
+  ${siPanel(h)}
+  ${h.synth?`<div class="note info" style="margin-top:16px">${ICON.info}<div><b>Hôpital de démonstration : tout est synthétique.</b><p>Il montre ce que Blocapta obtient quand toutes les données demandées sont fournies : plus d’indicateurs, des paramètres mesurés, un modèle vérifié sur un déploiement passé.</p></div></div><div class="panel" style="margin-top:16px"><header><h3>Données reçues</h3><span class="sub">18 sur 18</span></header>${cataTable(false,DEMOVOL)}</div><div class="panel" style="margin-top:16px"><header><h3>Vérification sur un déploiement passé</h3><span class="sub">logiciel de programmation opératoire, 2025</span></header>${validTable(REAL.tests.demo)}</div><div style="margin-top:16px">${limits(REAL.tests.demo)}</div>`:''}
   ${h.id==='pilote'?`<p class="small muted" style="margin-top:10px">Mesure du ${RUN} avec l’outil de calibration du moteur. « Écart à réduire » : plus de 5 % d’écart. Blocapta publie les écarts de chaque jumeau, y compris ceux qui restent à réduire.</p><div style="margin-top:16px">${limits()}</div>`:''}</div>
-  <div class="sec"><div class="h"><h3>Vos demandes</h3><p>1 en cours, exemple</p></div><div class="panel"><table><thead><tr><th>Hôpital demandé</th><th>Collecte des données</th><th>État</th><th>Prochaine étape</th><th class="r">Mise à jour</th></tr></thead><tbody>
-  <tr class="click" onclick="S.reqMode='self';S.reqChecked=true;S.reqOpen=true;S.reqSent=false;go('req')"><td><b style="font-weight:500">CH exemple D</b><br><span class="small muted">Bloc central, 14 salles</span></td><td>Organisée par vous, gratuit</td><td><span class="tag err">Données insuffisantes</span></td><td class="muted">2 éléments à corriger</td><td class="r muted">13/11/2026</td></tr>
+  <div class="sec"><div class="h"><h3>Vos dépôts de données</h3><p>1 en cours, exemple</p></div><div class="panel"><table><thead><tr><th>Bloc</th><th>Collecte des données</th><th>État</th><th>Prochaine étape</th><th class="r">Mise à jour</th></tr></thead><tbody>
+  <tr class="click" onclick="S.reqMode='self';S.reqChecked=true;S.reqOpen=true;S.reqSent=false;go('req')"><td><b style="font-weight:500">Bloc ambulatoire</b><br><span class="small muted">6 salles</span></td><td>Déposées par vos équipes, inclus</td><td><span class="tag err">Données insuffisantes</span></td><td class="muted">2 éléments à corriger</td><td class="r muted">13/11/2026</td></tr>
   </tbody></table></div></div>`;
   polish($('#hosp'));
 }
@@ -1188,6 +1229,7 @@ const CATA=[
  ['Plan du bloc','Salles, SSPI, accueil, circulations','Plan 3D, temps de trajet',0,'err','Non fourni'],
  ['Pseudonymisation','Des codes à la place des noms de patients et de soignants','Condition d’entrée des données',0,'ok','Aucun nom détecté'],
  ['Accord de l’hôpital','Autorisation écrite de l’établissement pour cet usage','Condition d’entrée des données',0,'ok','Fourni'],
+ ['Système d’information','Logiciels en place (DPI, logiciel de bloc, identité, pharmacie), interfaces et normes, annuaire, hébergement','Taux d’interopérabilité de chaque logiciel testé',1],
  ['Horodatage détaillé','Induction, incision, fermeture, sortie de salle','Phases de l’intervention, moment exact des saisies',1],
  ['SSPI','Nombre de lits, heures d’entrée et de sortie','Salle bloquée en attente d’un lit, durée de réveil',1],
  ['Brancardage','Demandes et prises en charge horodatées','Attente de transport, retard de la première intervention',1],
@@ -1200,36 +1242,36 @@ const CATA=[
  ['Heures supplémentaires et absences','Totaux par rôle et par mois','Fatigue, tension sur les équipes',2],
  ['Coût de la minute de bloc','Valeur retenue par l’hôpital','Valorisation des minutes gagnées ou perdues',2]];
 const NIV=['Indispensable','Utile','Optionnel'];
-const DEMOVOL=['14 mois, 15 240 interventions','52 semaines de vacations','7 rôles, par vacation','Plan coté, 10 salles, 12 lits de SSPI','Contrôlée, aucun nom','Signé le 02/09/2026','4 horodatages par intervention','15 240 séjours','11 870 demandes','98 % des annulations codées','212 tickets sur 14 mois','3 logiciels, 14 mois','118 réponses sur 164 soignants','Plannings réalisés, 14 mois','4 audits','Par rôle et par mois','11 € la minute'];
+const DEMOVOL=['14 mois, 15 240 interventions','52 semaines de vacations','7 rôles, par vacation','Plan coté, 10 salles, 12 lits de SSPI','Contrôlée, aucun nom','Signé le 02/09/2026','DPI, logiciel de bloc, 7 interfaces décrites','4 horodatages par intervention','15 240 séjours','11 870 demandes','98 % des annulations codées','212 tickets sur 14 mois','3 logiciels, 14 mois','118 réponses sur 164 soignants','Plannings réalisés, 14 mois','4 audits','Par rôle et par mois','11 € la minute'];
 function cataTable(states,vol){if(vol)return `<table><thead><tr><th>Donnée</th><th>Reçu</th><th>Ce que le jumeau en tire</th></tr></thead><tbody>${[0,1,2].map(n=>`<tr class="grp"><td colspan="3">${NIV[n]}</td></tr>`+CATA.map((c,i)=>c[3]===n?`<tr><td><b style="font-weight:500">${c[0]}</b></td><td><span class="tag ok">Fourni</span> <span class="small muted">${vol[i]}</span></td><td>${c[2]}</td></tr>`:'').join('')).join('')}</tbody></table>`;
   return `<table><thead><tr><th>Donnée</th><th>Ce que nous demandons</th><th>Ce que le jumeau en tire</th>${states?'<th style="width:230px">État</th>':''}</tr></thead><tbody>${[0,1,2].map(n=>`<tr class="grp"><td colspan="${states?4:3}">${NIV[n]}${n===0?' : sans ces données, pas de jumeau':n===1?' : améliore la fidélité':' : calibre le comportement des soignants'}</td></tr>`+CATA.filter(c=>c[3]===n).map(c=>`<tr><td><b style="font-weight:500">${c[0]}</b></td><td class="muted">${c[1]}</td><td>${c[2]}</td>${states?`<td>${n?'<span class="small muted">Facultatif</span>':!S.reqChecked?'<span class="tag gray plain">À fournir</span>':c[4]==='ok'?`<span class="tag ok">Suffisant</span> <span class="small muted">${c[5]}</span>`:`<span class="tag err">Insuffisant</span> <span class="small muted">${c[5]}</span>`}</td>`:''}</tr>`).join('')).join('')}</tbody></table>`;}
 function renderReq(){
   const m=S.reqMode,on=k=>m===k?'on':'';
-  $('#req-crumb').textContent=S.reqOpen?'Demande : CH exemple D':'Nouvelle demande';$('#req-title').textContent=S.reqOpen?'Demande : CH exemple D':'Demander un jumeau numérique';$('#req-meta').textContent=S.reqOpen?'Données insuffisantes · mise à jour le 13/11/2026':'Pour un hôpital absent de la liste';
-  const rows=[['Qui organise la collecte','Blocapta, auprès de votre contact à l’hôpital','Vous, auprès de l’hôpital'],
-   ['Ce que vous fournissez','Un contact à l’hôpital : nom, fonction, e-mail','Tout le dossier : export du bloc, effectifs, plan, accord de l’hôpital'],
-   ['Dépôt des données','Par Blocapta','Par l’hôpital, avec un lien direct. Vous ne voyez pas les données'],
-   ['Tarif','Payant, sur devis. Traitement prioritaire en option','Gratuit'],
-   ['Délai','Selon la réponse de l’hôpital. En tête de file avec l’option prioritaire','Dès que les données sont jugées suffisantes'],
+  $('#req-crumb').textContent=S.reqOpen?'Dépôt : bloc ambulatoire':'Nouveau bloc';$('#req-title').textContent=S.reqOpen?'Dépôt : bloc ambulatoire':'Ajouter un bloc';$('#req-meta').textContent=S.reqOpen?'Données insuffisantes · mise à jour le 13/11/2026':'Les données de ce bloc servent à construire son jumeau numérique';
+  const rows=[['Qui organise la collecte','Blocapta, avec votre DSI et votre cadre de bloc','Vos équipes'],
+   ['Ce que vous fournissez','Un contact : nom, fonction, e-mail','Les fichiers : export du bloc, effectifs, plan, description du SI'],
+   ['Dépôt des données','Par Blocapta','Par vos équipes, avec un lien sécurisé. Les éditeurs ne voient jamais vos données'],
+   ['Tarif','Sur devis. Traitement prioritaire en option','Inclus'],
+   ['Délai','Selon la disponibilité de vos services. En tête de file avec l’option prioritaire','Dès que les données sont jugées suffisantes'],
    ['Contrôle','Blocapta vérifie, pseudonymise et calibre','Contrôle automatique de suffisance, puis calibration par Blocapta']];
   const part3=m==='blocapta'
    ?(S.reqSent?`<div class="sec"><div class="note">${ICON.ok}<div><b>Demande envoyée.</b><p>Blocapta vous adresse un devis avant tout démarrage.</p></div></div></div>`
-    :`<div class="sec"><div class="h"><h3>3. Contact à l’hôpital</h3><p>la personne qui peut autoriser l’accès aux données du bloc</p></div><div class="panel"><div class="pad formgrid">
+    :`<div class="sec"><div class="h"><h3>3. Votre contact</h3><p>la personne qui coordonne la collecte</p></div><div class="panel"><div class="pad formgrid">
       <label class="field"><span>Nom</span><input class="in" placeholder="Prénom Nom"></label><label class="field"><span>Fonction</span><input class="in" placeholder="Cadre de bloc, DSI, direction"></label><label class="field"><span>E-mail professionnel</span><input class="in" placeholder="prenom.nom@hopital.fr"></label><label class="field"><span>Téléphone</span><input class="in" placeholder="Facultatif"></label></div>
       <div class="pad" style="border-top:1px solid var(--line)"><label><input type="checkbox" style="accent-color:#161616;width:16px;height:16px;vertical-align:-3px"> &nbsp;Traitement prioritaire <span class="muted">· supplément, indiqué sur le devis</span></label></div></div>
-      <p class="small muted" style="margin-top:10px">Blocapta contacte l’hôpital, signe la convention de données, récupère l’export et le pseudonymise. Vous recevez un devis avant tout démarrage.</p><div class="panel" style="margin-top:12px"><details class="adv" style="border:0"><summary>Voir les données que Blocapta demandera à l’hôpital</summary>${cataTable(false)}</details></div></div>`)
+      <p class="small muted" style="margin-top:10px">Blocapta signe avec vous la convention de données, récupère l’export auprès de vos services et le pseudonymise. Vous recevez un devis avant tout démarrage.</p><div class="panel" style="margin-top:12px"><details class="adv" style="border:0"><summary>Voir les données que Blocapta vous demandera</summary>${cataTable(false)}</details></div></div>`)
    :`<div class="sec"><div class="h"><h3>3. Données à fournir</h3><p>le jumeau n’est créé que si tout est suffisant</p></div>
       ${S.reqChecked?`<div class="note err" style="margin-bottom:12px">${ICON.err}<div><b>Données insuffisantes : 2 éléments à corriger.</b><p>Le jumeau n’est pas créé tant qu’un élément manque. <a onclick="S.reqMode='blocapta';renderReq()">Passer à la collecte par Blocapta</a></p></div></div>`:''}
       <div class="panel">${cataTable(true)}</div>
-      <p class="small muted" style="margin-top:10px">L’hôpital dépose l’export lui-même. L’éditeur ne voit pas les données. Blocapta ne reçoit aucun nom de patient ni de soignant. Exemple fictif : aucun fichier n’est analysé dans ce prototype.</p></div>`;
-  $('#req').innerHTML=`<div class="sec"><div class="h"><h3>1. Hôpital concerné</h3></div><div class="panel"><div class="pad formgrid" style="grid-template-columns:2fr 1.2fr .8fr">
-     <label class="field"><span>Établissement (nom ou numéro FINESS)</span><input class="in" value="CH exemple D"></label><label class="field"><span>Nom du bloc</span><input class="in" value="Bloc central"></label><label class="field"><span>Nombre de salles</span><input class="in" value="14"></label></div></div></div>
+      <p class="small muted" style="margin-top:10px">Vos équipes déposent les fichiers avec un lien sécurisé. Les éditeurs ne voient jamais vos données. Blocapta ne reçoit aucun nom de patient ni de soignant. Exemple fictif : aucun fichier n’est analysé dans ce prototype.</p></div>`;
+  $('#req').innerHTML=`<div class="sec"><div class="h"><h3>1. Bloc concerné</h3></div><div class="panel"><div class="pad formgrid" style="grid-template-columns:2fr 1.2fr .8fr">
+     <label class="field"><span>Établissement (nom ou numéro FINESS)</span><input class="in" value="Hôpital pilote"></label><label class="field"><span>Nom du bloc</span><input class="in" value="Bloc ambulatoire"></label><label class="field"><span>Nombre de salles</span><input class="in" value="6"></label></div></div></div>
    <div class="sec"><div class="h"><h3>2. Collecte des données</h3><p>deux possibilités</p></div><div class="panel"><table class="cmp"><thead><tr><th></th>
      <th class="opt ${on('blocapta')}" onclick="S.reqMode='blocapta';renderReq()"><span class="rd ${on('blocapta')}"></span>Blocapta s’en charge</th>
-     <th class="opt ${on('self')}" onclick="S.reqMode='self';renderReq()"><span class="rd ${on('self')}"></span>Vous organisez la collecte</th></tr></thead><tbody>
+     <th class="opt ${on('self')}" onclick="S.reqMode='self';renderReq()"><span class="rd ${on('self')}"></span>Vous déposez vos données</th></tr></thead><tbody>
      ${rows.map(r=>`<tr><td>${r[0]}</td><td class="${on('blocapta')}">${r[1]}</td><td class="${on('self')}">${r[2]}</td></tr>`).join('')}</tbody></table></div></div>
    ${part3}
-   <div class="foot"><button class="btn g" onclick="go('hosp')">${S.reqSent?'Retour aux hôpitaux':'Annuler'}</button><div class="r">${m==='blocapta'?(S.reqSent?'':'<button class="btn p" onclick="S.reqSent=true;renderReq()">Demander un devis</button>'):`<button class="btn p" onclick="S.reqChecked=true;renderReq()">Vérifier les données</button>`}</div></div>`;
+   <div class="foot"><button class="btn g" onclick="go('hosp')">${S.reqSent?'Retour à mon bloc':'Annuler'}</button><div class="r">${m==='blocapta'?(S.reqSent?'':'<button class="btn p" onclick="S.reqSent=true;renderReq()">Demander un devis</button>'):`<button class="btn p" onclick="S.reqChecked=true;renderReq()">Vérifier les données</button>`}</div></div>`;
   polish($('#v-req'));
 }
 
@@ -1256,8 +1298,8 @@ function demoSlides(){
    {t:'À prévoir',c:'La conclusion du test est celle de son scénario le moins favorable. Les conditions sont publiées avec le résultat.',
     h:`<div class="d-eyebrow">Conclusion du test · ${plur(S.ranSc.length,'scénario simulé','scénarios simulés')}</div><div style="display:flex;align-items:center;gap:20px;margin-bottom:3vh;flex-wrap:wrap"><div class="d-mid" style="margin:0">${ov[1]} : ${plur(conds.filter(c=>c[3]).length,'condition simulée','conditions simulées')} à tenir.</div><span class="tag ${ov[0]}" style="font-size:16px;padding:9px 14px;border-radius:18px">${ov[1]}</span></div>
      <div class="d-split" style="grid-template-columns:minmax(0,2.2fr) minmax(0,1fr)"><div class="panel"><table><thead><tr><th>À prévoir</th><th>Qui</th><th>Effet dans la simulation</th><th>Origine</th></tr></thead><tbody>${conds.map(c=>`<tr><td><b style="font-weight:500">${c[0]}</b></td><td>${c[1]}</td><td class="muted">${c[2]}</td><td>${c[3]?'<span class="tag blue plain">Simulé</span>':'<span class="tag gray plain">Déclaré</span>'}</td></tr>`).join('')}</tbody></table></div>
-     <div><div class="small muted">Indice d’adoption, provisoire</div><div style="font-size:clamp(40px,4.5vw,72px);font-weight:300;line-height:1.1">${sc[0]}<span class="muted" style="font-size:.3em"> / 100</span></div><div style="margin:6px 0 14px">${grade(sc[0])}</div>${bars(sc[1])}<p class="small muted" style="margin-top:10px">Pondérations à valider.</p></div></div>`},
-   {t:'Côté hôpital',c:'L’hôpital vérifie le numéro sans compte. La page publique montre les chiffres figés, ce que l’éditeur a déclaré, et ce que le certificat ne dit pas.',
+     <div><div class="small muted">Indice d’adoption, provisoire</div><div style="font-size:clamp(40px,4.5vw,72px);font-weight:300;line-height:1.1">${sc[0]}<span class="muted" style="font-size:.3em"> / 100</span></div><div style="margin:6px 0 14px">${grade(sc[0])}</div>${bars(sc[1])}<p class="small muted" style="margin-top:10px">Pondérations à valider.</p>${(io=>io?`<div class="small muted" style="margin-top:18px">Interopérabilité avec votre SI, hors indice</div><div style="font-size:clamp(28px,3vw,44px);font-weight:300;line-height:1.1">${io.v}<span class="muted" style="font-size:.4em"> / 100</span></div><div>${igrade(io.v,io.block)}</div>`:'')(curIO())}</div></div>`},
+   {t:'Le certificat',c:'Toute personne qui a le numéro vérifie les chiffres figés sans compte : direction, commission des achats, éditeur. La page publique montre aussi ce que l’éditeur a déclaré et ce que le certificat ne dit pas.',
     h:gen?`<div class="d-eyebrow">Offre Test</div><div class="d-big">Pas de certificat avec le bloc générique.</div><p class="d-lead">Un certificat porte sur un hôpital précis. Pour en obtenir un, le test est relancé sur le jumeau de cet hôpital.</p>`
      :`<div class="d-eyebrow">Le certificat de simulation${num?'':' · aperçu, non émis'}</div><div class="d-split" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);align-items:center"><div><div class="small muted">Numéro de certification</div><div style="font:500 clamp(30px,4.2vw,66px) var(--mono);letter-spacing:1px;margin:1vh 0 ${num?'2vh':'.5vh'}">${num||'BLC-2026-····-··'}</div>${num?'':'<p class="muted" style="margin:0 0 2vh">Le numéro est attribué à l’émission.</p>'}
       <p class="d-lead" style="margin:0 0 3vh">Ce numéro atteste qu’une simulation a eu lieu. Il n’atteste pas que le logiciel sera adopté.</p>
