@@ -32,7 +32,7 @@ Critères de réussite :
 | Bloc simulé | Bloc générique | Jumeau numérique d'un hôpital |
 | But | Confronter le logiciel aux situations courantes d'un bloc | Montrer l'adoption dans un hôpital précis |
 | Certificat | Non | Oui |
-| Scénarios inclus | 3 au choix | 3 au choix |
+| Scénarios inclus | 2 au choix | 2 au choix |
 
 Décisions :
 
@@ -67,7 +67,7 @@ Colonne de gauche : quatre étapes avec leur état, puis une rubrique « Explore
    - Sélecteur de scénario : il liste les scénarios de la dernière simulation, ceux cochés dans Configuration, et rien d'autre.
    - Vue d'ensemble (dès deux scénarios) : conclusion du test, puis un tableau avec une ligne par scénario (conclusion, chiffre clé, condition principale). Un clic ouvre le scénario.
    - Si la sélection change après une simulation, Configuration l'indique et les résultats restent ceux de la dernière simulation jusqu'à la relance.
-   - Par scénario : conclusion en une phrase, avec étiquette (Conforme, Réserves, Non conforme).
+   - Par scénario : conclusion en une phrase, avec étiquette (Sans réserve, Avec réserves, À risque), suivie de la conclusion du moteur telle quelle.
    - Quatre chiffres clés avec leur intervalle P10 à P90.
    - Onglets : Synthèse (courbe de confiance, signaux de risque, conditions de déploiement), Comparaison (tableau sans outil / avec outil, écart, intervalle, effet relatif), Sensibilité, Hypothèses, Versions de la fiche.
    - Un scénario non simulé n'affiche aucun chiffre.
@@ -80,16 +80,16 @@ Explorer : **Plan du bloc** (voir 9).
 
 ### 4.3 Mode Présenter (démo guidée)
 
-Plein écran, texte agrandi, aucun réglage visible. Une suite d'écrans que l'éditeur déroule en réunion, avec une phrase de commentaire en bas de chaque écran. Flèches du clavier pour avancer et reculer, Échap pour quitter.
+Plein écran, texte agrandi, aucun réglage visible. Une suite d'écrans que l'éditeur déroule en réunion, avec une phrase de commentaire en bas de chaque écran et la mention « Résultat d'une simulation, pas d'une mesure dans le bloc ». Flèches du clavier pour avancer et reculer, Échap pour quitter.
 
-1. Le test : la question posée (« ce logiciel sera-t-il adopté dans ce bloc ? »), le bloc, les données de calibration, le nombre de scénarios et de journées simulées.
-2. La fiche : champs renseignés, champs critiques, niveau de confiance.
-3. Le jumeau : le plan 3D en lecture, caméra en mouvement lent, sur la journée la plus parlante (celle de la panne si un scénario en contient une).
-4. La comparaison : la conclusion du scénario le plus parlant, sa courbe, trois chiffres.
-5. Le résultat : indice d'adoption, statut du test, une ligne par scénario avec ce que l'hôpital doit prévoir.
-6. Le certificat : numéro, QR code, hôpital, validité. Absent pour un test sur le bloc générique.
+1. La réponse : la conclusion du scénario le plus parlant (celui de la panne s'il est simulé), deux chiffres clés, le retard ajouté en semaine 1, le nombre de journées simulées.
+2. Le jumeau : le plan 3D en lecture, avec deux raccourcis (le jour de la panne, le lendemain) et le choix du bras (avec ou sans support). C'est là que se voit l'effet principal : le lendemain, l'outil fonctionne et une partie de l'équipe continue sur papier.
+3. La comparaison : la courbe du scénario, quatre chiffres, le retard et les déprogrammations sans outil et avec outil.
+4. Les limites : ce qui est mesuré, déclaré, supposé, non fait ; la part des variations de sensibilité où la conclusion tient.
+5. À prévoir : la conclusion du test, les conditions avec qui les porte et leur effet, l'indice d'adoption en petit.
+6. Côté hôpital : le numéro, le QR code, et la phrase « Ce numéro atteste qu'une simulation a eu lieu. Il n'atteste pas que le logiciel sera adopté. »
 
-Un bouton « Démo guidée » dans la barre d'application ouvre cette suite sur un test d'exemple.
+Un bouton « Démo guidée » dans la barre d'application ouvre cette suite sur le test principal.
 
 ### 4.3 bis Simulation en cours
 
@@ -106,10 +106,11 @@ Pendant le calcul, l'écran montre : la progression par scénario, quatre compte
 1. Hôpital concerné : établissement (nom ou FINESS), nom du bloc, nombre de salles.
 2. Collecte des données, deux possibilités présentées dans un tableau comparatif :
 
-| | Blocapta s'en charge | Vous fournissez les données |
+| | Blocapta s'en charge | Vous organisez la collecte |
 |---|---|---|
-| Qui récupère les données | Blocapta, auprès du contact à l'hôpital | L'éditeur, auprès de l'hôpital |
-| Ce que l'éditeur fournit | Un contact : nom, fonction, e-mail | L'export du bloc, les effectifs, le plan |
+| Qui organise la collecte | Blocapta, auprès du contact à l'hôpital | L'éditeur, auprès de l'hôpital |
+| Ce que l'éditeur fournit | Un contact : nom, fonction, e-mail | Tout le dossier : export du bloc, effectifs, plan, accord de l'hôpital |
+| Dépôt des données | Par Blocapta | Par l'hôpital, avec un lien direct. L'éditeur ne voit pas les données |
 | Tarif | Payant, sur devis, option prioritaire | Gratuit |
 | Contrôle | Blocapta vérifie, pseudonymise, calibre | Contrôle automatique de suffisance, puis calibration |
 
@@ -117,24 +118,31 @@ Pendant le calcul, l'écran montre : la progression par scénario, quatre compte
 
 ### 4.6 Page publique de vérification
 
-Adresse : `/verifier/<numéro>`. Aucun compte.
+Adresse : `/verifier/<numéro>`. Aucun compte. Le champ est vide à l'ouverture ; Entrée lance la vérification.
 
-- Champ de saisie du numéro.
-- Statut : valide, expiré, remplacé, ou inconnu.
-- Trois blocs mis en avant : logiciel testé, **hôpital simulé** (nom, type, salles), jumeau numérique (version, données de calibration).
+- Statut : « Numéro authentique. Chiffres inchangés depuis l'émission. », expiré, remplacé, ou inconnu. Le mot « valide » n'est pas employé seul : il se lirait comme « logiciel validé ».
+- Phrase fixe : « Ce numéro atteste qu'une simulation a eu lieu. Il n'atteste pas que le logiciel sera adopté. »
+- Quatre blocs mis en avant : logiciel testé, **hôpital simulé** (nom, type, salles), jumeau numérique (version, données de calibration), conclusion du test.
 - Mention « Ce certificat vaut pour cet hôpital uniquement ».
-- Résultats par scénario : conclusion, chiffres clés, condition.
-- Encadré « Ce que ce certificat ne dit pas » : c'est une simulation ; il ne vaut pas pour un autre hôpital ; N paramètres sont à calibrer.
-- Empreinte des chiffres, lien vers la méthode et le rapport.
+- Résultats par scénario : conclusion, chiffres clés avec intervalle, condition principale.
+- « Ce que vous devriez observer si le modèle a raison » : part des saisies dans l'outil et retard ajouté, semaine par semaine. L'hôpital peut comparer après le démarrage.
+- « Déclaré par l'éditeur, non vérifié par Blocapta » : temps par étape, formation, support, rétablissement, avec la fiabilité de l'analyse de la fiche.
+- « Périmètre du test » : scénarios simulés et non simulés, versions de la fiche (y compris une version refusée), et la phrase d'indépendance : « Blocapta est payé par l'éditeur. L'éditeur choisit les scénarios. Il ne peut modifier ni le bloc, ni le modèle, ni les chiffres. »
+- « Ce que ce certificat ne dit pas » : mesuré, déclaré, supposé, non fait.
+- Repliés : indice d'adoption avec ses composantes, fidélité du jumeau, paramètres du modèle et sources.
+- Empreinte des chiffres, calculée à l'émission.
 
 ## 5. Règles de l'interface
 
 - Aucun chiffre pour une fiche non analysable ni pour un scénario non simulé.
-- Statut d'un scénario, d'après le moteur : vert = Conforme, orange = Réserves, rouge = Non conforme.
-- Statut d'un test : « Conforme » si tous ses scénarios le sont, « Non conforme » si l'un d'eux l'est, « Conforme avec réserves » sinon.
+- Conclusion d'un scénario, d'après le moteur : vert = Sans réserve, orange = Avec réserves, rouge = À risque. Les mots « conforme » et « non conforme » ne sont pas employés : le test ne vérifie la conformité à aucune norme.
+- Conclusion d'un test : celle de son scénario le moins favorable.
+- Un certificat émis s'affiche par une seconde étiquette, « Certificat émis », à côté de la conclusion. Il ne la remplace pas. Le certificat s'appelle partout « certificat de simulation ».
+- Une seule unité de retard : minutes par intervention programmée.
+- Chaque écran de résultat distingue ce qui est simulé de ce qui est déclaré dans la fiche.
 - Un statut est toujours une étiquette avec du texte, jamais une couleur seule.
-- Indice d'adoption, de 0 à 100, par scénario : 40 % confiance finale des équipes, 25 % fluidité du bloc (retard ajouté, débordements), 20 % charge de travail (jours de surcharge, erreurs), 15 % robustesse (part des variations de sensibilité où la conclusion tient). Chaque composante va de 0 à 100. L'indice d'un test est la moyenne de ses scénarios. Libellés : 85 et plus « Adoption solide », 70 à 84 « Adoption sous conditions », 50 à 69 « Adoption fragile », moins de 50 « Adoption à risque ».
-- L'indice accompagne le statut, il ne le remplace pas : le statut reste celui du scénario le moins favorable. Les quatre composantes sont toujours affichées avec l'indice. Les pondérations sont une proposition, à valider par l'équipe.
+- Indice d'adoption, de 0 à 100, par scénario, provisoire. Quatre composantes de 0 à 100 : confiance (100 × confiance finale), fluidité (100 − 10 par minute de retard ajoutée − 2 par déprogrammation ajoutée), charge (100 − 2 par journée-soignant en surcharge ajoutée), robustesse (part des variations de sensibilité où la conclusion tient). Pondérations : 40 %, 25 %, 20 %, 15 %. Calcul sur le bras principal du scénario. L'indice d'un test est calculé sur la moyenne des composantes de ses scénarios.
+- L'indice accompagne la conclusion, il ne la remplace pas. Il est toujours affiché avec ses composantes et la mention « provisoire, pondérations à valider ». Il ne figure ni sur le badge, ni dans la liste des tests.
 - Une seule action principale par écran, en bas à droite.
 - Les écarts se lisent « avec outil moins sans outil ».
 - Résultat d'un modèle : la mention figure sur les résultats, le mode Présenter et la page publique.
@@ -204,7 +212,7 @@ Catalogue décrit par des données (`SCENARIOS` dans `js/campaign.js`), pas par 
 
 Décisions :
 
-- 3 scénarios au choix sont inclus par test. Au-delà, chaque scénario porte la mention « Supplément ».
+- 2 scénarios au choix sont inclus par test. Au-delà, chaque scénario porte la mention « Supplément ». Avec trois scénarios dans le moteur, le troisième est donc un supplément dès le premier lot.
 - Un scénario « à développer » apparaît dans le catalogue, grisé, avec la mention « Bientôt ». Il n'est pas sélectionnable tant que le moteur ne le calcule pas.
 - Tout scénario simulé dans un test est publié dans son certificat. L'éditeur ne peut pas retirer un scénario défavorable.
 
@@ -343,7 +351,35 @@ Chaque lot a son plan d'implémentation et peut être livré seul.
 - Console d'administration Blocapta (les profils se règlent par fichiers et outils en ligne de commande).
 - Calibration automatique d'un jumeau à partir des fichiers déposés.
 
-## 17. Points ouverts
+## 17. Prototype : d'où viennent les chiffres
+
+Le prototype n'est pas relié au moteur, mais ses chiffres n'en sont pas moins des sorties du moteur, copiées telles quelles.
+
+| Élément du prototype | Origine |
+|---|---|
+| Tests « CheckBloc tablette v1.4 » (scénarios A, B, C) et « ScanTrace v2 » (A, B) | `node tools/outil.js --fiche data/fiches/<fiche>.json --scenario <X> --json`, exécution du 15/11/2026. Logiciels fictifs, bloc pilote réel |
+| Sensibilité | même commande avec `--sensibilite` (10 répétitions) |
+| Fiche non analysable « ScanTrace v1 » | `npm run fiche -- data/fiches/scantrace-incomplete.json` |
+| Rapport du scénario B | `--rapport-ia`, modèle local qwen2.5:14b, texte non retouché, 0 chiffre non vérifié |
+| Fidélité du jumeau | `node tools/calibrer.js --verifier --jours 80` ; occupation : README |
+| Confiance et usage de chaque soignant dans le plan 3D | historique de confiance des agents du moteur (une répétition) ; règle d'usage du moteur |
+
+Ce qui reste fabriqué pour la maquette, et qui est signalé à l'écran :
+
+- les horaires et les déplacements du plan 3D (« animation d'illustration ») ;
+- la progression de l'écran « Simulation en cours » (les totaux, eux, sont ceux de l'exécution réelle) ;
+- le bloc générique, qui reprend les chiffres du bloc pilote ;
+- les trois hôpitaux d'exemple et la demande « CH exemple D » ;
+- les numéros de certification, et l'empreinte, qui n'est pas calculée.
+
+Constats tirés de ces exécutions, utiles pour le pitch :
+
+- Scénario B : usage en semaine 4 de 97,3 % avec un support sur place, 72,1 % sans. Le support est la condition qui change le résultat.
+- La conclusion tient dans 9 variations de paramètres sur 14 pour les trois scénarios. C'est une limite à dire, pas à cacher.
+- À 10 répétitions, la conclusion de référence du scénario A est « sans réserve » ; à 20, « avec réserves ». Le seuil est proche.
+- Aucune des fiches d'exemple ne donne un scénario « à risque ».
+
+## 18. Points ouverts
 
 - Nom public du bloc pilote et des futurs hôpitaux.
 - Fichier du modèle 3D : format, nommage des salles, qui le fournit.
