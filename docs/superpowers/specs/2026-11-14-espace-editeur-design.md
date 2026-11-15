@@ -373,6 +373,7 @@ Le prototype n'est pas relié au moteur, mais ses chiffres n'en sont pas moins d
 
 Ce qui reste fabriqué pour la maquette, et qui est signalé à l'écran :
 
+- l'« Hôpital de démonstration » et le test qui porte dessus : données et résultats synthétiques, construits à partir des sorties réelles par des règles cohérentes, pour montrer ce qu'on obtient avec toutes les données demandées (voir `docs/DONNEES_A_DEMANDER.md`, section 8). Le bouton « Démo guidée » ouvre ce test ; « Présenter » sur le test du bloc pilote donne la version aux chiffres réels ;
 - les horaires et les déplacements du plan 3D (« animation d'illustration ») ;
 - la progression de l'écran « Simulation en cours » (les totaux, eux, sont ceux de l'exécution réelle) ;
 - le bloc générique, qui reprend les chiffres du bloc pilote ;

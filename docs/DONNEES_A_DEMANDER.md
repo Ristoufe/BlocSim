@@ -174,3 +174,28 @@ Autres données optionnelles :
 - L'écran « Demander un jumeau numérique » reprend la liste des sections 2 à 4, avec ce que le jumeau tire de chaque donnée et le contrôle de suffisance des données indispensables.
 - L'onglet « Indicateurs » des résultats reprend la section 5 : les indicateurs calculés affichent les valeurs du moteur, les autres indiquent la donnée qui manque.
 - Le plan du bloc affiche six indicateurs de la journée animée : interventions terminées, occupation des salles, temps ajouté par l'outil, lits de SSPI occupés, saisies faites dans l'outil, salles finissant après 17 h 30. La journée animée est une illustration : ces six valeurs ne sont pas des résultats.
+
+## 8. Jeu de démonstration : ce qu'on obtiendrait avec toutes les données
+
+Le prototype contient un « Hôpital de démonstration » entièrement synthétique. Il montre la cible : ce que Blocapta produit quand un hôpital fournit les 17 données de ce document. Il est marqué « Démonstration, données synthétiques » sur chaque écran. Ce ne sont pas des résultats.
+
+Ce que les données complètes changent, par rapport au bloc pilote :
+
+| | Bloc pilote, données réelles partielles | Hôpital de démonstration, données synthétiques complètes |
+|---|---|---|
+| Données reçues | Export, planning, plan schématique ; effectifs et motifs d'annulation en partie | 17 sur 17 |
+| Indicateurs affichés | 17 | 24, dont démarrage à l'heure, rotation, SSPI, brancardage, heures supplémentaires, check-lists, coût |
+| Paramètres de comportement | 6 « à calibrer » | 6 « mesurés dans ce bloc » |
+| Sensibilité | Conclusion stable dans 9 variations sur 14 | 13 sur 14, avec des bornes étroites |
+| Vérification | Aucune comparaison avec un déploiement réel | Rejeu d'un déploiement passé : usage simulé 78 %, observé 81 % |
+| Fidélité du jumeau | 9 indicateurs, 4 écarts à réduire | 10 indicateurs, 1 écart à réduire |
+
+Comment le jeu est fabriqué, pour qu'il reste cohérent :
+
+- Il part des sorties réelles du moteur pour CheckBloc tablette sur le bloc pilote.
+- Une même règle est appliquée partout : totaux, semaines, jours, cohorte de la panne et confiance de chaque soignant. Par exemple l'usage de l'outil est relevé de la même façon dans le chiffre de semaine 4, dans la courbe par semaine et dans le plan 3D.
+- Les sept indicateurs supplémentaires sont déduits des totaux par des règles fixes : le démarrage à l'heure baisse avec le retard ajouté ; les check-lists complètes montent avec l'usage ; le coût est le nombre de minutes ajoutées multiplié par le coût de la minute déclaré par l'hôpital.
+- La sensibilité reprend la vraie analyse, resserrée autour de paramètres supposés mesurés.
+
+Le générateur n'est pas dans le dépôt : il a servi à produire les données embarquées dans le prototype.
+
